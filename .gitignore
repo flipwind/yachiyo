@@ -1,0 +1,7 @@
+.venv
+
+# These files or dictionaries are under development.
+.temp/
+.notes/
+yachiyo-dev/
+docs/

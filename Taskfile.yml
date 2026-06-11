@@ -1,0 +1,16 @@
+version: 3
+
+env:
+  YACHIYO_GLOBAL_MODE: production # Default mode is production, and can be overridden by tasks.
+  YACHIYO_CHAR_PATH: ./yachiyo-dev/package.yachiyo/prompts # Default character data path, consuming being under development.
+
+tasks:
+  dev:
+    desc: Run Yachiyo in development mode
+    silent: true
+    env:
+      YACHIYO_GLOBAL_MODE: development
+    cmds:
+      - "echo [Yachiyo] Running Yachiyo in $YACHIYO_GLOBAL_MODE mode"
+      - "echo [Yachiyo] Using character data from $YACHIYO_CHAR_PATH"
+      - go run main.go
