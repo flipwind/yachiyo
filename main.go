@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"yachiyo/yachiyo-core/chat"
 	"yachiyo/yachiyo-core/prompt"
+	"yachiyo/yachiyo-server/config"
+	"yachiyo/yachiyo-server/llmprovider"
 	"yachiyo/yachiyo-utils/logger"
 )
 
@@ -22,4 +27,35 @@ func main() {
 
 	sysPrompt := prompt.LoadSystemPrompt(charPath)
 	sysPrompt = prompt.ProcessSystemPrompt(sysPrompt, "cli")
+
+	configManager := config.NewConfigManager()
+	err := configManager.Load("config.yaml")
+	if err != nil {
+		logger.Error(sourcename, "Reading Config Failed.")
+	}
+
+	currentKey := configManager.CurrentConfig.LLM.Key[0]
+
+	depsekProvider := llmprovider.CreateOpenAIProvider(currentKey.BaseUrl, currentKey.Secret, currentKey.ModelName)
+
+	var messages []chat.Message
+	messages = append(messages, chat.Message{
+		Role: "system",
+		Content: sysPrompt.Content,
+	})
+	messages = append(messages, chat.Message{
+		Role: "user",
+		Content: "晚上好啊~",
+	})
+	
+	output, err := depsekProvider.ChatStream(context.Background(), messages)
+	if err != nil {
+		logger.Error(sourcename, "Chatstreaming Failed: %v", err)
+		return
+	}
+
+	for word := range output {
+		fmt.Print(word)
+	}
+	fmt.Println()
 }
