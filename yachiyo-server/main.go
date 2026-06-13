@@ -11,7 +11,7 @@ import (
 	"yachiyo/yachiyo-utils/logger"
 )
 
-var sourcename string = "Yachiyo.Main"
+var sourcename string = "Yachiyo.Server"
 
 func main() {
 	// Since this project is under active development, you may find this unavailable.

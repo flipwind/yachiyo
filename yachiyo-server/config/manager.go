@@ -6,7 +6,7 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-var sourcename = "ConfigManager"
+var sourcename = "Yachiyo.ConfigManager"
 
 type ConfigManager struct {
 	CurrentConfig *Config
