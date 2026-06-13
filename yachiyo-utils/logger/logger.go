@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"time"
+	"os"
 )
 
 func Success(source string, format string, v ...any) {
@@ -30,6 +31,9 @@ func Warn(source string, format string, v ...any) {
 }
 
 func Debug(source string, format string, v ...any) {
+	if os.Getenv("YACHIYO_GLOBAL_MODE") != "development" {
+		return
+	}
 	msg := fmt.Sprintf(format, v...)
 	timeStr := time.Now().Format("2006.01.02 15:04:05")
 	fmt.Printf("\033[34m[%s] [DEBUG] [%s] %s\033[0m\n", timeStr, source, msg)
