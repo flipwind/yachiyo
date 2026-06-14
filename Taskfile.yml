@@ -17,6 +17,16 @@ tasks:
       - "echo [Yachiyo] Using character data from $YACHIYO_CHAR_PATH"
       - go run main.go
   
+  clientdev:
+    desc: Run Yachiyo Client in development mode
+    silent: true
+    env:
+      YACHIYO_GLOBAL_MODE: development
+    dir: ./yachiyo-client
+    cmds:
+      - "echo [Yachiyo] Running Yachiyo Client in $YACHIYO_GLOBAL_MODE mode"
+      - go run main.go
+  
   proto:
     desc: Compile proto files
     cmds:
