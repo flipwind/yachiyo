@@ -20,11 +20,13 @@ func (c *ConfigManager) Load(configPath string) error {
 	fileData, err := os.ReadFile(configPath)
 	if err != nil {
 		logger.Error(sourcename, "Reading Config {%v} threw an error: %v", configPath, err)
+		return err
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(fileData, &config); err != nil {
 		logger.Error(sourcename, "Unmarshal Config {%v} error: %v", configPath, err)
+		return err
 	}
 
 	c.CurrentConfig = &config
