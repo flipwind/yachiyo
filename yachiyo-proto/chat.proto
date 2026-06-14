@@ -10,6 +10,7 @@ service ChatService {
 message Message {
     string role = 1;
     string content = 2;
+    int64 timestamp = 3;
 }
 
 message ChatRequest {

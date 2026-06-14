@@ -36,6 +36,7 @@ func (s *ChatServer) GetChatStream(req *chat.ChatRequest, stream chat.ChatServic
 		messages = append(messages, chat.Message{
 			Role: msg.Role,
 			Content: msg.Content,
+			Timestamp: msg.Timestamp,
 		})
 	}
 	

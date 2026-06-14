@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 	"yachiyo/yachiyo-core/chat"
 	"yachiyo/yachiyo-utils/logger"
-	
+
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -37,6 +38,7 @@ func main(){
 			{
 				Role: "user",
 				Content: "晚上好~",
+				Timestamp: time.Now().Unix(),
 			},
 		},
 	}
