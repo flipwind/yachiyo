@@ -1,0 +1,24 @@
+syntax = "proto3";
+package yachiyo.chat;
+
+option go_package = "yachiyo/yachiyo-core/chat";
+
+service ChatService {
+  rpc GetChatStream(ChatRequest) returns (stream ChatResponse);
+}
+
+message Message {
+    string role = 1;
+    string content = 2;
+}
+
+message ChatRequest {
+    string id = 1;
+    string model = 2;
+    repeated Message messages = 3;
+}
+
+message ChatResponse {
+    string id = 1;
+    Message delta = 2;
+}
