@@ -1,22 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"os"
-	"time"
+	"strings"
 	"yachiyo/yachiyo-core/chat"
 	"yachiyo/yachiyo-utils/logger"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var sourcename = "Yachiyo.Client"
 
-func main(){
+func main() {
 	globalMode := os.Getenv("YACHIYO_GLOBAL_MODE")
 
 	logger.Warn(sourcename, "Since some assets are private, this project may be unavailable at present.")
@@ -29,38 +29,58 @@ func main(){
 		return
 	}
 	defer conn.Close()
+
 	client := chat.NewChatServiceClient(conn)
 
-	req := &chat.ChatRequest{
-		Id: uuid.New().String(),
-		Model: "deepseek-v4-flash",
-		Messages: []*chat.Message{
-			{
-				Role: "user",
-				Content: "晚上好~",
-				Timestamp: time.Now().Unix(),
-			},
-		},
-	}
+	session_response, err := client.CreateSession(context.Background(), &chat.CreateSessionRequest{})
+	session_id := session_response.GetUuid()
 
-	stream, err := client.GetChatStream(context.Background(), req)
 	if err != nil {
-		logger.Error(sourcename, "Creating stream Failed: %v", err)
-		return
+		logger.Error(sourcename, "Getting session ID failed: %v", err)
 	}
 
+	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		response, err := stream.Recv()
-		if err == io.EOF {
-			fmt.Println()
+		fmt.Print("\nUser > ")
+
+		if !scanner.Scan() {
 			break
 		}
 
+		input := scanner.Text()
+		input = strings.TrimSpace(input)
+
+		req := &chat.ChatRequest{
+			SessionId:      session_id,
+			Model:   "deepseek-v4-flash",
+			Content: input,
+		}
+
+		stream, err := client.ChatStream(context.Background(), req)
 		if err != nil {
-			logger.Error(sourcename, "Streaming Failed: %v", err)
-			break
+			logger.Error(sourcename, "Creating stream failed: %v", err)
+			return
 		}
 
-		fmt.Print(response.Delta.Content)
+		fmt.Print("\nYachiyo > ")
+
+		for {
+			response, err := stream.Recv()
+			if err == io.EOF {
+				fmt.Println()
+				break
+			}
+
+			if err != nil {
+				logger.Error(sourcename, "Streaming Failed: %v", err)
+				break
+			}
+
+			fmt.Print(response.Delta.Content)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		logger.Error(sourcename, "Scanned error: %v", err)
 	}
 }
