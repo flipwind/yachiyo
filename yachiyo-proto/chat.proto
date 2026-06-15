@@ -8,9 +8,12 @@ service ChatService {
 }
 
 message Message {
-    string role = 1;
-    string content = 2;
-    int64 timestamp = 3;
+    int64 id = 1;
+    string uuid = 2;
+    string session_id = 3;
+    string role = 4;
+    string content = 5;
+    int64 timestamp = 6;
 }
 
 message ChatRequest {

@@ -7,3 +7,4 @@ yachiyo-dev/
 docs/
 
 config.yaml
+*.db
