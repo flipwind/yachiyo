@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_GetChatStream_FullMethodName = "/yachiyo.chat.ChatService/GetChatStream"
+	ChatService_CreateSession_FullMethodName = "/yachiyo.chat.ChatService/CreateSession"
+	ChatService_ChatStream_FullMethodName    = "/yachiyo.chat.ChatService/ChatStream"
 )
 
 // ChatServiceClient is the client API for ChatService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
-	GetChatStream(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResponse], error)
+	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
+	ChatStream(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResponse], error)
 }
 
 type chatServiceClient struct {
@@ -37,9 +39,19 @@ func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
 }
 
-func (c *chatServiceClient) GetChatStream(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResponse], error) {
+func (c *chatServiceClient) CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_GetChatStream_FullMethodName, cOpts...)
+	out := new(CreateSessionResponse)
+	err := c.cc.Invoke(ctx, ChatService_CreateSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) ChatStream(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_ChatStream_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +66,14 @@ func (c *chatServiceClient) GetChatStream(ctx context.Context, in *ChatRequest, 
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ChatService_GetChatStreamClient = grpc.ServerStreamingClient[ChatResponse]
+type ChatService_ChatStreamClient = grpc.ServerStreamingClient[ChatResponse]
 
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
 type ChatServiceServer interface {
-	GetChatStream(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error
+	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
+	ChatStream(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -71,8 +84,11 @@ type ChatServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChatServiceServer struct{}
 
-func (UnimplementedChatServiceServer) GetChatStream(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error {
-	return status.Error(codes.Unimplemented, "method GetChatStream not implemented")
+func (UnimplementedChatServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSession not implemented")
+}
+func (UnimplementedChatServiceServer) ChatStream(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error {
+	return status.Error(codes.Unimplemented, "method ChatStream not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -95,16 +111,34 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 	s.RegisterService(&ChatService_ServiceDesc, srv)
 }
 
-func _ChatService_GetChatStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _ChatService_CreateSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).CreateSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_CreateSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).CreateSession(ctx, req.(*CreateSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_ChatStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ChatRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ChatServiceServer).GetChatStream(m, &grpc.GenericServerStream[ChatRequest, ChatResponse]{ServerStream: stream})
+	return srv.(ChatServiceServer).ChatStream(m, &grpc.GenericServerStream[ChatRequest, ChatResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ChatService_GetChatStreamServer = grpc.ServerStreamingServer[ChatResponse]
+type ChatService_ChatStreamServer = grpc.ServerStreamingServer[ChatResponse]
 
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -112,11 +146,16 @@ type ChatService_GetChatStreamServer = grpc.ServerStreamingServer[ChatResponse]
 var ChatService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "yachiyo.chat.ChatService",
 	HandlerType: (*ChatServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateSession",
+			Handler:    _ChatService_CreateSession_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetChatStream",
-			Handler:       _ChatService_GetChatStream_Handler,
+			StreamName:    "ChatStream",
+			Handler:       _ChatService_ChatStream_Handler,
 			ServerStreams: true,
 		},
 	},

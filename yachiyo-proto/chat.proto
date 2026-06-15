@@ -4,7 +4,16 @@ package yachiyo.chat;
 option go_package = "yachiyo/yachiyo-core/chat";
 
 service ChatService {
-  rpc GetChatStream(ChatRequest) returns (stream ChatResponse);
+    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+    rpc ChatStream(ChatRequest) returns (stream ChatResponse);
+}
+
+message CreateSessionRequest{
+
+}
+
+message CreateSessionResponse {
+    string uuid = 1;
 }
 
 message Message {
@@ -17,9 +26,9 @@ message Message {
 }
 
 message ChatRequest {
-    string id = 1;
+    string session_id = 1;
     string model = 2;
-    repeated Message messages = 3;
+    string content = 3;
 }
 
 message ChatResponse {

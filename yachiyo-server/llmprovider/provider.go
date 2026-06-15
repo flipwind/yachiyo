@@ -26,14 +26,11 @@ func CreateOpenAIProvider(baseUrl, apiKey, model string) *OpenAIProvider{
 	}
 }
 
-func (provider *OpenAIProvider) ChatStream(ctx context.Context, messages []chat.Message) (<-chan string, error){
+func (provider *OpenAIProvider) ChatStream(ctx context.Context, messages []*chat.Message) (<-chan string, error){
 	output := make(chan string)
 
 	var OpenAIMessages []openai.ChatCompletionMessageParamUnion
 	for _, m := range messages {
-		m.ContentBuild()
-		logger.Debug(sourcename, "%#v", m.Content)
-		
 		switch m.Role {
 		case "system": OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(m.Content))
 		case "user": OpenAIMessages = append(OpenAIMessages, openai.UserMessage(m.Content))
