@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 	"yachiyo/yachiyo-core/chat"
 	"yachiyo/yachiyo-core/prompt"
@@ -25,7 +28,7 @@ var (
 	globalStorage  storage.MemoryStorage
 
 	globalMode string
-	charPath string
+	charPath   string
 )
 
 type ChatServer struct {
@@ -143,7 +146,9 @@ func main() {
 	defer globalStorage.Close()
 
 	// Service
-	lis, err := net.Listen("tcp", ":16800")
+	port := cfg.Runtime.Port
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		logger.Error(sourcename, "Listening port failed: %v", err)
 		return
@@ -151,14 +156,27 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	chat.RegisterChatServiceServer(grpcServer, &ChatServer{})
-	logger.Success(sourcename, "Yachiyo Server listening at port 16800")
+	logger.Success(sourcename, "Yachiyo Server listening at port %v", port)
 
 	// Plugins
-	pluginDriver := plugin.NewPluginDriver("../yachiyo-plugins", ":16800")
+	pluginDriver := plugin.NewPluginDriver(cfg.Plugin.Path, fmt.Sprintf(":%v", port))
 	pluginDriver.Init()
 
-	if err := grpcServer.Serve(lis); err != nil {
-		logger.Error(sourcename, "Failed to serve: %v", err)
-		return
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Error(sourcename, "Failed to serve: %v", err)
+			return
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Info(sourcename, "Yachiyo logging out...")
+
+	pluginDriver.Close()
+	grpcServer.GracefulStop()
+
+	logger.Success(sourcename, "Bye Yachiyo ^-^")
 }

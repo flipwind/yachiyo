@@ -1,0 +1,19 @@
+name: hello-yachiyo
+author: flipwind
+version: 1.68
+description: a very simple way to log a message "Hello Yachiyo"
+
+runtime: go
+args:
+  - run
+  - main.go
+
+subscribed_events:
+  - "user_message"
+tools:
+  - name: say_hello
+    description: get a random sentences about yachiyo
+    parameters:
+      name:
+        type: string
+        description: the name you want to fill

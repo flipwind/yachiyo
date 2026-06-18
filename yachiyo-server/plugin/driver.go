@@ -96,3 +96,22 @@ func (d *PluginDriver) Init() {
 		}
 	}
 }
+
+func (d *PluginDriver) Close() {
+	for _, plugin := range d.plugins {
+		if plugin.Type != External {
+			continue
+		}
+
+		logger.Debug(sourcename, "Stopping plugin {%v}", plugin.Name)
+
+		if err := plugin.Cmd.Process.Kill(); err != nil {
+			logger.Error(sourcename, "Stopping plugin {%v} failed: %v", plugin.Name, err)
+			continue
+		}
+
+		if err := plugin.Cmd.Wait(); err != nil {
+			logger.Debug(sourcename, "Plugin {%v} killed: %v", plugin.Name, err)
+		}
+	}
+}
