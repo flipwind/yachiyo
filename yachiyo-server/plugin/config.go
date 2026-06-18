@@ -4,7 +4,7 @@ import (
 	"os/exec"
 )
 
-var sourcename = "Yachiyo.PluginConfig"
+var sourcename = "Yachiyo.Plugin"
 
 type PluginConfig struct {
 	Name string					`yaml:"name"`

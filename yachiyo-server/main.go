@@ -162,6 +162,11 @@ func main() {
 	pluginDriver := plugin.NewPluginDriver(cfg.Plugin.Path, fmt.Sprintf(":%v", port))
 	pluginDriver.Init()
 
+	eventBus := plugin.NewEventBus()
+	eventBus.Register(pluginDriver)
+
+	eventBus.Publish(&plugin.Event{Type: "user_message"})
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

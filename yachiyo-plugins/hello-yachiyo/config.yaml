@@ -9,7 +9,7 @@ args:
   - main.go
 
 subscribed_events:
-  - "user_message"
+  - user_message
 tools:
   - name: say_hello
     description: get a random sentences about yachiyo
