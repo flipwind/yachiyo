@@ -6,5 +6,5 @@
 yachiyo-dev/
 docs/
 
-config.yaml
+yachiyo-server/config.yaml
 *.db

@@ -10,6 +10,7 @@ import (
 	"yachiyo/yachiyo-core/storage"
 	"yachiyo/yachiyo-server/config"
 	"yachiyo/yachiyo-server/llmprovider"
+	"yachiyo/yachiyo-server/plugin"
 	"yachiyo/yachiyo-utils/logger"
 
 	"github.com/google/uuid"
@@ -122,9 +123,6 @@ func main() {
 	logger.Info(sourcename, "Running Yachiyo Server in %s mode.", globalMode)
 	logger.Info(sourcename, "Now character package reading the path {%s}", charPath)
 
-	// System prompt
-	
-
 	// Config
 	configManager := config.NewConfigManager()
 	err := configManager.Load("config.yaml")
@@ -154,6 +152,10 @@ func main() {
 	grpcServer := grpc.NewServer()
 	chat.RegisterChatServiceServer(grpcServer, &ChatServer{})
 	logger.Success(sourcename, "Yachiyo Server listening at port 16800")
+
+	// Plugins
+	pluginDriver := plugin.NewPluginDriver("../yachiyo-plugins", ":16800")
+	pluginDriver.Init()
 
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Error(sourcename, "Failed to serve: %v", err)
