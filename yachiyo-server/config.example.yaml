@@ -1,7 +1,0 @@
-LLM:
-  Key:
-    - Name: Deepseek_api
-      BaseUrl: https://api.deepseek.com
-      Secret: your_key_here
-      StatusEnable: True
-      ModelName: deepseek-v4-flash
