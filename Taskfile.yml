@@ -1,0 +1,12 @@
+version: 3
+
+tasks:
+  serverdev:
+    desc: Run Yachiyo server in development mode
+    silent: true
+    env:
+      YACHIYO_GLOBAL_MODE: development
+      YACHIYO_CHAR_PATH: "{{.USER_WORKING_DIR}}/yachiyo-dev/package.yachiyo/prompts"
+    dir: ./yachiyo-server
+    cmds:
+      - go run main.go
