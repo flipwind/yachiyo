@@ -1,8 +1,9 @@
 package main
 
 import (
+	"time"
 	"yachiyo/yachiyo-core/core"
-	"yachiyo/yachiyo-core/memory"
+	"yachiyo/yachiyo-core/event"
 	"yachiyo/yachiyo-utils/logger"
 )
 
@@ -14,9 +15,12 @@ func main() {
 	core := core.New()
 
 	// Simple tests
-	core.Memory.Remember(memory.Memory{
-		Content: "Hello Yachiyo~",
+	core.Process(&event.UserMessageEvent{
+		Message: event.Message{
+			Author: "flipwind",
+			Source: "CLI",
+			Time: time.Now().Unix(),
+			Content: "Hello Yachiyo",
+		},
 	})
-
-	log.Info("%v", core.Memory.ListAll())
 }
