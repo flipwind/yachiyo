@@ -15,7 +15,7 @@ func main() {
 	core := core.New()
 
 	// Simple tests
-	core.Process(&event.UserMessageEvent{
+	result := core.Process(&event.UserMessageEvent{
 		Message: event.Message{
 			Author: "flipwind",
 			Source: "CLI",
@@ -23,4 +23,6 @@ func main() {
 			Content: "Hello Yachiyo",
 		},
 	})
+
+	log.Success("%s", result)
 }
