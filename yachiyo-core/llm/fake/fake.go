@@ -8,6 +8,6 @@ func NewFakeLLM() *FakeLLM {
 
 func (l *FakeLLM) LLM() {}
 
-func (l *FakeLLM) Gen(content string) string {
-	return "Hello from Yachiyo: \n" + content
+func (l *FakeLLM) Gen(prompt string) string {
+	return "Hello from Yachiyo: \n" + prompt
 }

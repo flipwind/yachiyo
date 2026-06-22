@@ -8,8 +8,8 @@ type State struct {
 	Attention Urgency
 }
 
-func New() *State {
-	return &State{
+func NewState() State {
+	return State{
 		Socialization: Medium,
 		Interest: Medium,
 		Attention: Medium,

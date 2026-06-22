@@ -1,9 +1,8 @@
 package core
 
 import (
-	"fmt"
-	"time"
 	"yachiyo/yachiyo-core/event"
+	"yachiyo/yachiyo-core/llm"
 	"yachiyo/yachiyo-core/llm/fake"
 	"yachiyo/yachiyo-core/memory"
 	"yachiyo/yachiyo-core/memory/basic"
@@ -12,11 +11,17 @@ import (
 
 type Core struct{
 	Memory memory.MemoryStorage
+	State state.State
+	Emotion state.Emotion
+	LLM llm.LLM
 }
 
 func New() *Core{
 	return &Core{
 		Memory: basic.New(),
+		State: state.NewState(),
+		Emotion: state.NewEmotion(),
+		LLM: fake.NewFakeLLM(),
 	}
 }
 
@@ -25,21 +30,13 @@ func (c *Core) Process(e *event.UserMessageEvent) string{
 		Content: e.Message.String(),
 	})
 
-	systemPrompt := "systemPrompt"
-	currentTime := time.Now().Format("2006.01.02 15:04:05")
-	currentEmotion := "Excited"
-	currentState := state.New()
+	prompt := llm.PromptBuilder(&llm.Context{
+		Memory: c.Memory,
+		Emotion: c.Emotion,
+		State: c.State,
+	})
 
-	prompt := fmt.Sprintf(`%s
-Time: %s
-Emotion: %s
-State: %s
-Context: %s`, 
-systemPrompt, currentTime, currentEmotion, currentState.String(), c.Memory.ListAll())
-
-	llm := fake.NewFakeLLM()
-
-	result := llm.Gen(prompt)
+	result := c.LLM.Gen(prompt)
 	
 	return result
 }
