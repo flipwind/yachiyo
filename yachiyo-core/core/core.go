@@ -7,6 +7,7 @@ import (
 	"yachiyo/yachiyo-core/llm/fake"
 	"yachiyo/yachiyo-core/memory"
 	"yachiyo/yachiyo-core/memory/basic"
+	"yachiyo/yachiyo-core/state"
 )
 
 type Core struct{
@@ -27,14 +28,14 @@ func (c *Core) Process(e *event.UserMessageEvent) string{
 	systemPrompt := "systemPrompt"
 	currentTime := time.Now().Format("2006.01.02 15:04:05")
 	currentEmotion := "Excited"
-	currentState := "Socialization: High"
+	currentState := state.New()
 
 	prompt := fmt.Sprintf(`%s
 Time: %s
 Emotion: %s
-State: <%s>
+State: %s
 Context: %s`, 
-systemPrompt, currentTime, currentEmotion, currentState, c.Memory.ListAll())
+systemPrompt, currentTime, currentEmotion, currentState.String(), c.Memory.ListAll())
 
 	llm := fake.NewFakeLLM()
 
