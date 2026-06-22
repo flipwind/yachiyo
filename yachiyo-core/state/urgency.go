@@ -1,5 +1,7 @@
 package state
 
+import "strings"
+
 type Urgency int
 
 const (
@@ -27,4 +29,32 @@ func (u *Urgency) String() string {
 		return "Extreme"
 	}
 	return "Unknown"
+}
+
+func UrgencyIntroduce() string {
+	return `Urgency is a way to measure the degree of something.
+It consists of Trivial, Low, Medium, High, Urgent, Extreme.
+These 6 types are from low to high.
+If task asks generating Urgency, DON'T introduce other types.`
+}
+
+func (u *Urgency) FromString(t string) {
+	t = strings.ToLower(t)
+	switch t {
+	case "trivial":
+		*u = Trivial
+	case "low":
+		*u = Low
+	case "medium":
+		*u = Medium
+	case "high":
+		*u = High
+	case "urgent":
+		*u = Urgent
+	case "extreme":
+		*u = Extreme
+
+	default:
+		*u = Medium
+	}
 }
