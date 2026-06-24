@@ -6,9 +6,12 @@ import (
 	"yachiyo/yachiyo-core/history"
 	"yachiyo/yachiyo-core/history/basic"
 	"yachiyo/yachiyo-core/llm"
-	"yachiyo/yachiyo-core/llm/fake"
+	"yachiyo/yachiyo-core/llm/provider"
 	"yachiyo/yachiyo-core/state"
+	"yachiyo/yachiyo-utils/logger"
 )
+
+var log = logger.New("Yachiyo.Core")
 
 type Core struct{
 	History history.HistoryStorage
@@ -21,23 +24,37 @@ type Core struct{
 func New() *Core{
 	config, err := config.LoadConfig("../yachiyo-core/assets/config.yaml")
 	if err != nil {}
+
+	// TODO: LLM List
+	llmConfig := config.CurrentConfig.LLM.Key[0]
+	llm := provider.NewOpenAIProvider(llmConfig.BaseUrl, llmConfig.Secret, llmConfig.ModelName)
+
 	return &Core{
 		History: basic.New(),
 		State: state.NewState(),
 		Emotion: state.NewEmotion(),
-		LLM: fake.NewFakeLLM(),
+		LLM: llm,
 		Config: config,
 	}
 }
 
 func (c *Core) Process(e *event.UserMessageEvent) string{
-	history := llm.PromptBuilder(&llm.Context{
+	histories := llm.PromptBuilder(&llm.Context{
 		History: c.History,
 		Emotion: c.Emotion,
 		State: c.State,
 	}, e)
 
-	result := c.LLM.Gen(history)
+	result, err := c.LLM.Gen(histories)
 	
+	if err != nil {
+		log.Error("LLM Generating error: %v", err)
+	}
+
+	c.History.Remember(history.History{
+		Role:    "assistant",
+		Content: result,
+	})
+
 	return result
 }

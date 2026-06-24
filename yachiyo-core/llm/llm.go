@@ -4,5 +4,5 @@ import "yachiyo/yachiyo-core/history"
 
 type LLM interface {
 	LLM()
-	Gen(history []history.History) string
+	Gen(history []history.History) (string, error)
 }

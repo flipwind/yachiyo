@@ -16,6 +16,8 @@ func main() {
 
 	core := core.New()
 
+	log.Success("Successfully initialize Yachiyo server.")
+
 	// Loop
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -31,7 +33,7 @@ func main() {
 				Content: input,
 			},
 		})
-		log.Debug("%s", result)
+		log.Success("Yachiyo: %s", result)
 
 	}
 
