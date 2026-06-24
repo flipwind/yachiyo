@@ -7,6 +7,7 @@ import (
 	"yachiyo/yachiyo-core/history/basic"
 	"yachiyo/yachiyo-core/llm"
 	"yachiyo/yachiyo-core/llm/provider"
+	"yachiyo/yachiyo-core/prompt"
 	"yachiyo/yachiyo-core/state"
 	"yachiyo/yachiyo-utils/logger"
 )
@@ -39,7 +40,7 @@ func New() *Core{
 }
 
 func (c *Core) Process(e *event.UserMessageEvent) string{
-	histories := llm.PromptBuilder(&llm.Context{
+	histories := prompt.PromptBuilder(&prompt.Context{
 		History: c.History,
 		Emotion: c.Emotion,
 		State: c.State,
