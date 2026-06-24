@@ -31,7 +31,7 @@ func main() {
 				Content: input,
 			},
 		})
-		log.Success("%s", result)
+		log.Debug("%s", result)
 
 	}
 
