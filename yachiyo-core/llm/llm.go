@@ -1,6 +1,8 @@
 package llm
 
-type LLM interface{
+import "yachiyo/yachiyo-core/history"
+
+type LLM interface {
 	LLM()
-	Gen(prompt string) string
+	Gen(history []history.History) string
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"os"
 	"time"
 	"yachiyo/yachiyo-core/core"
 	"yachiyo/yachiyo-core/event"
@@ -14,15 +16,26 @@ func main() {
 
 	core := core.New()
 
-	// Simple tests
-	result := core.Process(&event.UserMessageEvent{
-		Message: event.Message{
-			Author: "flipwind",
-			Source: "CLI",
-			Time: time.Now().Unix(),
-			Content: "Hello Yachiyo",
-		},
-	})
+	// Loop
+	scanner := bufio.NewScanner(os.Stdin)
 
-	log.Success("%s", result)
+	for scanner.Scan() {
+		input := scanner.Text()
+
+		result := core.Process(&event.UserMessageEvent{
+			Message: event.Message{
+				Type:    "User",
+				Author:  "flipwind",
+				Source:  "CLI",
+				Time:    time.Now().Unix(),
+				Content: input,
+			},
+		})
+		log.Success("%s", result)
+
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Error("Reading failed: %v", err)
+	}
 }

@@ -10,6 +10,7 @@ type Event interface {
 }
 
 type Message struct {
+	Type 	string
 	Author  string
 	Source  string
 	Content string
@@ -17,7 +18,8 @@ type Message struct {
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("<%s>(%s/%s) %s",
+	return fmt.Sprintf("<[%s] %s>(%s/%s) %s",
+		m.Type,
 		m.Author,
 		time.Unix(m.Time, 0).Format("2006.01.02 15:04:05"),
 		m.Source,
