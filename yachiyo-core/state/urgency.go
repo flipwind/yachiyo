@@ -58,3 +58,41 @@ func (u *Urgency) FromString(t string) {
 		*u = Medium
 	}
 }
+
+// State Change
+
+func (u *Urgency) Increase() {
+	if *u + 1 > Extreme {
+		return
+	}
+	*u += 1
+}
+
+func (u *Urgency) Decrease() {
+	if *u - 1 < Trivial {
+		return
+	}
+	*u -= 1
+}
+
+func (u *Urgency) Relieve() {
+	switch *u{
+	case Trivial: 	*u = Trivial
+	case Low:		*u = Low 
+	case Medium:	*u = Low
+	case High:		*u = Medium
+	case Urgent:	*u = Medium
+	case Extreme: 	*u = Low
+	}
+}
+
+func (u *Urgency) Press(){
+	switch *u{
+	case Trivial:	*u = High
+	case Low:		*u = Medium
+	case Medium:	*u = Medium
+	case High:		*u = Urgent
+	case Urgent:	*u = Extreme
+	case Extreme: 	*u = Extreme
+	}
+}
