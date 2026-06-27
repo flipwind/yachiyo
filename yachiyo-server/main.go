@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"time"
 	"yachiyo/yachiyo-core/core"
@@ -21,7 +22,17 @@ func main() {
 	// Loop
 	scanner := bufio.NewScanner(os.Stdin)
 
-	for scanner.Scan() {
+	round := 0
+
+	for {
+		round ++
+		fmt.Printf("\n== Round %d ==\n", round)
+		fmt.Print("User > ")
+
+		if !scanner.Scan(){
+			break
+		}
+
 		input := scanner.Text()
 
 		result := core.Process(&event.UserMessageEvent{
@@ -33,7 +44,12 @@ func main() {
 				Content: input,
 			},
 		})
-		log.Success("Yachiyo: %s", result)
+		fmt.Printf("Yachiyo > %s\n", result)
+
+		// Status Debug
+		fmt.Printf("\nDEBUG\n")
+		fmt.Println(core.Emotion.String())
+		fmt.Println(core.State.String())
 
 	}
 
