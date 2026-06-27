@@ -15,6 +15,7 @@ var log = logger.New("Yachiyo.Server.Main")
 func main() {
 	log.Info("Initializing Yachiyo server...")
 
+	var core_copy core.Core
 	core := core.New()
 
 	log.Success("Successfully initialize Yachiyo server.")
@@ -27,6 +28,7 @@ func main() {
 	for {
 		round ++
 		fmt.Printf("\n== Round %d ==\n", round)
+		core_copy = *core
 		fmt.Print("User > ")
 
 		if !scanner.Scan(){
@@ -45,12 +47,10 @@ func main() {
 			},
 		})
 		fmt.Printf("Yachiyo > %s\n", result)
-
-		// Status Debug
 		fmt.Printf("\nDEBUG\n")
-		fmt.Println(core.Emotion.String())
-		fmt.Println(core.State.String())
-
+		fmt.Println(core.History.ListAll())
+		fmt.Println(core_copy.Emotion.String())
+		fmt.Println(core_copy.State.Prompt())
 	}
 
 	if err := scanner.Err(); err != nil {

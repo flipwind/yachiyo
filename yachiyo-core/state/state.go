@@ -9,8 +9,8 @@ type State struct {
 
 func NewState() State {
 	return State{
-		Socialization: Medium,
-		Interest: Medium,
+		Socialization: Extreme,
+		Interest: Extreme,
 	}
 }
 
@@ -24,7 +24,7 @@ func (s *State) Prompt() string {
 	var advice string
 	switch s.Socialization{
 	case Trivial, Low:
-		advice = "Don't want to talk. Make conversation brief."
+		advice = "Don't want to talk. Make conversation brief. Avoid extend or introduce topic."
 	case Medium:
 		advice = "Common sense, depending on the topic."
 	case High, Urgent:
@@ -36,7 +36,7 @@ func (s *State) Prompt() string {
 
 	switch s.Interest{
 	case Trivial, Low:
-		advice = "May don't like this topic or sender."
+		advice = "This topic is not attractive. Don't want to introduce new topic unless necessarily."
 	case Medium, High, Urgent:
 		advice = "Want to learn more about this topic."
 	case Extreme:

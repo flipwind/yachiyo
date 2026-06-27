@@ -30,10 +30,14 @@ func PromptBuilder(c *Context, e *event.UserMessageEvent) []history.History {
 	// Current Message Build
 	currentTime := time.Now().Format("2006.01.02 15:04:05")
 
-	prompt := fmt.Sprintf(`Time: %s
+	prompt := fmt.Sprintf(`For This Conversation ONLY:
+This part, either Emotion and State, you must follow it, in this round of conversation.
+<Yachiyo Runtime>
+Time: %s
 Emotion: %s
 State: %s
-Content: %s`,
+---
+User Content: %s`,
 		currentTime, c.Emotion.String(), c.State.Prompt(), e.Message.String())
 
 	c.History.Remember(history.History{

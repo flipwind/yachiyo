@@ -57,5 +57,8 @@ func (c *Core) Process(e *event.UserMessageEvent) string{
 		Content: result,
 	})
 
+	c.State.Interest.Relieve()
+	c.State.Socialization.Relieve()
+
 	return result
 }
