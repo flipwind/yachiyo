@@ -7,6 +7,7 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 var log = logger.New("Yachiyo.Provider")
@@ -44,7 +45,12 @@ func (p *OpenAIProvider) Gen(history []history.History) (string, error) {
 	reply, err := p.client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
 		Messages: OpenAIMessages,
 		Model:    p.model,
+		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
+		},
 	})
+
+	// JSON_object mode is unreliable(!!!!!!!!!) on deepseek-v4.
 
 	if err != nil {
 		return "", err

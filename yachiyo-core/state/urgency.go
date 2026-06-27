@@ -38,24 +38,24 @@ These 6 types are from low to high.
 If task asks generating Urgency, DON'T introduce other types.`
 }
 
-func (u *Urgency) FromString(t string) {
+func UrgencyFromString(t string) Urgency{
 	t = strings.ToLower(t)
 	switch t {
 	case "trivial":
-		*u = Trivial
+		return Trivial
 	case "low":
-		*u = Low
+		return Low
 	case "medium":
-		*u = Medium
+		return Medium
 	case "high":
-		*u = High
+		return High
 	case "urgent":
-		*u = Urgent
+		return Urgent
 	case "extreme":
-		*u = Extreme
+		return Extreme
 
 	default:
-		*u = Medium
+		return Medium
 	}
 }
 

@@ -37,7 +37,11 @@ Time: %s
 Emotion: %s
 State: %s
 ---
-User Content: %s`,
+User Content: %s
+---
+Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
+OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
+`,
 		currentTime, c.Emotion.String(), c.State.Prompt(), e.Message.String())
 
 	c.History.Remember(history.History{

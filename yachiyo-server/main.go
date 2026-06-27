@@ -47,10 +47,13 @@ func main() {
 			},
 		})
 		fmt.Printf("Yachiyo > %s\n", result)
-		fmt.Printf("\nDEBUG\n")
-		fmt.Println(core.History.ListAll())
+		fmt.Printf("\nDEBUG\nFORMAL:")
+		// fmt.Println(core.History.ListAll())
 		fmt.Println(core_copy.Emotion.String())
 		fmt.Println(core_copy.State.Prompt())
+		fmt.Printf("\nLATER:\n")
+		fmt.Println(core.Emotion.String())
+		fmt.Println(core.State.Prompt())
 	}
 
 	if err := scanner.Err(); err != nil {

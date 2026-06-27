@@ -52,13 +52,12 @@ func (c *Core) Process(e *event.UserMessageEvent) string{
 		log.Error("LLM Generating error: %v", err)
 	}
 
+	answer := c.OutputProcess(result)
+
 	c.History.Remember(history.History{
 		Role:    "assistant",
-		Content: result,
+		Content: answer,
 	})
-
-	c.State.Interest.Relieve()
-	c.State.Socialization.Relieve()
 
 	return result
 }

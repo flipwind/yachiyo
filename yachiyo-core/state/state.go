@@ -9,8 +9,8 @@ type State struct {
 
 func NewState() State {
 	return State{
-		Socialization: Extreme,
-		Interest: Extreme,
+		Socialization: Medium,
+		Interest: Medium,
 	}
 }
 
