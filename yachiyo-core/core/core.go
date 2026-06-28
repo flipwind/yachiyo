@@ -14,17 +14,18 @@ import (
 
 var log = logger.New("Yachiyo.Core")
 
-type Core struct{
+type Core struct {
 	History history.HistoryStorage
-	State state.State
+	State   state.State
 	Emotion state.Emotion
-	LLM llm.LLM
-	Config config.ConfigManager
+	LLM     llm.LLM
+	Config  config.ConfigManager
 }
 
-func New() *Core{
+func New() *Core {
 	config, err := config.LoadConfig("../yachiyo-core/assets/config.yaml")
-	if err != nil {}
+	if err != nil {
+	}
 
 	// TODO: LLM List
 	llmConfig := config.CurrentConfig.LLM.Key[0]
@@ -32,32 +33,52 @@ func New() *Core{
 
 	return &Core{
 		History: basic.New(),
-		State: state.NewState(),
+		State:   state.NewState(),
 		Emotion: state.NewEmotion(),
-		LLM: llm,
-		Config: config,
+		LLM:     llm,
+		Config:  config,
 	}
 }
 
-func (c *Core) Process(e *event.UserMessageEvent) string{
+func (c *Core) Process(e *event.UserMessageEvent) string {
 	histories := prompt.PromptBuilder(&prompt.Context{
 		History: c.History,
 		Emotion: c.Emotion,
-		State: c.State,
+		State:   c.State,
 	}, e)
 
-	result, err := c.LLM.Gen(histories)
-	
-	if err != nil {
-		log.Error("LLM Generating error: %v", err)
+	var result, answer string
+	var err error
+
+	for i := range 3 {
+		if i == 1 {
+			histories = append(histories, history.History{
+				Role: "user",
+				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
+			})
+		}
+
+		result, err = c.LLM.Gen(histories)
+
+		if err != nil {
+			log.Error("LLM Generating error: %v", err)
+			continue
+		}
+
+		answer, err = c.OutputProcess(result)
+
+		if err != nil {
+			log.Error("%d request failed. Retrying...", i)
+			continue
+		}
+
+		c.History.Remember(history.History{
+			Role:    "assistant",
+			Content: answer,
+		})
+
+		break
 	}
-
-	answer := c.OutputProcess(result)
-
-	c.History.Remember(history.History{
-		Role:    "assistant",
-		Content: answer,
-	})
 
 	return result
 }

@@ -19,10 +19,11 @@ type LLMOutput struct {
 	} `json:"change"`
 }
 
-func (c *Core) OutputProcess(schema string) string {
+func (c *Core) OutputProcess(schema string) (string, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
 		log.Error("Json unmarshal error: %v", err)
+		return "", err
 	}
 
 	c.Emotion.Type = output.Change.Emotion.Change
@@ -42,5 +43,5 @@ func (c *Core) OutputProcess(schema string) string {
 		c.State.Interest.Decrease()
 	}
 
-	return output.Answer
+	return output.Answer, nil
 }
