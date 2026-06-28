@@ -15,6 +15,7 @@ type Message struct {
 	Source  string
 	Content string
 	Time    int64
+	Payload any
 }
 
 func (m *Message) String() string {

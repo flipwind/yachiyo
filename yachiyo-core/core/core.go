@@ -68,7 +68,7 @@ func (c *Core) Process(e *event.UserMessageEvent) string {
 		answer, err = c.OutputProcess(result)
 
 		if err != nil {
-			log.Error("%d request failed. Retrying...", i)
+			log.Error("%d request failed. Retrying...", i + 1)
 			continue
 		}
 
@@ -80,5 +80,5 @@ func (c *Core) Process(e *event.UserMessageEvent) string {
 		break
 	}
 
-	return result
+	return answer
 }
