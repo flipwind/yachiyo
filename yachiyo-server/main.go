@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"yachiyo/yachiyo-adapter/onebot"
 	"yachiyo/yachiyo-core/core"
 	"yachiyo/yachiyo-core/event"
 	"yachiyo/yachiyo-utils/logger"
@@ -24,6 +25,10 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	round := 0
+
+	go func() {
+		onebot.Service()
+	}()
 
 	for {
 		round ++
