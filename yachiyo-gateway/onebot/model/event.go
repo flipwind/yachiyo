@@ -1,4 +1,4 @@
-package onebot
+package onebotModel
 
 type Event struct {
 	Time int64		`json:"time"`

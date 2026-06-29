@@ -1,18 +1,18 @@
 package core
 
 import (
-	"yachiyo/yachiyo-core/config"
-	"yachiyo/yachiyo-core/event"
-	"yachiyo/yachiyo-core/history"
-	"yachiyo/yachiyo-core/history/basic"
-	"yachiyo/yachiyo-core/llm"
-	"yachiyo/yachiyo-core/llm/provider"
-	"yachiyo/yachiyo-core/prompt"
-	"yachiyo/yachiyo-core/state"
-	"yachiyo/yachiyo-utils/logger"
+	"yachiyo/yachiyo-runtime/config"
+	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/history/basic"
+	"yachiyo/yachiyo-runtime/llm"
+	"yachiyo/yachiyo-runtime/llm/provider"
+	"yachiyo/yachiyo-runtime/prompt"
+	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-util/logger"
 )
 
-var log = logger.New("Yachiyo.Core")
+var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
 	History history.HistoryStorage
@@ -23,7 +23,7 @@ type Core struct {
 }
 
 func New() *Core {
-	config, err := config.LoadConfig("../yachiyo-core/assets/config.yaml")
+	config, err := config.LoadConfig("../yachiyo-runtime/assets/config.yaml")
 	if err != nil {
 	}
 
@@ -40,7 +40,7 @@ func New() *Core {
 	}
 }
 
-func (c *Core) Process(e *event.UserMessageEvent) string {
+func (c *Core) Process(e *trigger.Message) string {
 	histories := prompt.PromptBuilder(&prompt.Context{
 		History: c.History,
 		Emotion: c.Emotion,
@@ -53,7 +53,7 @@ func (c *Core) Process(e *event.UserMessageEvent) string {
 	for i := range 3 {
 		if i == 1 {
 			histories = append(histories, history.History{
-				Role: "user",
+				Role:    "user",
 				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
 			})
 		}
@@ -61,14 +61,14 @@ func (c *Core) Process(e *event.UserMessageEvent) string {
 		result, err = c.LLM.Gen(histories)
 
 		if err != nil {
-			log.Error("LLM Generating error: %v", err)
+			ylog.Error("LLM Generating error: %v", err)
 			continue
 		}
 
 		answer, err = c.OutputProcess(result)
 
 		if err != nil {
-			log.Error("%d request failed. Retrying...", i + 1)
+			ylog.Error("%d request failed. Retrying...", i+1)
 			continue
 		}
 

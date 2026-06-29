@@ -2,15 +2,15 @@ package provider
 
 import (
 	"context"
-	"yachiyo/yachiyo-core/history"
-	"yachiyo/yachiyo-utils/logger"
+	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-util/logger"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/shared"
 )
 
-var log = logger.New("Yachiyo.Provider")
+var ylog = logger.New("Yachiyo.Provider")
 
 type OpenAIProvider struct {
 	client openai.Client

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"yachiyo/yachiyo-core/event"
-	"yachiyo/yachiyo-core/history"
-	"yachiyo/yachiyo-core/state"
+	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/state"
 )
 
 type Context struct {
@@ -15,9 +15,9 @@ type Context struct {
 	Emotion state.Emotion
 }
 
-func PromptBuilder(c *Context, e *event.UserMessageEvent) []history.History {
+func PromptBuilder(c *Context, t *trigger.Message) []history.History {
 	if len(c.History.ListAll()) == 0 {
-		systemPrompt, err := os.ReadFile("../yachiyo-core/assets/systemPrompt.md")
+		systemPrompt, err := os.ReadFile("../yachiyo-runtime/assets/systemPrompt.md")
 		if err != nil {
 		}
 
@@ -42,7 +42,7 @@ User Content: %s
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
-		currentTime, c.Emotion.String(), c.State.Prompt(), e.Message.String())
+		currentTime, c.Emotion.String(), c.State.Prompt(), t.String())
 
 	c.History.Remember(history.History{
 		Role:    "user",

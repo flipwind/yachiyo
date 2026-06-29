@@ -2,7 +2,7 @@ package fake
 
 import (
 	"fmt"
-	"yachiyo/yachiyo-core/history"
+	"yachiyo/yachiyo-runtime/history"
 )
 
 type FakeLLM struct{}

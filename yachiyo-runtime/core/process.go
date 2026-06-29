@@ -2,7 +2,7 @@ package core
 
 import (
 	"encoding/json"
-	"yachiyo/yachiyo-core/state"
+	"yachiyo/yachiyo-runtime/state"
 )
 
 type LLMOutput struct {
@@ -22,7 +22,7 @@ type LLMOutput struct {
 func (c *Core) OutputProcess(schema string) (string, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
-		log.Error("Json unmarshal error: %v", err)
+		ylog.Error("Json unmarshal error: %v", err)
 		return "", err
 	}
 

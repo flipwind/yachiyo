@@ -7,6 +7,6 @@ tasks:
     env:
       YACHIYO_GLOBAL_MODE: development
       YACHIYO_CHAR_PATH: "{{.USER_WORKING_DIR}}/yachiyo-dev/package.yachiyo/prompts"
-    dir: ./yachiyo-server
+    dir: ./yachiyo-runtime
     cmds:
-      - go run main.go
+      - go run server.go

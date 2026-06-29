@@ -1,4 +1,4 @@
-package onebot
+package onebotModel
 
 type User struct {
 	UserID int64	`json:"user_id"`
