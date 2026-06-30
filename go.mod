@@ -7,6 +7,8 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 )
 
+require github.com/coder/websocket v1.8.15 // indirect
+
 require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/tidwall/gjson v1.18.0 // indirect
