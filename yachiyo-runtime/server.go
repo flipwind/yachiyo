@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-util/logger"
@@ -17,7 +18,7 @@ func main() {
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
-	adapterChanOnebot := onebot.NewAdapterChannel()
+	adapterChanOnebot := adapter.NewAdapterChannel()
 	onebot.Service(adapterChanOnebot)
 
 	// Reading channel

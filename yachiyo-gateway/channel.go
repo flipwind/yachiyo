@@ -1,4 +1,4 @@
-package onebot
+package adapter
 
 import (
 	"yachiyo/yachiyo-runtime/trigger"

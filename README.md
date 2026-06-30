@@ -1,7 +1,7 @@
 # Project Yachiyo
 
 > [!Important]
-> The `redesign` branch is currently in design and with active development.
+> The `redesign-refactor` branch is currently in design and with active development.
 
 For more information, you can contact me at me@zako.ink
 

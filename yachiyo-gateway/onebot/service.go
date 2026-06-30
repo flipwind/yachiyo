@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/onebot/model"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -16,7 +17,7 @@ import (
 
 var ylog = logger.New("Yachiyo.Adapter")
 var upgrader = websocket.Upgrader{}
-var channel *AdapterChannel
+var channel *adapter.AdapterChannel
 var conn *websocket.Conn
 
 func handleReceive(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +58,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Service(c *AdapterChannel) {
+func Service(c *adapter.AdapterChannel) {
 	channel = c
 	http.HandleFunc("/ws/onebot", handleReceive)
 
