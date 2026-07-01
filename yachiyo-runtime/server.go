@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"yachiyo/yachiyo-gateway"
+	"yachiyo/yachiyo-gateway/client"
 	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-util/logger"
@@ -18,25 +23,59 @@ func main() {
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
-	adapterChanOnebot := adapter.NewAdapterChannel()
-	onebot.Service(adapterChanOnebot)
+	gatewayChanOnebot := gateway.NewGatewayChannel()
+	onebot.Service(gatewayChanOnebot)
+
+	gatewayChanClient := gateway.NewGatewayChannel()
+	client.Service(gatewayChanClient)
 
 	// Reading channel
-	for msg := range adapterChanOnebot.ToServer {
-		ylog.Debug("Processing [%s]", msg.Content)
-		result := core.Process(&msg)
+	go func() {
+		for msg := range gatewayChanClient.ToServer {
+			ylog.Debug("Processing [%s]", msg.Content)
+			core_copy = *core
+			result := core.Process(&msg)
 
-		fmt.Printf("Yachiyo > %s\n", result)
+			fmt.Printf("Yachiyo > %s\n", result)
 
-		fmt.Printf("\nDEBUG\nFORMAL:")
-		fmt.Println(core_copy.Emotion.String())
-		fmt.Println(core_copy.State.Prompt())
-		fmt.Printf("\nLATER:\n")
-		fmt.Println(core.Emotion.String())
-		fmt.Println(core.State.Prompt())
+			fmt.Printf("\nDEBUG\nFORMAL:")
+			fmt.Println(core_copy.Emotion.String())
+			fmt.Println(core_copy.State.Prompt())
+			fmt.Printf("\nLATER:\n")
+			fmt.Println(core.Emotion.String())
+			fmt.Println(core.State.Prompt())
 
-		msg.Content = result
+			msg.Content = result
 
-		adapterChanOnebot.ToClient <- msg
-	}
+			gatewayChanClient.ToClient <- msg
+		}
+	}()
+
+	go func() {
+		for msg := range gatewayChanOnebot.ToServer {
+			ylog.Debug("Processing [%s]", msg.Content)
+			core_copy = *core
+			result := core.Process(&msg)
+
+			fmt.Printf("Yachiyo > %s\n", result)
+
+			fmt.Printf("\nDEBUG\nFORMAL:")
+			fmt.Println(core_copy.Emotion.String())
+			fmt.Println(core_copy.State.Prompt())
+			fmt.Printf("\nLATER:\n")
+			fmt.Println(core.Emotion.String())
+			fmt.Println(core.State.Prompt())
+
+			msg.Content = result
+
+			gatewayChanOnebot.ToClient <- msg
+		}
+	}()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done()
+
+	ylog.Info("Shutting down...")
 }

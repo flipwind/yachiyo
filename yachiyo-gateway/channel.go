@@ -1,16 +1,16 @@
-package adapter
+package gateway
 
 import (
 	"yachiyo/yachiyo-runtime/trigger"
 )
 
-type AdapterChannel struct {
+type GatewayChannel struct {
 	ToServer chan trigger.Message
 	ToClient chan trigger.Message
 }
 
-func NewAdapterChannel() *AdapterChannel {
-	return &AdapterChannel{
+func NewGatewayChannel() *GatewayChannel {
+	return &GatewayChannel{
 		ToServer: make(chan trigger.Message),
 		ToClient: make(chan trigger.Message),
 	}

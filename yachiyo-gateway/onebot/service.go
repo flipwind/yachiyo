@@ -16,8 +16,8 @@ import (
 	"github.com/coder/websocket/wsjson"
 )
 
-var ylog = logger.New("Yachiyo.Adapter")
-var channel *adapter.AdapterChannel
+var ylog = logger.New("Yachiyo.Onebot")
+var channel *gateway.GatewayChannel
 
 func handleReceive(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
@@ -81,7 +81,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Service(c *adapter.AdapterChannel) {
+func Service(c *gateway.GatewayChannel) {
 	channel = c
 	http.HandleFunc("/ws/onebot", handleReceive)
 
