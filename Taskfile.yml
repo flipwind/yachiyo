@@ -10,3 +10,9 @@ tasks:
     dir: ./yachiyo-runtime
     cmds:
       - go run server.go
+  clientdev:
+    desc: Run Yachiyo Client in development mode
+    silent: true
+    dir: ./yachiyo-client/cli
+    cmds:
+      - go run main.go
