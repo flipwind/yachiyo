@@ -52,6 +52,8 @@ func serviveChannel(c *core.Core, gw func(ch *gateway.GatewayChannel)) {
 		fmt.Println(c.State.Prompt())
 		fmt.Println(c.Determination)
 
+		fmt.Println("Session Context: " + c.Note)
+
 		msg.Content = result
 
 		gatewayChannel.ToClient <- msg

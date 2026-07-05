@@ -15,14 +15,15 @@ import (
 var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
-	History history.HistoryStorage
-	State   state.State
-	Emotion state.Emotion
-	LLM     llm.LLM
-	Config  config.ConfigManager
+	History       history.HistoryStorage
+	State         state.State
+	Emotion       state.Emotion
+	LLM           llm.LLM
+	Config        config.ConfigManager
 	Determination state.Determination
 
 	JSONConstraint bool
+	Note           string
 }
 
 func New() *Core {
@@ -35,13 +36,14 @@ func New() *Core {
 	llm := provider.NewOpenAIProvider(llmConfig.BaseUrl, llmConfig.Secret, llmConfig.ModelName)
 
 	return &Core{
-		History: basic.New(),
-		State:   state.NewState(),
-		Emotion: state.NewEmotion(),
-		LLM:     llm,
-		Config:  config,
-		Determination: state.NewDetermination(),
+		History:        basic.New(),
+		State:          state.NewState(),
+		Emotion:        state.NewEmotion(),
+		LLM:            llm,
+		Config:         config,
+		Determination:  state.NewDetermination(),
 		JSONConstraint: false,
+		Note:           "",
 	}
 }
 
@@ -50,6 +52,7 @@ func (c *Core) Process(e *trigger.Message) string {
 		History: c.History,
 		Emotion: c.Emotion,
 		State:   c.State,
+		Note:    c.Note,
 	}, e)
 
 	var result, answer string

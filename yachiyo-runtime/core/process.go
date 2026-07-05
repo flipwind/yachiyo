@@ -18,6 +18,7 @@ type LLMOutput struct {
 		} `json:"state_delta"`
 	} `json:"change"`
 	Determination state.Determination `json:"determination"`
+	Note string `json:"note"`
 }
 
 func (c *Core) OutputProcess(schema string) (string, error) {
@@ -45,6 +46,10 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 	}
 
 	c.Determination = output.Determination
+
+	if output.Note != "-1" {
+		c.Note = output.Note
+	}
 
 	return output.Answer, nil
 }

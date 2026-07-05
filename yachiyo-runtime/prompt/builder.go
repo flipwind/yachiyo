@@ -7,13 +7,16 @@ import (
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-util/logger"
 )
+
+var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
 	History history.HistoryStorage
 	State   state.State
 	Emotion state.Emotion
-	Determination state.Determination
+	Note string
 }
 
 func PromptBuilder(c *Context, t *trigger.Message) []history.History {
@@ -38,19 +41,21 @@ Time: %s
 Emotion: %s
 State: %s
 Last Conversation Active: %s
-May should wait for user's reply: %t
+Session Context: %s
 ---
 User Content: %s
 ---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
-		currentTime, c.Emotion.String(), c.State.Prompt(), c.History.GetLastActive(), c.Determination.WaitForReply, t.String())
+		currentTime, c.Emotion.String(), c.State.Prompt(), c.History.GetLastActive(), c.Note, t.String())
 
 	c.History.Remember(history.History{
 		Role:    "user",
 		Content: prompt,
 	})
+
+	ylog.Debug("Prompt built: %s", prompt)
 
 	return c.History.ListAll()
 }
