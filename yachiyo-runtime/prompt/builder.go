@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/trigger"
 )
 
 type Context struct {
 	History history.HistoryStorage
 	State   state.State
 	Emotion state.Emotion
+	Determination state.Determination
 }
 
 func PromptBuilder(c *Context, t *trigger.Message) []history.History {
@@ -36,13 +37,15 @@ This part, either Emotion and State, you must follow it, in this round of conver
 Time: %s
 Emotion: %s
 State: %s
+Last Conversation Active: %s
+May should wait for user's reply: %t
 ---
 User Content: %s
 ---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
-		currentTime, c.Emotion.String(), c.State.Prompt(), t.String())
+		currentTime, c.Emotion.String(), c.State.Prompt(), c.History.GetLastActive(), c.Determination.WaitForReply, t.String())
 
 	c.History.Remember(history.History{
 		Role:    "user",

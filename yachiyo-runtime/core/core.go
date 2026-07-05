@@ -20,6 +20,9 @@ type Core struct {
 	Emotion state.Emotion
 	LLM     llm.LLM
 	Config  config.ConfigManager
+	Determination state.Determination
+
+	JSONConstraint bool
 }
 
 func New() *Core {
@@ -37,6 +40,8 @@ func New() *Core {
 		Emotion: state.NewEmotion(),
 		LLM:     llm,
 		Config:  config,
+		Determination: state.NewDetermination(),
+		JSONConstraint: false,
 	}
 }
 
@@ -52,6 +57,10 @@ func (c *Core) Process(e *trigger.Message) string {
 
 	for i := range 3 {
 		if i == 1 {
+			c.JSONConstraint = true
+		}
+
+		if c.JSONConstraint {
 			histories = append(histories, history.History{
 				Role:    "user",
 				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",

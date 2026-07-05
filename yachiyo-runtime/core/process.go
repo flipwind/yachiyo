@@ -13,10 +13,11 @@ type LLMOutput struct {
 			Result string `json:"result"`
 		} `json:"emotion"`
 		State struct {
-			Socialization int64 `json:"Socialization"`
+			SocialDesire int64 `json:"SocialDesire"`
 			Interest      int64 `json:"Interest"`
 		} `json:"state_delta"`
 	} `json:"change"`
+	Determination state.Determination `json:"determination"`
 }
 
 func (c *Core) OutputProcess(schema string) (string, error) {
@@ -29,11 +30,11 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 	c.Emotion.Type = output.Change.Emotion.Change
 	c.Emotion.Urgency = state.UrgencyFromString(output.Change.Emotion.Result)
 
-	switch output.Change.State.Socialization {
+	switch output.Change.State.SocialDesire {
 	case 1:
-		c.State.Socialization.Increase()
+		c.State.SocialDesire.Increase()
 	case -1:
-		c.State.Socialization.Decrease()
+		c.State.SocialDesire.Decrease()
 	}
 
 	switch output.Change.State.Interest {
@@ -42,6 +43,8 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 	case -1:
 		c.State.Interest.Decrease()
 	}
+
+	c.Determination = output.Determination
 
 	return output.Answer, nil
 }

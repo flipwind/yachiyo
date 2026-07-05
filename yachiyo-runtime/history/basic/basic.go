@@ -19,3 +19,7 @@ func (b *BasicStorage) Remember(m history.History){
 func (b *BasicStorage) ListAll() []history.History{
 	return b.Histories
 }
+
+func (b *BasicStorage) GetLastActive() string{
+	return b.Histories[len(b.Histories)-1].Time
+}

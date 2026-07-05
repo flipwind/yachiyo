@@ -50,6 +50,7 @@ func serviveChannel(c *core.Core, gw func(ch *gateway.GatewayChannel)) {
 		fmt.Printf("\nLATER:\n")
 		fmt.Println(c.Emotion.String())
 		fmt.Println(c.State.Prompt())
+		fmt.Println(c.Determination)
 
 		msg.Content = result
 

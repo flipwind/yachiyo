@@ -3,26 +3,26 @@ package state
 import "fmt"
 
 type State struct {
-	Socialization Urgency
+	SocialDesire Urgency
 	Interest Urgency
 }
 
 func NewState() State {
 	return State{
-		Socialization: Medium,
+		SocialDesire: Medium,
 		Interest: Medium,
 	}
 }
 
 func (s *State) String() string {
-	return fmt.Sprintf(`<Socialization: %s, Interest: %s>`, s.Socialization.String(), s.Interest.String())
+	return fmt.Sprintf(`<SocialDesire: %s, Interest: %s>`, s.SocialDesire.String(), s.Interest.String())
 }
 
 func (s *State) Prompt() string {
 	result := ""
 
 	var advice string
-	switch s.Socialization{
+	switch s.SocialDesire{
 	case Trivial, Low:
 		advice = "Don't want to talk. Make conversation brief. Avoid extend or introduce topic."
 	case Medium:
@@ -32,7 +32,7 @@ func (s *State) Prompt() string {
 	case Extreme:
 		advice = "Want to talk more. Try to make conversation active."
 	}
-	result += fmt.Sprintf("Socialization: %s(%s), ", s.Socialization.String(), advice)
+	result += fmt.Sprintf("SocialDesire: %s(%s), ", s.SocialDesire.String(), advice)
 
 	switch s.Interest{
 	case Trivial, Low:
