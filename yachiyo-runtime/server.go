@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,11 +18,14 @@ func main() {
 	ylog.Info("Initializing Yachiyo server...")
 
 	core := core.New()
+	pipeline := core.NewPipeline()
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
-	go serviveChannel(core, onebot.Service)
-	go serviveChannel(core, client.Service)
+	go pipeline.Listen()
+	go pipeline.DistributionListen()
+	go serviveChannel(pipeline, &onebot.OnebotService{})
+	go serviveChannel(pipeline, &client.ClientService{})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -33,29 +35,14 @@ func main() {
 	ylog.Info("Shutting down...")
 }
 
-func serviveChannel(c *core.Core, gw func(ch *gateway.GatewayChannel)) {
+func serviveChannel(p *core.Pipeline, s gateway.Service) {
 	gatewayChannel := gateway.NewGatewayChannel()
-	gw(gatewayChannel)
+	s.Listen(gatewayChannel)
+
+	p.Register(s.SchemeName(), &gatewayChannel.ToClient)
 
 	for msg := range gatewayChannel.ToServer {
 		ylog.Debug("Processing [%s]", msg.Content)
-		core_copy := *c
-		result := c.Process(&msg)
-
-		fmt.Printf("Yachiyo > %s\n", result)
-
-		fmt.Printf("\nDEBUG\nFORMAL:")
-		fmt.Println(core_copy.Emotion.String())
-		fmt.Println(core_copy.State.Prompt())
-		fmt.Printf("\nLATER:\n")
-		fmt.Println(c.Emotion.String())
-		fmt.Println(c.State.Prompt())
-		fmt.Println(c.Determination)
-
-		fmt.Println("Session Context: " + c.Note)
-
-		msg.Content = result
-
-		gatewayChannel.ToClient <- msg
+		p.Raw <- &msg
 	}
 }

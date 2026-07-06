@@ -2,11 +2,16 @@ package trigger
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 )
 
 type Trigger interface {
 	trigger()
+}
+
+type Address struct {
+	Content string
 }
 
 type Message struct {
@@ -16,7 +21,7 @@ type Message struct {
 	Content 	string
 	Time    	int64
 
-	Address 	string	// The address of the message. e.g. onebot://group/12345
+	Address 	Address	// The address of the message. e.g. onebot://group/12345
 }
 
 func (m *Message) String() string {
@@ -27,4 +32,9 @@ func (m *Message) String() string {
 		m.Platform,
 		m.Content,
 	)
+}
+
+func (a *Address) Scheme() string {
+	u, _ := url.Parse(a.Content)
+	return u.Scheme
 }

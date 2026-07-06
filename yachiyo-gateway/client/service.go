@@ -54,12 +54,16 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			Time:     time.Now().Unix(),
 			Content:  string(msg),
 
-			Address: "client://cli",
+			Address: trigger.Address{
+				Content: "client://cli",
+			},
 		}
 	}
 }
 
-func Service(c *gateway.GatewayChannel) {
+type ClientService struct {}
+
+func (s *ClientService) Listen(c *gateway.GatewayChannel) {
 	channel = c
 	http.HandleFunc("/ws/", handleReceive)
 
@@ -69,4 +73,8 @@ func Service(c *gateway.GatewayChannel) {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()
+}
+
+func (s *ClientService) SchemeName() string {
+	return "client"
 }

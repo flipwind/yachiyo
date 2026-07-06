@@ -36,7 +36,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case msg := <-channel.ToClient:
-				u, err := url.Parse(msg.Address)
+				u, err := url.Parse(msg.Address.Content)
 				if err != nil {
 					ylog.Error("Address url parse error: %v", err)
 				}
@@ -75,13 +75,17 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 				Time:     time.Now().Unix(),
 				Content:  messageEvent.RawMessage,
 
-				Address: fmt.Sprintf("onebot://group/%v", messageEvent.GroupID),
+				Address: trigger.Address{
+					Content: fmt.Sprintf("onebot://group/%v", messageEvent.GroupID),
+				},
 			}
 		}
 	}
 }
 
-func Service(c *gateway.GatewayChannel) {
+type OnebotService struct {}
+
+func (s *OnebotService) Listen(c *gateway.GatewayChannel) {
 	channel = c
 	http.HandleFunc("/ws/onebot", handleReceive)
 
@@ -91,4 +95,8 @@ func Service(c *gateway.GatewayChannel) {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()
+}
+
+func (s *OnebotService) SchemeName() string {
+	return "onebot"
 }

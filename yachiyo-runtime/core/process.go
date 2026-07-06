@@ -3,58 +3,7 @@ package core
 import (
 	"encoding/json"
 	"yachiyo/yachiyo-runtime/state"
-	"yachiyo/yachiyo-runtime/history"
-	"yachiyo/yachiyo-runtime/prompt"
-	"yachiyo/yachiyo-runtime/trigger"
 )
-
-func (c *Core) Process(e *trigger.Message) string {
-	histories := prompt.PromptBuilder(&prompt.Context{
-		History: c.History,
-		Emotion: c.Emotion,
-		State:   c.State,
-		Note:    c.Note,
-	}, e)
-
-	var result, answer string
-	var err error
-
-	for i := range 3 {
-		if i == 1 {
-			c.JSONConstraint = true
-		}
-
-		if c.JSONConstraint {
-			histories = append(histories, history.History{
-				Role:    "user",
-				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
-			})
-		}
-
-		result, err = c.LLM.Gen(histories)
-
-		if err != nil {
-			ylog.Error("LLM Generating error: %v", err)
-			continue
-		}
-
-		answer, err = c.OutputProcess(result)
-
-		if err != nil {
-			ylog.Error("%d request failed. Retrying...", i+1)
-			continue
-		}
-
-		c.History.Remember(history.History{
-			Role:    "assistant",
-			Content: answer,
-		})
-
-		break
-	}
-
-	return answer
-}
 
 type LLMOutput struct {
 	Answer string `json:"answer"`
