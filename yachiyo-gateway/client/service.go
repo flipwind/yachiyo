@@ -30,11 +30,13 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case msg := <-channel.ToClient:
-				if err != nil {
-					ylog.Error("Address url parse error: %v", err)
+				switch t := msg.(type) {
+				case *trigger.Message:
+					if err != nil {
+						ylog.Error("Address url parse error: %v", err)
+					}
+					c.Write(ctx, websocket.MessageText, []byte(t.Content))
 				}
-
-				c.Write(ctx, websocket.MessageText, []byte(msg.Content))
 			}
 		}
 	}()
@@ -47,7 +49,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		channel.ToServer <- trigger.Message{
+		channel.ToServer <- &trigger.Message{
 			Type:     "User",
 			Author:   "flipwind",
 			Platform: "CLI",
@@ -61,7 +63,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type ClientService struct {}
+type ClientService struct{}
 
 func (s *ClientService) Listen(c *gateway.GatewayChannel) {
 	channel = c

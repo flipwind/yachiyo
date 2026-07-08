@@ -24,3 +24,5 @@ func (m *Message) String() string {
 		m.Content,
 	)
 }
+
+func (m *Message) trigger() {}

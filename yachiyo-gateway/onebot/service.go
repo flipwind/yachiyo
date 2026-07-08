@@ -36,23 +36,26 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case msg := <-channel.ToClient:
-				u, err := url.Parse(msg.Address.Content)
-				if err != nil {
-					ylog.Error("Address url parse error: %v", err)
+				switch t := msg.(type) {
+				case *trigger.Message:
+					u, err := url.Parse(t.Address.Content)
+					if err != nil {
+						ylog.Error("Address url parse error: %v", err)
+					}
+
+					req := map[string]any{
+						"action": "send_group_msg",
+						"params": map[string]any{
+							"group_id":    strings.TrimPrefix(u.Path, "/"),
+							"message":     t.Content,
+							"auto_escape": true,
+						},
+					}
+
+					jreq, _ := json.Marshal(req)
+
+					c.Write(ctx, websocket.MessageText, jreq)
 				}
-
-				req := map[string]any{
-					"action": "send_group_msg",
-					"params": map[string]any{
-						"group_id":    strings.TrimPrefix(u.Path, "/"),
-						"message":     msg.Content,
-						"auto_escape": true,
-					},
-				}
-
-				jreq, _ := json.Marshal(req)
-
-				c.Write(ctx, websocket.MessageText, jreq)
 
 			}
 		}
@@ -68,7 +71,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		if messageEvent.PostType == "message" {
 			// TODO：rich message supporter
-			channel.ToServer <- trigger.Message{
+			channel.ToServer <- &trigger.Message{
 				Type:     "User",
 				Author:   messageEvent.Sender.Nickname,
 				Platform: "QQ",
