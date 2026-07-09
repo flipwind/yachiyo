@@ -10,15 +10,15 @@ type Pipeline struct {
 	Distribution chan action.Action
 	Gateways     map[string]chan action.Action // This should be GatewayChannel.ToClient for distribute
 
-	core *Core
+	handler func(trigger.Trigger) action.Action
 }
 
-func (c *Core) NewPipeline() *Pipeline {
+func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
 	return &Pipeline{
 		Raw:          make(chan trigger.Trigger),
 		Distribution: make(chan action.Action),
 		Gateways:     make(map[string]chan action.Action),
-		core:         c,
+		handler:      handler,
 	}
 }
 
@@ -31,8 +31,10 @@ func (p *Pipeline) Listen() {
 	for trig := range p.Raw {
 		switch t := trig.(type) {
 		case *trigger.Message:
-			dispatch := p.core.Process(t)
+			dispatch := p.handler(t)
 			p.Distribution <- dispatch
+		case *trigger.TimeTick:
+			p.handler(t)
 		}
 	}
 }

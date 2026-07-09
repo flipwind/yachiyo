@@ -15,10 +15,13 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	switch t := e.(type) {
 	case *trigger.Message:
 		return c.processMessage(t)
+	case *trigger.TimeTick:
+		c.processTimetick(t)
 	default:
-		ylog.Error("Process unknown type: %T", t)
+		ylog.Error("Process unsupported type: %T", t)
 		return nil
 	}
+	return nil
 }
 
 type LLMOutput struct {
@@ -143,4 +146,8 @@ func (c *Core) processMessage(m *trigger.Message) action.Action {
 			Content: m.Address.Content,
 		},
 	}
+}
+
+func (c *Core) processTimetick(t *trigger.TimeTick) {
+	ylog.Debug("Received timetick %v", t)
 }

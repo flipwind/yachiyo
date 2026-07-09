@@ -22,6 +22,7 @@ type Core struct {
 
 	JSONConstraint bool
 	Note           string
+	Pipe           *Pipeline
 }
 
 func New() *Core {
@@ -33,7 +34,7 @@ func New() *Core {
 	llmConfig := config.CurrentConfig.LLM.Key[0]
 	llm := provider.NewOpenAIProvider(llmConfig.BaseUrl, llmConfig.Secret, llmConfig.ModelName)
 
-	return &Core{
+	core := &Core{
 		History:        basic.New(),
 		State:          state.NewState(),
 		Emotion:        state.NewEmotion(),
@@ -43,4 +44,14 @@ func New() *Core {
 		JSONConstraint: false,
 		Note:           "",
 	}
+
+	core.Pipe = NewPipeline(core.Process)
+
+	return core
+}
+
+func (c *Core) Run(){
+	go c.Pipe.Listen()
+	go c.Pipe.DistributionListen()
+	c.Clock()
 }

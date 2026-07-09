@@ -19,14 +19,13 @@ func main() {
 	ylog.Info("Initializing Yachiyo server...")
 
 	ycore := core.New()
-	pipeline := ycore.NewPipeline()
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
-	go pipeline.Listen()
-	go pipeline.DistributionListen()
-	go serviveChannel(pipeline, &onebot.OnebotService{})
-	go serviveChannel(pipeline, &client.ClientService{})
+	go serviveChannel(ycore.Pipe, &onebot.OnebotService{})
+	go serviveChannel(ycore.Pipe, &client.ClientService{})
+
+	go ycore.Run()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
