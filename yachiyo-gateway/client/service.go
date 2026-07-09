@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 	"yachiyo/yachiyo-gateway"
+	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
 
@@ -31,7 +32,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 				return
 			case msg := <-channel.ToClient:
 				switch t := msg.(type) {
-				case *trigger.Message:
+				case *action.Message:
 					if err != nil {
 						ylog.Error("Address url parse error: %v", err)
 					}

@@ -1,13 +1,14 @@
 package core
 
 import (
+	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/trigger"
 )
 
 type Pipeline struct {
 	Raw          chan trigger.Trigger
-	Distribution chan trigger.Trigger
-	Gateways     map[string]chan trigger.Trigger // This should be GatewayChannel.ToClient for distribute
+	Distribution chan action.Action
+	Gateways     map[string]chan action.Action // This should be GatewayChannel.ToClient for distribute
 
 	core *Core
 }
@@ -15,13 +16,13 @@ type Pipeline struct {
 func (c *Core) NewPipeline() *Pipeline {
 	return &Pipeline{
 		Raw:          make(chan trigger.Trigger),
-		Distribution: make(chan trigger.Trigger),
-		Gateways:     make(map[string]chan trigger.Trigger),
+		Distribution: make(chan action.Action),
+		Gateways:     make(map[string]chan action.Action),
 		core:         c,
 	}
 }
 
-func (p *Pipeline) Register(scheme string, outputChan chan trigger.Trigger) {
+func (p *Pipeline) Register(scheme string, outputChan chan action.Action) {
 	p.Gateways[scheme] = outputChan
 }
 
@@ -39,7 +40,7 @@ func (p *Pipeline) Listen() {
 func (p *Pipeline) DistributionListen() {
 	for trig := range p.Distribution {
 		switch t := trig.(type) {
-		case *trigger.Message:
+		case *action.Message:
 			scheme := t.Address.Scheme()
 			outputChan := p.Gateways[scheme]
 			outputChan <- t
