@@ -53,5 +53,5 @@ func New() *Core {
 func (c *Core) Run(){
 	go c.Pipe.Listen()
 	go c.Pipe.DistributionListen()
-	c.Clock()
+	go c.Clock()
 }

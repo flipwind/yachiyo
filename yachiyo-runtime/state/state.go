@@ -1,16 +1,19 @@
 package state
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 type State struct {
-	SocialDesire Urgency
-	Interest Urgency
+	SocialDesire Drive
+	Interest Drive
 }
 
 func NewState() State {
 	return State{
-		SocialDesire: Medium,
-		Interest: Medium,
+		SocialDesire: UrgencyDrive(Medium),
+		Interest: UrgencyDrive(Medium),
 	}
 }
 
@@ -22,7 +25,7 @@ func (s *State) Prompt() string {
 	result := ""
 
 	var advice string
-	switch s.SocialDesire{
+	switch s.SocialDesire.Urgency(){
 	case Trivial, Low:
 		advice = "Don't want to talk. Make conversation brief. Avoid extend or introduce topic."
 	case Medium:
@@ -34,7 +37,7 @@ func (s *State) Prompt() string {
 	}
 	result += fmt.Sprintf("SocialDesire: %s(%s), ", s.SocialDesire.String(), advice)
 
-	switch s.Interest{
+	switch s.Interest.Urgency(){
 	case Trivial, Low:
 		advice = "This topic is not attractive. Don't want to introduce new topic unless necessarily."
 	case Medium, High, Urgent:
@@ -45,4 +48,15 @@ func (s *State) Prompt() string {
 	result += fmt.Sprintf("Interest: %s(%s)>", s.Interest.String(), advice)
 
 	return result
+}
+
+func (s *State) Drives() []*Drive {
+	v := reflect.ValueOf(s).Elem()
+	
+	drives := make([]*Drive, 0, v.NumField())
+	for _, f := range v.Fields() {
+		drives = append(drives, f.Addr().Interface().(*Drive))
+	}
+
+	return drives
 }

@@ -149,5 +149,9 @@ func (c *Core) processMessage(m *trigger.Message) action.Action {
 }
 
 func (c *Core) processTimetick(t *trigger.TimeTick) {
+	for _, s := range c.State.Drives() {
+		s.Press(0.01)
+	}
+
 	ylog.Debug("Received timetick %v", t)
 }
