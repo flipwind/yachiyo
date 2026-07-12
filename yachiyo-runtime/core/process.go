@@ -14,9 +14,11 @@ import (
 func (c *Core) Process(e trigger.Trigger) action.Action {
 	switch t := e.(type) {
 	case *trigger.Message:
-		return c.processMessage(t)
+		return c.processUserMessage(t)
 	case *trigger.TimeTick:
 		c.processTimetick(t)
+	case *trigger.InitiativeMessage:
+		return c.processInitiativeMessage(t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)
 		return nil
@@ -25,6 +27,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 }
 
 type LLMOutput struct {
+	Reply  bool   `json:"reply"`
 	Answer string `json:"answer"`
 	Change struct {
 		Emotion struct {
@@ -70,17 +73,21 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 		c.Note = output.Note
 	}
 
+	if output.Reply == false {
+		return "Yachiyo didn't reply.", nil
+	}
 	return output.Answer, nil
 }
 
 // Trigger process part
 
-func (c *Core) processMessage(m *trigger.Message) action.Action {
-	histories := prompt.PromptBuilder(&prompt.Context{
+func (c *Core) processUserMessage(m *trigger.Message) action.Action {
+	histories := prompt.UserPromptBuilder(&prompt.Context{
 		History: c.History,
 		Emotion: c.Emotion,
 		State:   c.State,
 		Note:    c.Note,
+		Factors: c.Factors,
 	}, m)
 
 	var result, answer string
@@ -100,6 +107,7 @@ func (c *Core) processMessage(m *trigger.Message) action.Action {
 			histories = append(histories, history.History{
 				Role:    "user",
 				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
+				Time:    time.Now(),
 			})
 		}
 
@@ -120,6 +128,7 @@ func (c *Core) processMessage(m *trigger.Message) action.Action {
 		c.History.Remember(history.History{
 			Role:    "assistant",
 			Content: answer,
+			Time:    time.Now(),
 		})
 
 		break
@@ -148,10 +157,105 @@ func (c *Core) processMessage(m *trigger.Message) action.Action {
 	}
 }
 
-func (c *Core) processTimetick(t *trigger.TimeTick) {
-	for _, s := range c.State.Drives() {
-		s.Press(0.01)
+func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
+	histories := prompt.InitiativePromptBuilder(&prompt.Context{
+		History: c.History,
+		Emotion: c.Emotion,
+		State:   c.State,
+		Note:    c.Note,
+		Factors: c.Factors,
+	})
+
+	var result, answer string
+	var err error
+
+	// <debug>
+	var core_copy Core
+	core_copy = *c
+	// </debug>
+
+	for i := range 3 {
+		if i == 1 {
+			c.JSONConstraint = true
+		}
+
+		if c.JSONConstraint {
+			histories = append(histories, history.History{
+				Role:    "user",
+				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
+				Time:    time.Now(),
+			})
+		}
+
+		result, err = c.LLM.Gen(histories)
+
+		if err != nil {
+			ylog.Error("LLM Generating error: %v", err)
+			continue
+		}
+
+		answer, err = c.OutputProcess(result)
+
+		if err != nil {
+			ylog.Error("%d request failed. Retrying...", i+1)
+			continue
+		}
+
+		c.History.Remember(history.History{
+			Role:    "assistant",
+			Content: answer,
+			Time:    time.Now(),
+		})
+
+		break
 	}
 
-	ylog.Debug("Received timetick %v", t)
+	// <debug>
+	fmt.Printf("Yachiyo > %s\n", answer)
+
+	fmt.Printf("\nDEBUG\nFORMAL:")
+	fmt.Println(core_copy.Emotion.String())
+	fmt.Println(core_copy.State.Prompt())
+	fmt.Printf("\nLATER:\n")
+	fmt.Println(c.Emotion.String())
+	fmt.Println(c.State.Prompt())
+	fmt.Println(c.Determination)
+
+	fmt.Println("Session Context: " + c.Note)
+	// </debug>
+
+	return &action.Message{
+		Content: answer,
+		Time:    time.Now().Unix(),
+		Address: action.Address{
+			Content: "client://cli",
+		},
+	}
+}
+
+func (c *Core) processTimetick(t *trigger.TimeTick) {
+	ylog.Debug("Received timetick %s", t.Time.Format("15:04:05"))
+
+	// State press
+	for _, s := range c.State.Drives() {
+		s.Drive.Press(0.1) // TODO: 0.1 is high speed, being only in debug
+		ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
+	}
+
+	// Initiative
+	timeNow := time.Now()
+	alonetime := time.Since(c.History.GetLastActive())
+	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
+	ylog.Debug("factors: %v", c.Factors.String())
+	if c.Factors.Update(alonetime.Minutes(), daytime.Minutes()) {
+		ylog.Info("Initiative active.")
+
+		// Relieve
+		for _, s := range c.State.Drives() {
+			s.Drive.Relieve(0.5) // TODO: 0.5 is high speed, being only in debug
+			ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
+		}
+
+		c.Process(&trigger.InitiativeMessage{})
+	}
 }

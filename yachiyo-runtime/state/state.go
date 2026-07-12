@@ -50,12 +50,15 @@ func (s *State) Prompt() string {
 	return result
 }
 
-func (s *State) Drives() []*Drive {
+func (s *State) Drives() []struct{Name string; Drive *Drive} {
 	v := reflect.ValueOf(s).Elem()
 	
-	drives := make([]*Drive, 0, v.NumField())
-	for _, f := range v.Fields() {
-		drives = append(drives, f.Addr().Interface().(*Drive))
+	drives := make([]struct{Name string; Drive *Drive}, 0, v.NumField())
+	for field, value := range v.Fields() {
+		drives = append(drives, struct{Name string; Drive *Drive}{
+			Name: field.Name,
+			Drive: value.Addr().Interface().(*Drive),
+		})
 	}
 
 	return drives

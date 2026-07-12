@@ -1,13 +1,15 @@
 package history
 
+import "time"
+
 type HistoryStorage interface {
 	Remember(memory History)
 	ListAll() []History
-	GetLastActive() string
+	GetLastActive() time.Time
 }
 
 type History struct {
-	Role string
+	Role    string
 	Content string
-	Time string
+	Time    time.Time
 }

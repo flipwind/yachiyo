@@ -1,6 +1,9 @@
 package basic
 
-import "yachiyo/yachiyo-runtime/history"
+import (
+	"time"
+	"yachiyo/yachiyo-runtime/history"
+)
 
 type BasicStorage struct {
 	Histories []history.History
@@ -20,6 +23,9 @@ func (b *BasicStorage) ListAll() []history.History{
 	return b.Histories
 }
 
-func (b *BasicStorage) GetLastActive() string{
+func (b *BasicStorage) GetLastActive() time.Time{
+	if len(b.Histories)-1 < 0 {
+		return time.Now()
+	}
 	return b.Histories[len(b.Histories)-1].Time
 }

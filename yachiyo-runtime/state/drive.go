@@ -13,6 +13,7 @@ import "math"
 type Drive struct {
 	Value float64	// the `x` on the curve, not `y` value
 }
+// TODO: float64 to int, avoiding numbers like 0.018000000000000002
 
 func curveF(x float64) float64 {
 	return 1 / (1 + math.Exp(-x))
@@ -67,27 +68,38 @@ func UrgencyDrive(u Urgency) Drive {
 	}
 }
 
+// operation
+func (d *Drive) round() {
+	number := d.Value
+	d.Value = math.Round(number*1000) / 1000
+}
+
 // State change
 
 func (d *Drive) Increase() {
 	d.Value += 0.2
+	d.round()
 }
 
 func (d *Drive) Decrease() {
 	d.Value -= 0.2
+	d.round()
 }
 
 func (d *Drive) State(u Urgency) {
 	value := UrgencyValue(u)
 	d.Value = value
+	d.round()
 }
 
 // We advise speedK should be in 0.0 ~ 1.0
 
 func (d *Drive) Press(speedK float64) {
 	d.Value += 0.2 * speedK
+	d.round()
 }
 
 func (d *Drive) Relieve(speedK float64) {
 	d.Value -= 0.2 * speedK
+	d.round()
 }

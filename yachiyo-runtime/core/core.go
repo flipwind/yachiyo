@@ -4,6 +4,7 @@ import (
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/basic"
+	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
@@ -19,6 +20,7 @@ type Core struct {
 	LLM           llm.LLM
 	Config        config.ConfigManager
 	Determination state.Determination
+	Factors       initiative.Factors
 
 	JSONConstraint bool
 	Note           string
@@ -41,6 +43,7 @@ func New() *Core {
 		LLM:            llm,
 		Config:         config,
 		Determination:  state.NewDetermination(),
+		Factors:        initiative.NewFactors(),
 		JSONConstraint: false,
 		Note:           "",
 	}
@@ -50,7 +53,7 @@ func New() *Core {
 	return core
 }
 
-func (c *Core) Run(){
+func (c *Core) Run() {
 	go c.Pipe.Listen()
 	go c.Pipe.DistributionListen()
 	go c.Clock()
