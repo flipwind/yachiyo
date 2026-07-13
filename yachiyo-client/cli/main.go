@@ -1,56 +1,30 @@
 package main
 
 import (
-	"bufio"
-	"context"
 	"fmt"
 	"os"
-	"time"
-	"yachiyo/yachiyo-util/logger"
+	"yachiyo/yachiyo-client/cli/gateway"
+	"yachiyo/yachiyo-client/cli/module"
 
-	"github.com/coder/websocket"
+	tea "charm.land/bubbletea/v2"
 )
 
-var ylog = logger.New("Yachiyo.CLI")
-
 func main() {
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Minute)
-	c, _, err := websocket.Dial(dialCtx, "ws://localhost:16802/ws", nil)
-	dialCancel()
-	if err != nil {
-		ylog.Error("Dialing error: %v", err)
-		return
-	}
-	defer c.CloseNow()
+	cliChannel := gateway.NewCliChannel()
+	cliGateway := gateway.NewGateway(cliChannel)
+	go cliGateway.Listen()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	model := module.InitialModel(cliChannel)
+	p := tea.NewProgram(model)
 
-	ylog.Success("Yachiyo CLI loading successfully.")
-
-	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		// Reading
-		fmt.Print("\nUser > ")
-		if !scanner.Scan() {
-			return
+	go func() {
+		for msg := range cliChannel.ToClient {
+			p.Send(msg)
 		}
+	}()
 
-		input := scanner.Text()
-		if err := c.Write(ctx, websocket.MessageText, []byte(input)); err != nil {
-			ylog.Error("Write error: %v", err)
-			return
-		}
-
-		_, reply, err := c.Read(ctx)
-		if err != nil {
-			ylog.Error("Reading error: %v", err)
-			return
-		}
-		fmt.Printf("Yachiyo > %s\n", string(reply))
-
-		if err := scanner.Err(); err != nil {
-			ylog.Error("Scanner error: %v", err)
-		}
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Running error: %v", err)
+		os.Exit(1)
 	}
 }

@@ -15,8 +15,8 @@ type Pipeline struct {
 
 func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
 	return &Pipeline{
-		Raw:          make(chan trigger.Trigger),
-		Distribution: make(chan action.Action),
+		Raw:          make(chan trigger.Trigger, 32),
+		Distribution: make(chan action.Action, 32),
 		Gateways:     make(map[string]chan action.Action),
 		handler:      handler,
 	}

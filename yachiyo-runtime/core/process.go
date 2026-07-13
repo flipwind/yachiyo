@@ -256,6 +256,6 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 			ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
 		}
 
-		c.Process(&trigger.InitiativeMessage{})
+		c.Pipe.Raw <- &trigger.InitiativeMessage{}
 	}
 }
