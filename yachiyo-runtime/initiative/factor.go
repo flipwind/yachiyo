@@ -41,19 +41,21 @@ type Factors struct {
 	RandomBonus float64
 }
 
-func NewFactors() Factors {
+func NewFactors(threshold float64, 
+	sociability_value float64, sociability_max float64, sociability_weight float64,
+	alonetime_value float64, alonetime_max float64, alonetime_weight float64) Factors {
 	// TODO: Setting
 	return Factors{
-		Threshold: 0.90,
+		Threshold: threshold,
 		Sociability: Factor{
-			Value:  0.8,
-			Max:    1,
-			Weight: 1,
+			Value:  sociability_value,
+			Max:    sociability_max,
+			Weight: sociability_weight,
 		},
 		AloneTime: Factor{
-			Value:  0,
-			Max:    2, // 2min
-			Weight: 2,
+			Value:  alonetime_value,
+			Max:    alonetime_max, // 2min
+			Weight: alonetime_weight,
 		},
 	}
 }

@@ -2,5 +2,5 @@ package gateway
 
 type Service interface {
 	SchemeName() string
-	Listen(c *GatewayChannel)
+	Listen(c *GatewayChannel, p int64)
 }

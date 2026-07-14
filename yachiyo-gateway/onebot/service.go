@@ -89,13 +89,14 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 type OnebotService struct {}
 
-func (s *OnebotService) Listen(c *gateway.GatewayChannel) {
+func (s *OnebotService) Listen(c *gateway.GatewayChannel, p int64) {
 	channel = c
 	http.HandleFunc("/ws/onebot", handleReceive)
 
 	go func() {
-		ylog.Success("Running onebot server on :16801 successfully.")
-		if err := http.ListenAndServe(":16801", nil); err != nil {
+		port := fmt.Sprintf(":%d", p)
+		ylog.Success("Running onebot server on :%d successfully.", p)
+		if err := http.ListenAndServe(port, nil); err != nil {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()

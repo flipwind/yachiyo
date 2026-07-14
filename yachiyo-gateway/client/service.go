@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"yachiyo/yachiyo-gateway"
@@ -66,13 +67,14 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 type ClientService struct{}
 
-func (s *ClientService) Listen(c *gateway.GatewayChannel) {
+func (s *ClientService) Listen(c *gateway.GatewayChannel, p int64) {
 	channel = c
 	http.HandleFunc("/ws/", handleReceive)
 
 	go func() {
-		ylog.Success("Running client server on :16802 successfully.")
-		if err := http.ListenAndServe(":16802", nil); err != nil {
+		port := fmt.Sprintf(":%d", p)
+		ylog.Success("Running client server on :%d successfully.", p)
+		if err := http.ListenAndServe(port, nil); err != nil {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()

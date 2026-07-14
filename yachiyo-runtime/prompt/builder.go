@@ -14,11 +14,12 @@ import (
 var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
-	History history.HistoryStorage
-	State   state.State
-	Emotion state.Emotion
-	Factors initiative.Factors
-	Note string
+	SystemPrompt string	// TODO: path read from config
+	History      history.HistoryStorage
+	State        state.State
+	Emotion      state.Emotion
+	Factors      initiative.Factors
+	Note         string
 }
 
 func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
@@ -30,7 +31,7 @@ func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
 		c.History.Remember(history.History{
 			Role:    "system",
 			Content: string(systemPrompt),
-			Time: time.Now(),
+			Time:    time.Now(),
 		})
 	}
 
@@ -57,7 +58,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 	c.History.Remember(history.History{
 		Role:    "user",
 		Content: prompt,
-		Time: time.Now(),
+		Time:    time.Now(),
 	})
 
 	ylog.Debug("Prompt built: %s", prompt)
@@ -96,7 +97,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 	c.History.Remember(history.History{
 		Role:    "user",
 		Content: prompt,
-		Time: time.Now(),
+		Time:    time.Now(),
 	})
 
 	ylog.Debug("Prompt built: %s", prompt)

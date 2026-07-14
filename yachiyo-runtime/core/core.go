@@ -18,7 +18,7 @@ type Core struct {
 	State         state.State
 	Emotion       state.Emotion
 	LLM           llm.LLM
-	Config        config.ConfigManager
+	Config        config.Config
 	Determination state.Determination
 	Factors       initiative.Factors
 
@@ -28,13 +28,16 @@ type Core struct {
 }
 
 func New() *Core {
+	// TODO: change config status (dev)
 	config, err := config.LoadConfig("../yachiyo-runtime/assets/config.yaml")
 	if err != nil {
 	}
 
 	// TODO: LLM List
-	llmConfig := config.CurrentConfig.LLM.Key[0]
-	llm := provider.NewOpenAIProvider(llmConfig.BaseUrl, llmConfig.Secret, llmConfig.ModelName)
+	llmConfig := config.LLM.DefaultProvider
+	llm := provider.NewOpenAIProvider(*llmConfig.BaseUrl, *llmConfig.Secret, *llmConfig.Model)
+
+	initiativeConfig := config.Initiative
 
 	core := &Core{
 		History:        basic.New(),
@@ -43,7 +46,15 @@ func New() *Core {
 		LLM:            llm,
 		Config:         config,
 		Determination:  state.NewDetermination(),
-		Factors:        initiative.NewFactors(),
+		Factors:        initiative.NewFactors(
+			*initiativeConfig.Threshold,
+			*initiativeConfig.Factors.Sociability.DefaultValue,
+			*initiativeConfig.Factors.Sociability.Max,
+			*initiativeConfig.Factors.Sociability.Weight,
+			*initiativeConfig.Factors.AloneTime.DefaultValue,
+			*initiativeConfig.Factors.AloneTime.Max,
+			*initiativeConfig.Factors.AloneTime.Weight,
+		),
 		JSONConstraint: false,
 		Note:           "",
 	}

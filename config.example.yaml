@@ -1,0 +1,39 @@
+nickname: Yachiyo
+
+prompt:
+  system: <dir-to-system-prompt>
+
+gateway:
+  onebot:
+    enabled: True
+    port: 16801
+  client:
+    enabled: True
+    port: 16802
+
+initiative:
+  threshold: 0.9
+  factors:
+    sociability: 
+      value:  0.8
+      max:    1
+      weight: 1
+    alonetime: 
+      value:  0
+      max:    2
+      weight: 2
+
+llm:
+  default: deepseek
+  providers:
+    - enabled: True
+      name: deepseek
+      base_url: https://api.deepseek.com
+      secret: <your-key-here>
+      model: deepseek-v4-pro
+      
+    - enabled: True
+      name: qwen3.7-plus
+      base_url: <your-base-url-here>
+      secret: <your-key-here>
+      model: qwen3.7-plus
