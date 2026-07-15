@@ -2,17 +2,25 @@ version: 3
 
 tasks:
   serverdev:
-    desc: Run Yachiyo server in development mode
+    desc: build and run Yachiyo server (Windows) # development
     silent: true
-    env:
-      YACHIYO_GLOBAL_MODE: development
-      YACHIYO_CHAR_PATH: "{{.USER_WORKING_DIR}}/yachiyo-dev/package.yachiyo/prompts"
-    dir: ./yachiyo-runtime
     cmds:
-      - go run server.go
-  clientdev:
-    desc: Run Yachiyo Client in development mode
+      - mkdir -p build/server
+      - go build -o build/server/server.exe yachiyo-runtime/server.go
+      - cp config.example.yaml ./build/server
+      - cp README.md build/server
+      - cp LICENSE build/server
+      - mkdir -p build/server/prompt
+      
+      # running server
+      - cd build/server && server.exe
+
+  clidev:
+    desc: build and run Yachiyo CLI (Windows) # development
     silent: true
-    dir: ./yachiyo-client/cli
     cmds:
-      - go run main.go
+      - mkdir -p build/cli
+      - go build -o build/cli/client.exe yachiyo-client/cli/main.go
+
+      # running CLI
+      - cd build/cli && client.exe

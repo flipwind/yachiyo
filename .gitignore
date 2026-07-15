@@ -1,4 +1,8 @@
 /legacy
 /notes
 
+/build
+
 /yachiyo-runtime/assets
+
+config.yaml
