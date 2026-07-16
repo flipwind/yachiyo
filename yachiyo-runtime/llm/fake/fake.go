@@ -13,6 +13,6 @@ func NewFakeLLM() *FakeLLM {
 
 func (l *FakeLLM) LLM() {}
 
-func (l *FakeLLM) Gen(history []history.History) string {
-	return fmt.Sprintf("%v", history)
+func (l *FakeLLM) Gen(history []history.History) (string, error) {
+	return fmt.Sprintf("%v", history), nil
 }

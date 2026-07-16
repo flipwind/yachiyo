@@ -1,6 +1,7 @@
 package core
 
 import (
+	"time"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/basic"
@@ -9,6 +10,7 @@ import (
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-util/logger"
+	"yachiyo/yachiyo-util/yerror"
 )
 
 var ylog = logger.New("Yachiyo.Core")
@@ -25,12 +27,14 @@ type Core struct {
 	JSONConstraint bool
 	Note           string
 	Pipe           *Pipeline
+	LastActiveTime *time.Time
 }
 
-func New() *Core {
+func New() (*Core, error) {
 	// TODO: change config status (dev)
-	config, err := config.LoadConfig("../yachiyo-runtime/assets/config.yaml")
+	config, err := config.LoadConfig("config.yaml")
 	if err != nil {
+		return nil, yerror.TypeMissing("Config")
 	}
 
 	// TODO: LLM List
@@ -61,7 +65,7 @@ func New() *Core {
 
 	core.Pipe = NewPipeline(core.Process)
 
-	return core
+	return core, nil
 }
 
 func (c *Core) Run() {

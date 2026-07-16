@@ -7,6 +7,9 @@ type Address struct {
 }
 
 func (a *Address) Scheme() string {
-	u, _ := url.Parse(a.Content)
+	u, err := url.Parse(a.Content)
+	if err != nil {
+		ylog.Error("address parsing error: %v", err)
+	}
 	return u.Scheme
 }

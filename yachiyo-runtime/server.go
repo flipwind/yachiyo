@@ -18,16 +18,21 @@ var ylog = logger.New("Yachiyo.Server.Main")
 func main() {
 	ylog.Info("Initializing Yachiyo server...")
 
-	ycore := core.New()
+	ycore, err := core.New()
+	if err != nil {
+		ylog.Error("Core loading unsuccessfully: %v", err)
+		return
+	}
+
 	yconfig := ycore.Config
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
 	if *yconfig.Gateway.Onebot.Enabled {
-		go serviveChannel(ycore.Pipe, &onebot.OnebotService{}, *yconfig.Gateway.Onebot.Port)
+		go serviceChannel(ycore.Pipe, &onebot.OnebotService{}, *yconfig.Gateway.Onebot.Port)
 	}
 	if *yconfig.Gateway.Client.Enabled {
-		go serviveChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
+		go serviceChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
 	}
 
 	go ycore.Run()
@@ -40,7 +45,7 @@ func main() {
 	ylog.Info("Shutting down...")
 }
 
-func serviveChannel(p *core.Pipeline, s gateway.Service, port int64) {
+func serviceChannel(p *core.Pipeline, s gateway.Service, port int64) {
 	gatewayChannel := gateway.NewGatewayChannel()
 	s.Listen(gatewayChannel, port)
 

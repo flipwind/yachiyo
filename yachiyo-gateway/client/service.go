@@ -34,10 +34,10 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			case msg := <-channel.ToClient:
 				switch t := msg.(type) {
 				case *action.Message:
-					if err != nil {
-						ylog.Error("Address url parse error: %v", err)
+					if err := c.Write(ctx, websocket.MessageText, []byte(t.Content)); err != nil {
+						ylog.Error("Websocket writing error: %v", err)
+						return
 					}
-					c.Write(ctx, websocket.MessageText, []byte(t.Content))
 				}
 			}
 		}

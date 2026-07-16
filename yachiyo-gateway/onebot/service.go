@@ -42,6 +42,8 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 					u, err := url.Parse(t.Address.Content)
 					if err != nil {
 						ylog.Error("Address url parse error: %v", err)
+						ylog.Info("Message <%v> is ignored.", msg)
+						continue
 					}
 
 					req := map[string]any{
@@ -55,7 +57,10 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 					jreq, _ := json.Marshal(req)
 
-					c.Write(ctx, websocket.MessageText, jreq)
+					if err := c.Write(ctx, websocket.MessageText, jreq); err != nil {
+						ylog.Error("Websocket writing error: %v", err)
+						return
+					}
 				}
 
 			}

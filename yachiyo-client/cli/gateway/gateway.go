@@ -54,10 +54,10 @@ func (g *Gateway) Listen() {
 			case <-ctx.Done():
 				return
 			case msg := <-g.channel.ToServer:
-				if err != nil {
-					ylog.Error("Address url parse error: %v", err)
+				if err := conn.Write(ctx, websocket.MessageText, []byte(msg.Content)); err != nil {
+					ylog.Error("Websocket writing error: %v", err)
+					return
 				}
-				conn.Write(ctx, websocket.MessageText, []byte(msg.Content))
 			}
 		}
 	}()
