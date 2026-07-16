@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+	"time"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-util/logger"
+	"yachiyo/yachiyo-util/yerror"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -42,7 +44,10 @@ func (p *OpenAIProvider) Gen(history []history.History) (string, error) {
 		}
 	}
 
-	reply, err := p.client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
+	ctx, cancel := context.WithTimeout(context.Background(), 60 * time.Second)
+	defer cancel()
+
+	reply, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: OpenAIMessages,
 		Model:    p.model,
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
@@ -54,6 +59,11 @@ func (p *OpenAIProvider) Gen(history []history.History) (string, error) {
 
 	if err != nil {
 		return "", err
+	}
+
+	if len(reply.Choices) == 0 {
+		ylog.Error("Reply's choices is empty.")
+		return "", yerror.TypeMissing("reply.choices")
 	}
 
 	return reply.Choices[0].Message.Content, nil

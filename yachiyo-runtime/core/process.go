@@ -12,12 +12,16 @@ import (
 )
 
 func (c *Core) Process(e trigger.Trigger) action.Action {
+	timeNow := time.Now()
+	
 	switch t := e.(type) {
 	case *trigger.Message:
+		c.LastActiveTime = &timeNow
 		return c.processUserMessage(t)
 	case *trigger.TimeTick:
 		c.processTimetick(t)
 	case *trigger.InitiativeMessage:
+		c.LastActiveTime = &timeNow
 		return c.processInitiativeMessage(t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)
@@ -83,11 +87,12 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	histories := prompt.UserPromptBuilder(&prompt.Context{
-		History: c.History,
-		Emotion: c.Emotion,
-		State:   c.State,
-		Note:    c.Note,
-		Factors: c.Factors,
+		SystemPrompt: c.Config.Prompt.SystemPrompt,
+		History:      c.History,
+		Emotion:      c.Emotion,
+		State:        c.State,
+		Note:         c.Note,
+		Factors:      c.Factors,
 	}, m)
 
 	var result, answer string
@@ -100,13 +105,16 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 
 	for i := range 3 {
 		if i == 1 {
+			// This is desiged intentionally.
+			// In real use, once triggered, JSONConstraint should be true in a whole session,
+			// to cut down the token use.
 			c.JSONConstraint = true
 		}
 
 		if c.JSONConstraint {
 			histories = append(histories, history.History{
 				Role:    "user",
-				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
+				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 				Time:    time.Now(),
 			})
 		}
@@ -159,11 +167,12 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 
 func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
 	histories := prompt.InitiativePromptBuilder(&prompt.Context{
-		History: c.History,
-		Emotion: c.Emotion,
-		State:   c.State,
-		Note:    c.Note,
-		Factors: c.Factors,
+		SystemPrompt: c.Config.Prompt.SystemPrompt,
+		History:      c.History,
+		Emotion:      c.Emotion,
+		State:        c.State,
+		Note:         c.Note,
+		Factors:      c.Factors,
 	})
 
 	var result, answer string
@@ -177,12 +186,15 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	for i := range 3 {
 		if i == 1 {
 			c.JSONConstraint = true
+			// This is desiged intentionally.
+			// In real use, once triggered, JSONConstraint should be true in a whole session,
+			// to cut down the token use.
 		}
 
 		if c.JSONConstraint {
 			histories = append(histories, history.History{
 				Role:    "user",
-				Content: "<PROCESS HINT> YOUR LAST REPLY IS NOT A VALID JSON, REGENERATE IT. YOU MUST FOLLOW THE OUTPUT ROLE.",
+				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 				Time:    time.Now(),
 			})
 		}
@@ -244,7 +256,14 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 
 	// Initiative
 	timeNow := time.Now()
-	alonetime := time.Since(c.History.GetLastActive())
+
+	var alonetime time.Duration
+
+	if c.LastActiveTime == nil {
+		alonetime = time.Since(time.Now())
+	} else {
+		alonetime = time.Since(*c.LastActiveTime)
+	}
 	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
 	ylog.Debug("factors: %v", c.Factors.String())
 	if c.Factors.Update(alonetime.Minutes(), daytime.Minutes()) {

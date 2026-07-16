@@ -20,7 +20,7 @@ initiative:
       weight: 1
     alonetime: 
       value:  0
-      max:    2
+      max:    10
       weight: 2
 
 llm:

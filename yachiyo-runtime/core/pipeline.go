@@ -15,8 +15,11 @@ type Pipeline struct {
 
 func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
 	return &Pipeline{
-		Raw:          make(chan trigger.Trigger, 32),
-		Distribution: make(chan action.Action, 32),
+		// channel length change to 65535
+		// This is a test on purpose, a better solution is on the way.
+		// TODO: a better process solution
+		Raw:          make(chan trigger.Trigger, 65535),
+		Distribution: make(chan action.Action, 65535),
 		Gateways:     make(map[string]chan action.Action),
 		handler:      handler,
 	}
@@ -48,6 +51,9 @@ func (p *Pipeline) DistributionListen() {
 		case *action.Message:
 			scheme := t.Address.Scheme()
 			outputChan := p.Gateways[scheme]
+			if outputChan == nil {
+				ylog.Error("scheme <%v> is not registered", scheme)
+			}
 			outputChan <- t
 		}
 	}

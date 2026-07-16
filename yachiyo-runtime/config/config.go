@@ -36,6 +36,7 @@ type Config struct {
 	Nickname *string `yaml:"nickname"`
 	Prompt   struct {
 		SystemPromptPath *string `yaml:"system"`
+		SystemPrompt     string
 	} `yaml:"prompt"`
 	Gateway struct {
 		Onebot GatewayConfig `yaml:"onebot"`
@@ -88,6 +89,13 @@ func LoadConfig(configPath string) (Config, error) {
 		}
 	}
 
+	systemPrompt, err := os.ReadFile(*config.Prompt.SystemPromptPath)
+	if err != nil {
+		return Config{}, err
+	}
+
+	config.Prompt.SystemPrompt = string(systemPrompt)
+
 	return config, nil
 }
 
@@ -138,7 +146,7 @@ func (c *Config) Check() (bool, []error) {
 	} else {
 		if *c.Initiative.Factors.Sociability.DefaultValue > *c.Initiative.Factors.Sociability.Max {
 			pass = false
-			errs = append(errs, yerror.FieldInvalid("initiative.factors.sociability", "DefaultValue should less than Max"))
+			errs = append(errs, yerror.FieldInvalid("initiative.factors.sociability", "DefaultValue should be less than Max"))
 		}
 	}
 
@@ -148,7 +156,7 @@ func (c *Config) Check() (bool, []error) {
 	} else {
 		if *c.Initiative.Factors.AloneTime.DefaultValue > *c.Initiative.Factors.AloneTime.Max {
 			pass = false
-			errs = append(errs, yerror.FieldInvalid("initiative.factors.alonetime", "DefaultVaule should less than Max"))
+			errs = append(errs, yerror.FieldInvalid("initiative.factors.alonetime", "DefaultValue should be less than Max"))
 		}
 	}
 

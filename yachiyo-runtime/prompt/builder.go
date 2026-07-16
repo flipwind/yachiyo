@@ -2,7 +2,6 @@ package prompt
 
 import (
 	"fmt"
-	"os"
 	"time"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/initiative"
@@ -14,7 +13,7 @@ import (
 var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
-	SystemPrompt string	// TODO: path read from config
+	SystemPrompt string // TODO: path read from config
 	History      history.HistoryStorage
 	State        state.State
 	Emotion      state.Emotion
@@ -24,13 +23,9 @@ type Context struct {
 
 func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
 	if len(c.History.ListAll()) == 0 {
-		systemPrompt, err := os.ReadFile("../yachiyo-runtime/assets/systemPrompt.md")
-		if err != nil {
-		}
-
 		c.History.Remember(history.History{
 			Role:    "system",
-			Content: string(systemPrompt),
+			Content: string(c.SystemPrompt),
 			Time:    time.Now(),
 		})
 	}
