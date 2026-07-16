@@ -13,7 +13,7 @@ import (
 
 func (c *Core) Process(e trigger.Trigger) action.Action {
 	timeNow := time.Now()
-	
+
 	switch t := e.(type) {
 	case *trigger.Message:
 		c.LastActiveTime = &timeNow
@@ -87,12 +87,13 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	histories := prompt.UserPromptBuilder(&prompt.Context{
-		SystemPrompt: c.Config.Prompt.SystemPrompt,
-		History:      c.History,
-		Emotion:      c.Emotion,
-		State:        c.State,
-		Note:         c.Note,
-		Factors:      c.Factors,
+		SystemPrompt:   c.Config.Prompt.SystemPrompt,
+		History:        c.History,
+		Emotion:        c.Emotion,
+		State:          c.State,
+		Note:           c.Note,
+		Factors:        c.Factors,
+		LastActiveTime: *c.LastActiveTime,
 	}, m)
 
 	var result, answer string
@@ -167,12 +168,13 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 
 func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
 	histories := prompt.InitiativePromptBuilder(&prompt.Context{
-		SystemPrompt: c.Config.Prompt.SystemPrompt,
-		History:      c.History,
-		Emotion:      c.Emotion,
-		State:        c.State,
-		Note:         c.Note,
-		Factors:      c.Factors,
+		SystemPrompt:   c.Config.Prompt.SystemPrompt,
+		History:        c.History,
+		Emotion:        c.Emotion,
+		State:          c.State,
+		Note:           c.Note,
+		Factors:        c.Factors,
+		LastActiveTime: *c.LastActiveTime,
 	})
 
 	var result, answer string

@@ -13,12 +13,13 @@ import (
 var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
-	SystemPrompt string // TODO: path read from config
-	History      history.HistoryStorage
-	State        state.State
-	Emotion      state.Emotion
-	Factors      initiative.Factors
-	Note         string
+	SystemPrompt   string
+	History        history.HistoryStorage
+	State          state.State
+	Emotion        state.Emotion
+	Factors        initiative.Factors
+	Note           string
+	LastActiveTime time.Time
 }
 
 func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
@@ -34,9 +35,8 @@ func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
 	currentTime := time.Now().Format("2006.01.02 15:04:05")
 
 	prompt := fmt.Sprintf(`[UserMessage]
-For This Conversation ONLY:
-This part, either Emotion and State, you must follow it, in this round of conversation.
 <Yachiyo Runtime>
+This part, either Emotion and State, you must follow it, in this round of conversation.
 Time: %s
 Emotion: %s
 State: %s
@@ -48,7 +48,7 @@ User Content: %s
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
-		currentTime, c.Emotion.String(), c.State.Prompt(), c.History.GetLastActive(), c.Note, t.String())
+		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, t.String())
 
 	c.History.Remember(history.History{
 		Role:    "user",
@@ -71,10 +71,9 @@ func InitiativePromptBuilder(c *Context) []history.History {
 	currentTime := time.Now().Format("2006.01.02 15:04:05")
 
 	prompt := fmt.Sprintf(`[InitiativeMessage]
-For This Conversation ONLY:
-This part, either Emotion and State, you must follow it, in this round of conversation.
 ---
 <Yachiyo Runtime>
+This part, either Emotion and State, you must follow it, in this round of conversation.
 Time: %s
 Emotion: %s
 State: %s
@@ -82,12 +81,14 @@ Last Conversation Active: %s
 Session Context: %s
 ---
 <Runtime Factors>
+Factors will active initiative message. As the result, these factors are given to know why you should send initiative message.
+Following are some percentage. Notice that percentage is accumulated with the time normally.
 %s
 ---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
-		currentTime, c.Emotion.String(), c.State.Prompt(), c.History.GetLastActive().Format("2006.01.02 15:04:05"), c.Note, c.Factors.String())
+		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, c.Factors.String())
 
 	c.History.Remember(history.History{
 		Role:    "user",

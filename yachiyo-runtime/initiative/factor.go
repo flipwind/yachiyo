@@ -12,6 +12,19 @@ type Factor struct {
 	Weight float64
 }
 
+func (f *Factor) percent() string {
+	x := f.Value / f.Max
+	if x > 1 {
+		x = 1
+	}
+
+	if x < -1 {
+		x = -1
+	}
+
+	return fmt.Sprintf("%.2f%%", x * 100)
+}
+
 func (f *Factor) score() float64 {
 	x := f.Value / f.Max
 	if x > 1 {
@@ -101,7 +114,7 @@ AloneTime: %v,
 Daytime: not available,
 RandomBonus: %v,
 
-ALL = %v
-Res = %v`, fs.Sociability.score(), fs.AloneTime.score(), fs.RandomBonus,
-		all, all/weights)
+factors sum = %v
+accordingly initiative possibility = %.2f%%`, fs.Sociability.percent(), fs.AloneTime.percent(), fs.RandomBonus,
+		all, all/weights*100)
 }
