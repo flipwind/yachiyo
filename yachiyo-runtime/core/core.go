@@ -51,13 +51,23 @@ func New() (*Core, error) {
 		Config:         config,
 		Determination:  state.NewDetermination(),
 		Factors:        initiative.NewFactors(
+			// TODO: reflect
 			*initiativeConfig.Threshold,
+
+			*initiativeConfig.Factors.Sociability.Curve,
 			*initiativeConfig.Factors.Sociability.DefaultValue,
 			*initiativeConfig.Factors.Sociability.Max,
 			*initiativeConfig.Factors.Sociability.Weight,
+
+			*initiativeConfig.Factors.AloneTime.Curve,
 			*initiativeConfig.Factors.AloneTime.DefaultValue,
 			*initiativeConfig.Factors.AloneTime.Max,
 			*initiativeConfig.Factors.AloneTime.Weight,
+
+			*initiativeConfig.Factors.Daytime.Curve,
+			*initiativeConfig.Factors.Daytime.DefaultValue,
+			*initiativeConfig.Factors.Daytime.Max,
+			*initiativeConfig.Factors.Daytime.Weight,
 		),
 		JSONConstraint: false,
 		Note:           "",

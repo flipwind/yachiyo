@@ -15,12 +15,19 @@ initiative:
   threshold: 0.9
   factors:
     sociability: 
+      curve:  0.8
       value:  0.8
       max:    1
       weight: 1
-    alonetime: 
+    alonetime:
+      curve:  1/(1+e^(-x+3))
       value:  0
       max:    10
+      weight: 2
+    daytime:
+      curve:  sin((π/12)*(x+14))+0.5
+      value:  0
+      max:    24
       weight: 2
 
 llm:

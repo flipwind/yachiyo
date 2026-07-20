@@ -248,6 +248,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 }
 
 func (c *Core) processTimetick(t *trigger.TimeTick) {
+	// TODO: too ugly, need simplify
 	ylog.Debug("Received timetick %s", t.Time.Format("15:04:05"))
 
 	// State press
@@ -268,7 +269,7 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 	}
 	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
 	ylog.Debug("factors: %v", c.Factors.String())
-	if c.Factors.Update(alonetime.Minutes(), daytime.Minutes()) {
+	if c.Factors.Update(alonetime.Minutes(), daytime.Hours()) {
 		ylog.Info("Initiative active.")
 
 		// Relieve
