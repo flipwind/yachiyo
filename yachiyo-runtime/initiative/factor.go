@@ -137,6 +137,6 @@ Daytime: %v,
 RandomBonus: %v,
 
 factors sum = %v
-accordingly initiative possibility = %.2f%%`, fs.Sociability.percent(), fs.Daytime.percent(), fs.AloneTime.percent(), fs.RandomBonus,
+accordingly initiative possibility = %.2f%%`, fs.Sociability.percent(), fs.AloneTime.percent(), fs.Daytime.percent(), fs.RandomBonus,
 		all, all/weights*100)
 }
