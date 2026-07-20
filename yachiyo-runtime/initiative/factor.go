@@ -66,7 +66,7 @@ func NewFactors(threshold float64,
 	if err != nil {
 		ylog.Error("Curve error: %v", err)
 	}
-	
+
 	curve_daytime, err := ymath.New(daytime_curve, daytime_value)
 	if err != nil {
 		ylog.Error("Curve error: %v", err)
@@ -102,8 +102,10 @@ func (fs *Factors) Update(alonetime float64, daytime float64) bool {
 	fs.AloneTime.Value = alonetime
 	fs.Daytime.Value = daytime
 
-	weights := fs.Sociability.Weight + fs.AloneTime.Weight + fs.Daytime.Weight
-	return fs.Score()/weights > fs.Threshold
+	max := fs.Sociability.Max*fs.Sociability.Weight +
+		fs.AloneTime.Max*fs.AloneTime.Weight +
+		fs.Daytime.Max*fs.Daytime.Weight
+	return fs.Score()/max > fs.Threshold
 }
 
 func randomBonus() float64 {
