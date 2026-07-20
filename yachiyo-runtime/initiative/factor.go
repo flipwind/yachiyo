@@ -17,7 +17,7 @@ type Factor struct {
 }
 
 func (f *Factor) percent() string {
-	x := f.score() / f.Max
+	x := f.score() / f.Weight / f.Max
 
 	return fmt.Sprintf("%.2f%%", x*100)
 }
@@ -130,8 +130,10 @@ func (fs *Factors) Score() float64 {
 }
 
 func (fs *Factors) String() string {
-	all := fs.Sociability.score() + fs.AloneTime.score() + fs.RandomBonus
-	weights := fs.Sociability.Weight + fs.AloneTime.Weight
+	all := fs.Sociability.score() + fs.AloneTime.score() + fs.Daytime.score() + fs.RandomBonus
+	max := fs.Sociability.Max*fs.Sociability.Weight +
+		fs.AloneTime.Max*fs.AloneTime.Weight +
+		fs.Daytime.Max*fs.Daytime.Weight
 
 	return fmt.Sprintf(`Sociability: %v,
 AloneTime: %v,
@@ -140,5 +142,5 @@ RandomBonus: %v,
 
 factors sum = %v
 accordingly initiative possibility = %.2f%%`, fs.Sociability.percent(), fs.AloneTime.percent(), fs.Daytime.percent(), fs.RandomBonus,
-		all, all/weights*100)
+		all, all/max*100)
 }
