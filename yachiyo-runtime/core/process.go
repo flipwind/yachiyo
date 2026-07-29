@@ -83,26 +83,27 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 	return output.Answer, nil
 }
 
-// Trigger process part
+// utils
+func debugOutput(answer string, c_formal Core, c_later Core) {
+	msg := fmt.Sprintf(`== DEBUG MESSAGE ==
+Yachiyo > %s
+* Formal:
+%s
+%s
+* Later:
+%s
+%s
+%+v
+* Session Context: %s`,
+		answer, c_formal.Emotion.String(), c_formal.State.Prompt(),
+		c_later.Emotion.String(), c_later.State.Prompt(), c_later.Determination,
+		c_later.Note)
 
-func (c *Core) processUserMessage(m *trigger.Message) action.Action {
-	histories := prompt.UserPromptBuilder(&prompt.Context{
-		SystemPrompt:   c.Config.Prompt.SystemPrompt,
-		History:        c.History,
-		Emotion:        c.Emotion,
-		State:          c.State,
-		Note:           c.Note,
-		Factors:        c.Factors,
-		LastActiveTime: *c.LastActiveTime,
-	}, m)
+	fmt.Printf("%s", msg)
+}
 
-	var result, answer string
-	var err error
-
-	// <debug>
-	var core_copy Core
-	core_copy = *c
-	// </debug>
+func processLLM(h []history.History, c *Core) string {
+	var answer string
 
 	for i := range 3 {
 		if i == 1 {
@@ -113,14 +114,14 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		}
 
 		if c.JSONConstraint {
-			histories = append(histories, history.History{
+			h = append(h, history.History{
 				Role:    "user",
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 				Time:    time.Now(),
 			})
 		}
 
-		result, err = c.LLM.Gen(histories)
+		result, err := c.LLM.Gen(h)
 
 		if err != nil {
 			ylog.Error("LLM Generating error: %v", err)
@@ -143,19 +144,30 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		break
 	}
 
+	return answer
+}
+
+// Trigger process part
+
+func (c *Core) processUserMessage(m *trigger.Message) action.Action {
+	histories := prompt.UserPromptBuilder(&prompt.Context{
+		SystemPrompt:   c.Config.Prompt.SystemPrompt,
+		History:        c.History,
+		Emotion:        c.Emotion,
+		State:          c.State,
+		Note:           c.Note,
+		Factors:        c.Factors,
+		LastActiveTime: *c.LastActiveTime,
+	}, m)
+
 	// <debug>
-	fmt.Printf("Yachiyo > %s\n", answer)
-
-	fmt.Printf("\nDEBUG\nFORMAL:")
-	fmt.Println(core_copy.Emotion.String())
-	fmt.Println(core_copy.State.Prompt())
-	fmt.Printf("\nLATER:\n")
-	fmt.Println(c.Emotion.String())
-	fmt.Println(c.State.Prompt())
-	fmt.Println(c.Determination)
-
-	fmt.Println("Session Context: " + c.Note)
+	var core_copy Core
+	core_copy = *c
 	// </debug>
+
+	answer := processLLM(histories, c)
+
+	debugOutput(answer, core_copy, *c)
 
 	return &action.Message{
 		Content: answer,
@@ -177,66 +189,14 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		LastActiveTime: *c.LastActiveTime,
 	})
 
-	var result, answer string
-	var err error
-
 	// <debug>
 	var core_copy Core
 	core_copy = *c
 	// </debug>
 
-	for i := range 3 {
-		if i == 1 {
-			c.JSONConstraint = true
-			// This is desiged intentionally.
-			// In real use, once triggered, JSONConstraint should be true in a whole session,
-			// to cut down the token use.
-		}
+	answer := processLLM(histories, c)
 
-		if c.JSONConstraint {
-			histories = append(histories, history.History{
-				Role:    "user",
-				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
-				Time:    time.Now(),
-			})
-		}
-
-		result, err = c.LLM.Gen(histories)
-
-		if err != nil {
-			ylog.Error("LLM Generating error: %v", err)
-			continue
-		}
-
-		answer, err = c.OutputProcess(result)
-
-		if err != nil {
-			ylog.Error("%d request failed. Retrying...", i+1)
-			continue
-		}
-
-		c.History.Remember(history.History{
-			Role:    "assistant",
-			Content: answer,
-			Time:    time.Now(),
-		})
-
-		break
-	}
-
-	// <debug>
-	fmt.Printf("Yachiyo > %s\n", answer)
-
-	fmt.Printf("\nDEBUG\nFORMAL:")
-	fmt.Println(core_copy.Emotion.String())
-	fmt.Println(core_copy.State.Prompt())
-	fmt.Printf("\nLATER:\n")
-	fmt.Println(c.Emotion.String())
-	fmt.Println(c.State.Prompt())
-	fmt.Println(c.Determination)
-
-	fmt.Println("Session Context: " + c.Note)
-	// </debug>
+	debugOutput(answer, core_copy, *c)
 
 	return &action.Message{
 		Content: answer,
@@ -253,7 +213,7 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 
 	// State press
 	for _, s := range c.State.Drives() {
-		s.Drive.Press(0.1) // TODO: 0.1 is high speed, being only in debug
+		s.Drive.Press((1.4 * 5) / (3600 * 1))
 		ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
 	}
 
@@ -274,7 +234,7 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 
 		// Relieve
 		for _, s := range c.State.Drives() {
-			s.Drive.Relieve(0.5) // TODO: 0.5 is high speed, being only in debug
+			s.Drive.Relieve(0.5)
 			ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
 		}
 
