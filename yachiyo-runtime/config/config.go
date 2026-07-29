@@ -142,35 +142,19 @@ func (c *Config) Check() (bool, []error) {
 		c.Initiative.Threshold = &value
 	}
 
-	// TODO: adaptive factor check(reflect)
-
-	if c.Initiative.Factors.Sociability.Curve == nil || c.Initiative.Factors.Sociability.DefaultValue == nil || c.Initiative.Factors.Sociability.Max == nil || c.Initiative.Factors.Sociability.Weight == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("initiative.factors.sociability"))
-	} else {
-		if *c.Initiative.Factors.Sociability.DefaultValue > *c.Initiative.Factors.Sociability.Max {
-			pass = false
-			errs = append(errs, yerror.FieldInvalid("initiative.factors.sociability", "DefaultValue should be less than Max"))
-		}
+	factorConfigs := map[string]*FactorConfig{
+		"sociability": &c.Initiative.Factors.Sociability,
+		"alonetime": &c.Initiative.Factors.AloneTime,
+		"daytime": &c.Initiative.Factors.Daytime,
 	}
 
-	if c.Initiative.Factors.AloneTime.Curve == nil || c.Initiative.Factors.AloneTime.DefaultValue == nil || c.Initiative.Factors.AloneTime.Max == nil || c.Initiative.Factors.AloneTime.Weight == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("initiative.factors.alonetime"))
-	} else {
-		if *c.Initiative.Factors.AloneTime.DefaultValue > *c.Initiative.Factors.AloneTime.Max {
+	for name, config := range factorConfigs {
+		isPassed, err := config.Check(name)
+		if isPassed == false {
 			pass = false
-			errs = append(errs, yerror.FieldInvalid("initiative.factors.alonetime", "DefaultValue should be less than Max"))
 		}
-	}
-
-	if c.Initiative.Factors.Daytime.Curve == nil || c.Initiative.Factors.Daytime.DefaultValue == nil || c.Initiative.Factors.Daytime.Max == nil || c.Initiative.Factors.Daytime.Weight == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("initiative.factors.daytime"))
-	} else {
-		if *c.Initiative.Factors.Daytime.DefaultValue > *c.Initiative.Factors.Daytime.Max {
-			pass = false
-			errs = append(errs, yerror.FieldInvalid("initiative.factors.daytime", "DefaultValue should be less than Max"))
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 
@@ -218,3 +202,17 @@ func (c *Config) Check() (bool, []error) {
 
 	return pass, errs
 }
+
+func (f *FactorConfig) Check(name string) (bool, error) {
+	if f.Curve == nil || f.DefaultValue == nil || f.Max == nil || f.Weight == nil {
+		return false, yerror.FieldIncomplete("initiative.factors." + name)
+	} else {
+		if *f.DefaultValue > *f.Max {
+			return false, yerror.FieldInvalid("initiative.factors." + name, "DefaultValue should be less than Max")
+		}
+	}
+
+	return true, nil
+}
+
+

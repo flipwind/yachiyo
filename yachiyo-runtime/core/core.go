@@ -54,20 +54,9 @@ func New() (*Core, error) {
 			// TODO: reflect
 			*initiativeConfig.Threshold,
 
-			*initiativeConfig.Factors.Sociability.Curve,
-			*initiativeConfig.Factors.Sociability.DefaultValue,
-			*initiativeConfig.Factors.Sociability.Max,
-			*initiativeConfig.Factors.Sociability.Weight,
-
-			*initiativeConfig.Factors.AloneTime.Curve,
-			*initiativeConfig.Factors.AloneTime.DefaultValue,
-			*initiativeConfig.Factors.AloneTime.Max,
-			*initiativeConfig.Factors.AloneTime.Weight,
-
-			*initiativeConfig.Factors.Daytime.Curve,
-			*initiativeConfig.Factors.Daytime.DefaultValue,
-			*initiativeConfig.Factors.Daytime.Max,
-			*initiativeConfig.Factors.Daytime.Weight,
+			initiativeConfig.Factors.Sociability,
+			initiativeConfig.Factors.AloneTime,
+			initiativeConfig.Factors.Daytime,
 		),
 		JSONConstraint: false,
 		Note:           "",

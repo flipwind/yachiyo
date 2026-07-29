@@ -3,6 +3,7 @@ package initiative
 import (
 	"fmt"
 	"math/rand/v2"
+	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/ymath"
 )
@@ -48,50 +49,33 @@ type Factors struct {
 	RandomBonus float64
 }
 
-func NewFactors(threshold float64,
-	sociability_curve string, sociability_value float64, sociability_max float64, sociability_weight float64,
-	alonetime_curve string, alonetime_value float64, alonetime_max float64, alonetime_weight float64,
-	daytime_curve string, daytime_value float64, daytime_max float64, daytime_weight float64) Factors {
-	// TODO: Setting
-	// TODO: adaptive
-
-	// curves
+func newFactor(f config.FactorConfig) Factor {
 	// TODO: error
-	curve_sociability, err := ymath.New(sociability_curve, sociability_value)
+
+	curve, err := ymath.New(*f.Curve, *f.DefaultValue)
 	if err != nil {
 		ylog.Error("Curve error: %v", err)
 	}
 
-	curve_alonetime, err := ymath.New(alonetime_curve, alonetime_value)
-	if err != nil {
-		ylog.Error("Curve error: %v", err)
+	return Factor{
+		Curve: *curve,
+		Value: *f.DefaultValue,
+		Max: *f.Max,
+		Weight: *f.Weight,
 	}
+}
 
-	curve_daytime, err := ymath.New(daytime_curve, daytime_value)
-	if err != nil {
-		ylog.Error("Curve error: %v", err)
-	}
 
+func NewFactors(threshold float64,
+	sociability config.FactorConfig,
+	alonetime config.FactorConfig,
+	daytime config.FactorConfig) Factors {
+	// TODO: Setting
 	return Factors{
 		Threshold: threshold,
-		Sociability: Factor{
-			Curve:  *curve_sociability,
-			Value:  sociability_value,
-			Max:    sociability_max,
-			Weight: sociability_weight,
-		},
-		AloneTime: Factor{
-			Curve:  *curve_alonetime,
-			Value:  alonetime_value,
-			Max:    alonetime_max,
-			Weight: alonetime_weight,
-		},
-		Daytime: Factor{
-			Curve:  *curve_daytime,
-			Value:  daytime_value,
-			Max:    daytime_max,
-			Weight: daytime_weight,
-		},
+		Sociability: newFactor(sociability),
+		AloneTime: newFactor(alonetime),
+		Daytime: newFactor(daytime),
 	}
 }
 
