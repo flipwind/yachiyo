@@ -10,6 +10,7 @@ import (
 	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/onebot/model"
 	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
 
@@ -84,7 +85,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 				Time:     time.Now().Unix(),
 				Content:  messageEvent.RawMessage,
 
-				Address: trigger.Address{
+				Address: address.Address{
 					Content: fmt.Sprintf("onebot://group/%v", messageEvent.GroupID),
 				},
 			}

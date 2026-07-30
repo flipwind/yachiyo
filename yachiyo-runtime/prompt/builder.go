@@ -54,6 +54,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 		Role:    "user",
 		Content: prompt,
 		Time:    time.Now(),
+		Address: t.Address,
 	})
 
 	ylog.Debug("Prompt built: %s", prompt)
@@ -91,7 +92,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, c.Factors.String())
 
 	c.History.Remember(history.History{
-		Role:    "user",
+		Role:    "user/runtime",
 		Content: prompt,
 		Time:    time.Now(),
 	})

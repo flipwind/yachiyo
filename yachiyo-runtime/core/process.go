@@ -172,9 +172,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	return &action.Message{
 		Content: answer,
 		Time:    time.Now().Unix(),
-		Address: action.Address{
-			Content: m.Address.Content,
-		},
+		Address: m.Address,
 	}
 }
 
@@ -201,9 +199,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	return &action.Message{
 		Content: answer,
 		Time:    time.Now().Unix(),
-		Address: action.Address{
-			Content: "client://cli",
-		},
+		Address: c.History.GetLastUserHistory().Address,
 	}
 }
 

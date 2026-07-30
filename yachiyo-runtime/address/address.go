@@ -1,6 +1,11 @@
-package trigger
+package address
 
-import "net/url"
+import (
+	"net/url"
+	"yachiyo/yachiyo-util/logger"
+)
+
+var ylog = logger.New("Yachiyo.Address")
 
 type Address struct {
 	Content string
