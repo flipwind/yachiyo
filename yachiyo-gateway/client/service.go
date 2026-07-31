@@ -54,7 +54,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		channel.ToServer <- &trigger.Message{
 			Type:     "User",
-			Author:   "flipwind",
+			Author:   "user",
 			Platform: "CLI",
 			Time:     time.Now().Unix(),
 			Content:  string(msg),
