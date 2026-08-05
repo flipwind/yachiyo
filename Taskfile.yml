@@ -13,7 +13,7 @@ tasks:
       - mkdir -p build/server/prompt
       
       # running server
-      - cd build/server && server.exe
+      - cd build/server && ./server.exe
 
   clidev:
     desc: build and run Yachiyo CLI (Windows) # development
@@ -23,4 +23,4 @@ tasks:
       - go build -o build/cli/client.exe yachiyo-client/cli/main.go
 
       # running CLI
-      - cd build/cli && client.exe
+      - cd build/cli && ./client.exe

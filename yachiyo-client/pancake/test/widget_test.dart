@@ -12,7 +12,7 @@ import 'package:pancake/app/app.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const PancakeApp());
+    await tester.pumpWidget(PancakeApp());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
