@@ -12,7 +12,7 @@ class YachiyoClient {
   Future<void> connect() async {
     try {
       final channel = WebSocketChannel.connect(
-        Uri.parse('ws://127.0.0.1:16802/ws/'),
+        Uri.parse('ws://127.0.0.1:16899/ws/'),
       );
 
       await channel.ready;

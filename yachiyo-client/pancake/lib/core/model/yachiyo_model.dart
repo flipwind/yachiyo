@@ -8,15 +8,15 @@ import 'package:pancake/core/network/client.dart';
 class Message {
   String role;
   String message;
-  DateTime time;
+  int time;
 
   Message({required this.role, required this.message, required this.time});
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      role: json['name'],
-      message: json['age'],
-      time: json['time'],
+      role: json['role'],
+      message: json['message'],
+      time: json['timestamp'],
     );
   }
 }
@@ -63,13 +63,13 @@ class YachiyoModel extends ChangeNotifier {
 
   void sendMessage(String message) {
     final data = {
-      "type": "message",
+      "type": "send_message",
       "data": message
     };
 
     client.send(jsonEncode(data));
 
-    messages.add(Message(role: "user", message: message, time: DateTime.now()));
+    messages.add(Message(role: "user", message: message, time: DateTime.now().millisecondsSinceEpoch ~/ 1000));
     notifyListeners();
   }
 }
