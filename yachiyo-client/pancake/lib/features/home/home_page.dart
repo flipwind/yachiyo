@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:pancake/core/network/client.dart';
 import 'package:pancake/features/chat/chat_widget.dart';
 import 'package:pancake/features/status/server_status_widget.dart';
-import 'package:pancake/features/status/status_model.dart';
 import 'package:pancake/features/status/yachiyo_status_widget.dart';
 
 class PancakeHomePage extends StatefulWidget {
-  const PancakeHomePage({super.key, required this.statusModel, required this.yachiyoClient});
-
-  final StatusModel statusModel;
-  final YachiyoClient yachiyoClient;
+  const PancakeHomePage({super.key});
   
   @override
   State<PancakeHomePage> createState() => _PancakeHomePageState();
@@ -44,7 +39,7 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
       body: Column(
         children: [
           ServerStatusWidget(),
-          YachiyoStatusWidget(statusModel: widget.statusModel),
+          YachiyoStatusWidget(),
           Expanded(child: ChatWidget()),
         ],
       ),

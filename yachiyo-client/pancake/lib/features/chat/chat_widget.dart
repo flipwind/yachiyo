@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:provider/provider.dart';
 
 class ChatWidget extends StatefulWidget {
   const ChatWidget({super.key});
@@ -9,6 +11,7 @@ class ChatWidget extends StatefulWidget {
 
 class _ChatWidgetState extends State<ChatWidget> {
   String title = "Yachiyo Runtime";
+  String typeMessage = "";
 
   @override
   Widget build(BuildContext context) {
@@ -18,34 +21,47 @@ class _ChatWidgetState extends State<ChatWidget> {
         children: [
           Expanded(
             child: Card.filled(
-              child: ListView.builder(
-                itemBuilder: (context, index) {
-                  return ListTile(title: Text("Item $index"));
+              child: Consumer<YachiyoModel>(
+                builder: (context, model, child) {
+                  return ListView.builder(
+                    itemCount: model.messages.length,
+
+                    itemBuilder: (context, index) {
+                      final message = model.messages[index];
+
+                      return ListTile(title: Text(message.message));
+                    },
+                  );
                 },
               ),
             ),
           ),
           Row(
-              children: [
-                Expanded(
-                  child: Card.filled(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Typing Message...',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 12.0,
-                        ),
+            children: [
+              Expanded(
+                child: Card.filled(
+                  child: TextField(
+                    onChanged: (value) {
+                      typeMessage = value;
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Typing Message...',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 12.0,
                       ),
                     ),
                   ),
                 ),
-                IconButton(onPressed: () => {}, icon: Icon(Icons.send_outlined)),
-              ],
-            ),
+              ),
+              IconButton(onPressed: () => {
+                context.read<YachiyoModel>().sendMessage(typeMessage)
+              }, icon: Icon(Icons.send_outlined)),
+            ],
+          ),
         ],
       ),
     );
