@@ -19,7 +19,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		c.LastActiveTime = &timeNow
 		return c.processUserMessage(t)
 	case *trigger.TimeTick:
-		c.processTimetick(t)
+		return c.processTimetick(t)
 	case *trigger.InitiativeMessage:
 		c.LastActiveTime = &timeNow
 		return c.processInitiativeMessage(t)
@@ -27,7 +27,6 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		ylog.Error("Process unsupported type: %T", t)
 		return nil
 	}
-	return nil
 }
 
 type LLMOutput struct {
@@ -203,14 +202,15 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	}
 }
 
-func (c *Core) processTimetick(t *trigger.TimeTick) {
+func (c *Core) processTimetick(t *trigger.TimeTick) action.Action {
 	// TODO: too ugly, need simplify
-	ylog.Debug("Received timetick %s", t.Time.Format("15:04:05"))
+	
+	DebugMessage := fmt.Sprintf("Received timetick %s\n", t.Time.Format("15:04:05"))
 
 	// State press
 	for _, s := range c.State.Drives() {
 		s.Drive.Press((1.4 * 5) / (3600 * 1))
-		ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
+		DebugMessage += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
 
 	// Initiative
@@ -224,7 +224,8 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 		alonetime = time.Since(*c.LastActiveTime)
 	}
 	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
-	ylog.Debug("factors: %v", c.Factors.String())
+	DebugMessage += fmt.Sprintf("factors: %v\n", c.Factors.String())
+
 	if c.Factors.Update(alonetime.Minutes(), daytime.Hours()) {
 		ylog.Info("Initiative active.")
 
@@ -235,5 +236,10 @@ func (c *Core) processTimetick(t *trigger.TimeTick) {
 		}
 
 		c.Pipe.Raw <- &trigger.InitiativeMessage{}
+	}
+
+	ylog.Debug("%s", DebugMessage)
+	return &action.Status{
+		Content: DebugMessage,
 	}
 }

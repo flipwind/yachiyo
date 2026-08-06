@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/client"
+	"yachiyo/yachiyo-gateway/jsonclient"
 	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-runtime/trigger"
@@ -34,6 +35,9 @@ func main() {
 	if *yconfig.Gateway.Client.Enabled {
 		go serviceChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
 	}
+	
+	// a experiential feature initially enabled.
+	go serviceChannel(ycore.Pipe, &jsonclient.JsonClientService{}, 16899)
 
 	go ycore.Run()
 

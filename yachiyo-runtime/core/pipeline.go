@@ -1,6 +1,7 @@
 package core
 
 import (
+	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/trigger"
 )
@@ -37,7 +38,8 @@ func (p *Pipeline) Listen() {
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
 		case *trigger.TimeTick:
-			p.handler(t)
+			dispatch := p.handler(t)
+			p.Distribution <- dispatch
 		case *trigger.InitiativeMessage:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
@@ -47,6 +49,7 @@ func (p *Pipeline) Listen() {
 
 func (p *Pipeline) DistributionListen() {
 	for trig := range p.Distribution {
+		ylog.Info("Receiving trigger %#v", trig)
 		switch t := trig.(type) {
 		case *action.Message:
 			scheme := t.Address.Scheme()
@@ -54,7 +57,22 @@ func (p *Pipeline) DistributionListen() {
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
 			}
-			outputChan <- t
+			select {
+			case outputChan <- t:
+			case <-time.After(time.Second):
+				ylog.Error("gateway %s timeout", scheme)
+			}
+		case *action.Status:
+			scheme := "jsonclient"
+			outputChan := p.Gateways[scheme]
+			if outputChan == nil {
+				ylog.Error("scheme <%v> is not registered", scheme)
+			}
+			select {
+			case outputChan <- t:
+			case <-time.After(time.Second):
+				ylog.Error("gateway %s timeout", scheme)
+			}
 		}
 	}
 }
