@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:pancake/features/chat/widgets/message_item_widget.dart';
 import 'package:provider/provider.dart';
 
 class ChatWidget extends StatefulWidget {
@@ -28,8 +29,10 @@ class _ChatWidgetState extends State<ChatWidget> {
 
                     itemBuilder: (context, index) {
                       final message = model.messages[index];
-
-                      return ListTile(title: Text(message.message));
+                      return MessageItemWidget(
+                        role: message.role,
+                        content: message.message,
+                      );
                     },
                   );
                 },
@@ -57,9 +60,12 @@ class _ChatWidgetState extends State<ChatWidget> {
                   ),
                 ),
               ),
-              IconButton(onPressed: () => {
-                context.read<YachiyoModel>().sendMessage(typeMessage)
-              }, icon: Icon(Icons.send_outlined)),
+              IconButton(
+                onPressed: () => {
+                  context.read<YachiyoModel>().sendMessage(typeMessage),
+                },
+                icon: Icon(Icons.send_outlined),
+              ),
             ],
           ),
         ],
