@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:logger/web.dart';
+import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:provider/provider.dart';
 
 class ServerStatusWidget extends StatefulWidget {
   const ServerStatusWidget({super.key});
@@ -8,8 +11,30 @@ class ServerStatusWidget extends StatefulWidget {
 }
 
 class _ServerStatusWidgetState extends State<ServerStatusWidget> {
-  final List<IconData> serverStatusIcon = [Icons.cloud_off, Icons.cloud];
+  final logger = Logger();
+  final List<IconData> serverStatusIcon = [Icons.cloud_off, Icons.cloud_outlined];
   int serverConnected = 0;
+  String serverAddr = "";
+
+  bool loading = false;
+
+  final TextEditingController _textEditingController = TextEditingController();
+
+  Future<void> onServerAddrChange() async {
+    setState(() {
+      loading = true;
+    });
+    var result = await context.read<YachiyoModel>().onServerAddrChange(serverAddr);
+    setState(() {
+      logger.d("setstate serverconnected $result");
+      if (result == false) {
+        serverConnected = 0;
+      } else {
+        serverConnected = 1;
+      }
+      loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +43,7 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
       child: Column(
         children: [
           ListTile(
-            leading: Icon(serverStatusIcon[serverConnected]),
+            leading: (loading == false)? Icon(serverStatusIcon[serverConnected]) : CircularProgressIndicator(),
             title: const Text("Server Status"),
             subtitle: Text(serverConnected == 1 ? "Connected" : "Unconnected"),
           ),
@@ -28,14 +53,28 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _textEditingController,
+                    onChanged: (value) {
+                      serverAddr = value;
+                    },
+                    onSubmitted: (value) {
+                      onServerAddrChange();
+                    },
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: "Server Address",
-                      hintText: "192.168.0.1:16802",
+                      hintText: "127.0.0.1:16899",
                     ),
                   ),
                 ),
-                IconButton(onPressed: () => {}, icon: Icon(Icons.refresh)),
+                IconButton(onPressed: () {
+                  if (serverAddr == "") {
+                    String defaultServerAddr = "127.0.0.1:16899";
+                    _textEditingController.text = defaultServerAddr;
+                    serverAddr = defaultServerAddr;
+                  }
+                  onServerAddrChange();
+                }, icon: Icon(Icons.refresh)),
               ],
             ),
           ),

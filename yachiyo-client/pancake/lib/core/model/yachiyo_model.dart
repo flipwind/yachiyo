@@ -72,4 +72,8 @@ class YachiyoModel extends ChangeNotifier {
     messages.add(Message(role: "user", message: message, time: DateTime.now().millisecondsSinceEpoch ~/ 1000));
     notifyListeners();
   }
+
+  Future<bool> onServerAddrChange(String addr) {
+    return client.changeServerAddr(addr);
+  }
 }

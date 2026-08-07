@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 
 void main() {
   final yachiyoClient = YachiyoClient();
-  yachiyoClient.connect();
 
   debugPaintSizeEnabled = false;
   runApp(
