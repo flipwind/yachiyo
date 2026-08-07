@@ -14,6 +14,10 @@ class _ChatWidgetState extends State<ChatWidget> {
   String title = "Yachiyo Runtime";
   String typeMessage = "";
 
+  void sendMessage() {
+    context.read<YachiyoModel>().sendMessage(typeMessage);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -26,7 +30,6 @@ class _ChatWidgetState extends State<ChatWidget> {
                 builder: (context, model, child) {
                   return ListView.builder(
                     itemCount: model.messages.length,
-
                     itemBuilder: (context, index) {
                       final message = model.messages[index];
                       return MessageItemWidget(
@@ -47,6 +50,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                     onChanged: (value) {
                       typeMessage = value;
                     },
+                    onSubmitted: (_) {
+                      sendMessage();
+                    },
                     decoration: InputDecoration(
                       hintText: 'Typing Message...',
                       border: InputBorder.none,
@@ -61,8 +67,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ),
               ),
               IconButton(
-                onPressed: () => {
-                  context.read<YachiyoModel>().sendMessage(typeMessage),
+                onPressed: () {
+                  sendMessage();
                 },
                 icon: Icon(Icons.send_outlined),
               ),
