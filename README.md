@@ -36,7 +36,7 @@ Reading `Taskfile.yml` may help a lot.
 
 ### Client
 
-Clients can be categorized into lots of kinds. Currently, there are only onebot and CLI clients which are built in.
+Clients can be categorized into lots of kinds. Currently, there are only onebot, CLI and flutter clients which are built in.
 
 #### For CLI client:
 
@@ -48,6 +48,18 @@ Reading `Taskfile.yml` may help a lot.
 
 They don't need a client. The server serves as a Websocket Server.  
 Use your onebot realization as a client, and fill in the URL, probably like `ws://localhost:16801/ws/onebot`.
+
+#### For flutter client:
+
+Pancake, the flutter client, is a simple cross-platform application.  
+It allows changing the connection address, monitoring runtime state and messaging with the runtime.  
+
+Currently, Pancake uses json over websocket to communicate with the runtime.  
+A switch to gRPC is planned in the future.
+
+1. Compile according to the target platform.
+2. Run it.
+3. Enter the server address field to message with the runtime.
 
 ### About Prompt
 
