@@ -79,7 +79,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 		if messageEvent.PostType == "message" {
 			// TODO：rich message supporter
 			channel.ToServer <- &trigger.Message{
-				Type:     "User",
+				Type:     "user",
 				Author:   messageEvent.Sender.Nickname,
 				Platform: "QQ",
 				Time:     time.Now().Unix(),

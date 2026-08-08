@@ -101,7 +101,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		if msgData.Type == "send_message"{
 			channel.ToServer <- &trigger.Message{
-				Type:     "User",
+				Type:     "user",
 				Author:   "user",
 				Platform: "jsonclient",
 				Time:     time.Now().Unix(),

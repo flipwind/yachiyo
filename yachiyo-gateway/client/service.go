@@ -53,7 +53,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 		}
 
 		channel.ToServer <- &trigger.Message{
-			Type:     "User",
+			Type:     "user",
 			Author:   "user",
 			Platform: "CLI",
 			Time:     time.Now().Unix(),
