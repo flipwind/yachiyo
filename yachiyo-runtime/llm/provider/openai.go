@@ -37,8 +37,7 @@ func (p *OpenAIProvider) Gen(history []history.History) (string, error) {
 		switch m.Role {
 		case "system":
 			OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(m.Content))
-		case "user":
-		case "user/runtime":
+		case "user", "user/runtime":
 			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(m.Content))
 		case "assistant":
 			OpenAIMessages = append(OpenAIMessages, openai.AssistantMessage(m.Content))
