@@ -5,6 +5,19 @@ import (
 	"time"
 )
 
+type LogLevel int
+
+const (
+	Debug LogLevel = iota
+	Info
+)
+
+var logLevel LogLevel = Info
+
+func SetLogLevel(l LogLevel) {
+	logLevel = l
+}
+
 type Logger struct {
 	sourcename string
 }
@@ -40,6 +53,10 @@ func (l *Logger) Warn(format string, v ...any) {
 }
 
 func (l *Logger) Debug(format string, v ...any) {
+	if (logLevel == Info) {
+		return
+	}
+
 	msg := fmt.Sprintf(format, v...)
 	timeStr := time.Now().Format("2006.01.02 15:04:05")
 	fmt.Printf("\033[34m[%s] [DEBUG] [%s] %s\033[0m\n", timeStr, l.sourcename, msg)
