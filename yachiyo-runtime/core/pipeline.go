@@ -46,7 +46,7 @@ func (p *Pipeline) Listen() {
 
 func (p *Pipeline) DistributionListen() {
 	for trig := range p.Distribution {
-		ylog.Info("Receiving trigger %#v", trig)
+		ylog.Debug("Receiving trigger %#v", trig)
 		switch t := trig.(type) {
 		case *action.Message:
 			scheme := t.Address.Scheme()

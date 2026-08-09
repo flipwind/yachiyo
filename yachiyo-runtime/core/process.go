@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/history"
@@ -92,7 +91,7 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 
 // utils
 func debugOutput(answer string, c_formal Core, c_later Core) {
-	msg := fmt.Sprintf(`== DEBUG MESSAGE ==
+	ylog.Debug(`== DEBUG MESSAGE ==
 Yachiyo > %s
 * Formal:
 %s
@@ -105,8 +104,6 @@ Yachiyo > %s
 		answer, c_formal.Emotion.String(), c_formal.State.Prompt(),
 		c_later.Emotion.String(), c_later.State.Prompt(), c_later.Determination,
 		c_later.Note)
-
-	fmt.Printf("%s", msg)
 }
 
 func processLLM(h []history.History, c *Core) string {
@@ -175,7 +172,8 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	answer := processLLM(histories, c)
 
 	debugOutput(answer, core_copy, *c)
-
+	
+	ylog.Success("Generated passive output [%v]", answer)
 	return &action.Message{
 		Content: answer,
 		Time:    time.Now().Unix(),
@@ -203,6 +201,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 
 	debugOutput(answer, core_copy, *c)
 
+	ylog.Success("Generated active output [%v]", answer)
 	return &action.Message{
 		Content: answer,
 		Time:    time.Now().Unix(),

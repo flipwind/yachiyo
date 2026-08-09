@@ -57,6 +57,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 		Address: t.Address,
 	})
 
+	ylog.Info("Received user message [%v]", t.String())
 	ylog.Debug("Prompt built: %s", prompt)
 
 	return c.History.ListAll()
