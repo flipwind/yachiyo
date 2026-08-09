@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 	"yachiyo/yachiyo-util/ywarning"
@@ -35,7 +36,10 @@ type FactorConfig struct {
 
 type Config struct {
 	Nickname *string `yaml:"nickname"`
-	Prompt   struct {
+	Log      struct {
+		Level *string `yaml:"level"`
+	} `yaml:"log"`
+	Prompt struct {
 		SystemPromptPath *string `yaml:"system"`
 		SystemPrompt     string
 	} `yaml:"prompt"`
@@ -112,6 +116,24 @@ func (c *Config) Check() (bool, []error) {
 		c.Nickname = &nickname
 	}
 
+	// loglevel
+	if c.Log.Level == nil {
+		errs = append(errs, ywarning.FieldMissing("log.level", "info"))
+		logger.SetLogLevel(logger.Info)
+	} else {
+		level := strings.ToLower(*c.Log.Level)
+
+		switch level {
+		case "info":
+			logger.SetLogLevel(logger.Info)
+		case "debug":
+			logger.SetLogLevel(logger.Debug)
+		default:
+			errs = append(errs, ywarning.FieldIncorrect("log.level", "info"))
+			logger.SetLogLevel(logger.Info)
+		}
+	}
+
 	// prompt
 	if c.Prompt.SystemPromptPath == nil {
 		pass = false
@@ -144,8 +166,8 @@ func (c *Config) Check() (bool, []error) {
 
 	factorConfigs := map[string]*FactorConfig{
 		"sociability": &c.Initiative.Factors.Sociability,
-		"alonetime": &c.Initiative.Factors.AloneTime,
-		"daytime": &c.Initiative.Factors.Daytime,
+		"alonetime":   &c.Initiative.Factors.AloneTime,
+		"daytime":     &c.Initiative.Factors.Daytime,
 	}
 
 	for name, config := range factorConfigs {
@@ -208,11 +230,9 @@ func (f *FactorConfig) Check(name string) (bool, error) {
 		return false, yerror.FieldIncomplete("initiative.factors." + name)
 	} else {
 		if *f.DefaultValue > *f.Max {
-			return false, yerror.FieldInvalid("initiative.factors." + name, "DefaultValue should be less than Max")
+			return false, yerror.FieldInvalid("initiative.factors."+name, "DefaultValue should be less than Max")
 		}
 	}
 
 	return true, nil
 }
-
-

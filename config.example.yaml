@@ -1,5 +1,8 @@
 nickname: Yachiyo
 
+log:
+  level: debug
+
 prompt:
   system: <dir-to-system-prompt>
 

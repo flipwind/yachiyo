@@ -20,6 +20,13 @@ func FieldMissing(field string, defaultValue string) FieldWarning {
 	}
 }
 
+func FieldIncorrect(field string, defaultValue string) FieldWarning {
+	return FieldWarning{
+		Field: field,
+		Reason: fmt.Sprintf("incorrect, default value to [%v]", defaultValue),
+	}
+}
+
 func New(field string, reason string) FieldWarning {
 	return FieldWarning{
 		Field: field,
