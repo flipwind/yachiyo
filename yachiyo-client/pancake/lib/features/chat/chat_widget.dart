@@ -12,10 +12,14 @@ class ChatWidget extends StatefulWidget {
 
 class _ChatWidgetState extends State<ChatWidget> {
   String title = "Yachiyo Runtime";
-  String typeMessage = "";
+
+  final TextEditingController textEditingController = TextEditingController();
 
   void sendMessage() {
-    context.read<YachiyoModel>().sendMessage(typeMessage);
+    context.read<YachiyoModel>().sendMessage(textEditingController.text);
+    setState(() {
+      textEditingController.text = "";
+    });
   }
 
   @override
@@ -47,9 +51,7 @@ class _ChatWidgetState extends State<ChatWidget> {
               Expanded(
                 child: Card.filled(
                   child: TextField(
-                    onChanged: (value) {
-                      typeMessage = value;
-                    },
+                    controller: textEditingController,
                     onSubmitted: (_) {
                       sendMessage();
                     },
