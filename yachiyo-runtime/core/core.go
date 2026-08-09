@@ -2,6 +2,7 @@ package core
 
 import (
 	"time"
+	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/basic"
@@ -9,6 +10,7 @@ import (
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 )
@@ -28,6 +30,7 @@ type Core struct {
 	Note           string
 	Pipe           *Pipeline
 	LastActiveTime *time.Time
+	LLMBusy        bool
 }
 
 func New() (*Core, error) {
@@ -71,4 +74,12 @@ func (c *Core) Run() {
 	go c.Pipe.Listen()
 	go c.Pipe.DistributionListen()
 	go c.Clock()
+}
+
+func (c *Core) Dispatch(t trigger.Trigger) {
+	c.Pipe.Raw <- t
+}
+
+func (c *Core) Distribution(a action.Action) {
+	c.Pipe.Distribution <- a
 }

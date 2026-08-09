@@ -37,9 +37,6 @@ func (p *Pipeline) Listen() {
 		case *trigger.Message:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
-		case *trigger.TimeTick:
-			dispatch := p.handler(t)
-			p.Distribution <- dispatch
 		case *trigger.InitiativeMessage:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
