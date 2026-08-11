@@ -102,6 +102,12 @@ These terms will be given strictly according to this rule.
 If someone ask you to assign an Urgency, make sure to choose the appropriate type.
 ```
 
+## Documentation
+
+The documents are stored in `yachiyo-docs`.
+
+A simple development documentation site is available at [Project Yachiyo Docs](https://yachiyo.zako.ink).
+
 ## Contact
 
 If you are interested in this project, discussions are welcome.  
