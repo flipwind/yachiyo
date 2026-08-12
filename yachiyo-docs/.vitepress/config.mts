@@ -14,7 +14,7 @@ export default defineConfig({
             {
                 text: "总览",
                 items: [
-                    { text: "介绍", link: "/overview/introduce.md" }
+                    { text: "何为 Project Yachiyo？", link: "/overview/introduce.md" }
                 ]
             }
         ],
