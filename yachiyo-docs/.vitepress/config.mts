@@ -16,6 +16,15 @@ export default defineConfig({
                 items: [
                     { text: "何为 Project Yachiyo？", link: "/overview/introduce.md" }
                 ]
+            },
+            {
+                text: "架构",
+                items: [
+                    { text: "浅谈架构", link: "/architecture/overview.md" },
+                    { text: "Runtime", link: "/architecture/runtime.md" },
+                    { text: "Client", link: "/architecture/client.md" },
+                    { text: "Gateway", link: "/architecture/gateway.md" },
+                ]
             }
         ],
 
