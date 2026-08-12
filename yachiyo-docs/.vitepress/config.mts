@@ -2,27 +2,32 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "Project Yachiyo (dev docs)",
-  description: "to build a life runtime",
-  themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
-    nav: [
-      { text: 'Home', link: '/' },
-    ],
+    title: "Project Yachiyo (开发文档)",
+    description: "to build a life runtime",
+    themeConfig: {
+        // https://vitepress.dev/reference/default-theme-config
+        nav: [
+            { text: "主页", link: "/" },
+        ],
 
-    sidebar: [
-      {
-        text: 'Examples',
-        items: [
-        ]
-      }
-    ],
+        sidebar: [
+            {
+                text: "总览",
+                items: [
+                    { text: "介绍", link: "/overview/introduce.md" }
+                ]
+            }
+        ],
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/flipwind/yachiyo' }
-    ]
-  },
+        socialLinks: [
+            { icon: "github", link: "https://github.com/flipwind/yachiyo" }
+        ],
 
-  cleanUrls: true,
-  lastUpdated: true,
+        search: {
+            provider: "local",
+        }
+    },
+
+    cleanUrls: true,
+    lastUpdated: true,
 })

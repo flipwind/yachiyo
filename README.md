@@ -108,6 +108,9 @@ The documents are stored in `yachiyo-docs`.
 
 A simple development documentation site is available at [Project Yachiyo Docs](https://yachiyo.zako.ink).
 
+> [!IMPORTANT] 
+> Currently, Chinese is the only available documentation language.
+
 ## Contact
 
 If you are interested in this project, discussions are welcome.  

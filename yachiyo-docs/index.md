@@ -7,7 +7,7 @@ hero:
   tagline: ~currently a development documentation site~
   actions:
     - theme: brand
-      text: Have a look
-      link: /
+      text: 不妨看看
+      link: /overview/introduce.md
 ---
 
