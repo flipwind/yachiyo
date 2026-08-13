@@ -25,7 +25,15 @@ export default defineConfig({
                     { text: "Client", link: "/architecture/client.md" },
                     { text: "Gateway", link: "/architecture/gateway.md" },
                 ]
-            }
+            },
+            {
+                text: "协议",
+                items: [
+                    { text: "关于协议", link: "/protocol/about.md" },
+                    { text: "Connection", link: "/protocol/connection.md" },
+                    { text: "Interaction", link: "/protocol/interaction.md" },
+                ]
+            },
         ],
 
         socialLinks: [
