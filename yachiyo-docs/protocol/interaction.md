@@ -10,8 +10,8 @@
 当前**仅支持文字**。
 
 ```
+type: string = "client_message"
 data {
-    type: string = "client_message"
     message: string
 }
 ```
@@ -24,8 +24,8 @@ data {
 同样在当前**仅支持文字**。
 
 ```
+type: string = "runtime_message"
 data {
-    type: string = "runtime_message"
     message: string
     is_initiative: bool
 }

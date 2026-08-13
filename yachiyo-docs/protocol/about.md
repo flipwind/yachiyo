@@ -47,8 +47,8 @@ erDiagram
 ```
 content {
     category: string
+    type: string
     data: object = {
-        type: string
         ...
     }
 }
@@ -56,4 +56,5 @@ content {
 
 其中：
  - `category` 是内容的种类，在目前分为 `connection`（连接）和 `interaction`（交互）两种；
+ - `type` 是 `category` 下更为细致的划分，代表某种行为。通常也决定了 `data` 的结构。
  - 而 `data` 则是具体内容，应为类似**字典**的结构，以便于解析。

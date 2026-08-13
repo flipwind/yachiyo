@@ -16,8 +16,8 @@
 
 此时，client 向 gateway 对应端口发送：
 ```
+type: string = "register"
 data {
-    type: string = "register"
     client_type: string
     client_name: string
     client_id: string
@@ -36,8 +36,8 @@ data {
 
 而注册成功后，则 gateway 向 client 发送「注册成功」的消息。
 ```
+type: string = "register_success"
 data {
-    type: string = "register_success"
     runtime_name: string
     runtime_version: string
 }
@@ -50,8 +50,8 @@ data {
 如果注册失败，则 gateway 会抛出某种特定的错误类型。
 
 ```
+type: string = "register_error"
 data {
-    type: string = "register_error"
     error_type: string
 }
 ```
@@ -67,16 +67,14 @@ data {
 
 必须先发送：
 ```
-data {
-    type: string = "heartbeat"
-}
+type: string = "heartbeat"
+data {}
 ```
 
 然后得到回复：
 ```
-data {
-    type: string = "heartbeat_respond"
-}
+type: string = "heartbeat_respond"
+data {}
 ```
 
 ## Offline
@@ -84,7 +82,6 @@ data {
 直接消息，对 runtime 发出 client 的主动下线告知。
 
 ```
-data {
-    type: string = "offline"
-}
+type: string = "offline"
+data {}
 ```
