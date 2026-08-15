@@ -37,7 +37,7 @@ func main() {
 	}
 	
 	// a experiential feature initially enabled.
-	go serviceChannel(ycore.Pipe, &jsonclient.JsonClientService{}, 16899)
+	go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(), 16899)
 
 	go ycore.Run()
 

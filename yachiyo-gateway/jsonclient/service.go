@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 	"yachiyo/yachiyo-gateway"
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -14,114 +15,25 @@ import (
 	"github.com/coder/websocket"
 )
 
-var ylog = logger.New("Yachiyo.JsonClient")
-var channel *gateway.GatewayChannel
+var ylog = logger.New("Yachiyo.Jsonclient")
 
-type JsonPack struct {
-	Type string `json:"type"`
-	Data any    `json:"data"`
+type JsonClientService struct {
+	channel *gateway.GatewayChannel
+
+	clients map[string]*Client
+	mutex   sync.RWMutex
 }
 
-type MessagePack struct {
-	Role      string `json:"role"`
-	Message   string `json:"message"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-func handleReceive(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		ylog.Error("Websocket upgrade error: %v", err)
-		return
-	}
-	defer c.CloseNow()
-
-	ctx := r.Context()
-
-	go func() {
-		// Sending
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case msg := <-channel.ToClient:
-				switch t := msg.(type) {
-				case *action.Status:
-					content := JsonPack{
-						Type: "status",
-						Data: t.Content,
-					}
-					byteContent, err := json.Marshal(content)
-					if err != nil {
-						ylog.Error("Json marshal error: %v", err)
-						return
-					}
-
-					if err := c.Write(ctx, websocket.MessageText, byteContent); err != nil {
-						ylog.Error("Websocket writing error: %v", err)
-						return
-					}
-				case *action.Message:
-					content := JsonPack{
-						Type: "message_delta",
-						Data: MessagePack{
-							Role: "assistant",
-							Message: t.Content,
-							Timestamp: t.Time,
-						},
-					}
-					byteContent, err := json.Marshal(content)
-					if err != nil {
-						ylog.Error("Json marshal error: %v", err)
-						return
-					}
-					
-					if err := c.Write(ctx, websocket.MessageText, byteContent); err != nil {
-						ylog.Error("Websocket writing error: %v", err)
-						return
-					}
-				}
-			}
-		}
-	}()
-
-	for {
-		// Reading
-		_, msg, err := c.Read(ctx)
-		if err != nil {
-			ylog.Error("Reading message error: %v", err)
-			return
-		}
-
-		var msgData JsonPack
-
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			ylog.Error("Unmarshal json {%v} error: %v", string(msg), err)
-		}
-
-		if msgData.Type == "send_message"{
-			channel.ToServer <- &trigger.Message{
-				Type:     "user",
-				Author:   "user",
-				Platform: "jsonclient",
-				Time:     time.Now().Unix(),
-				Content:  msgData.Data.(string),
-
-				Address: address.Address{
-					Content: "jsonclient://jsonclient",
-				},
-			}
-		}
+func NewJsonClientService() *JsonClientService {
+	return &JsonClientService{
+		clients: make(map[string]*Client),
 	}
 }
-
-type JsonClientService struct{}
 
 func (s *JsonClientService) Listen(c *gateway.GatewayChannel, p int64) {
-	channel = c
-
+	s.channel = c
 	mux := http.NewServeMux()
-	mux.HandleFunc("/ws/", handleReceive)
+	mux.HandleFunc("/ws/", s.handleWebsocket)
 
 	go func() {
 		port := fmt.Sprintf(":%d", p)
@@ -130,8 +42,155 @@ func (s *JsonClientService) Listen(c *gateway.GatewayChannel, p int64) {
 			ylog.Error("json client adapter running error: %v", err)
 		}
 	}()
+
+	// go s.ListenSend()
 }
 
 func (s *JsonClientService) SchemeName() string {
 	return "jsonclient"
+}
+
+func (s *JsonClientService) handleWebsocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		ylog.Error("Websocket upgrade error: %v", err)
+		return
+	}
+
+	client := NewClient(conn)
+	go client.Run(s.unregister, s.handleReceive)
+}
+
+func (s *JsonClientService) handleReceive(c *Client, data []byte) {
+	var message model.Envelope
+
+	if err := json.Unmarshal(data, &message); err != nil {
+		ylog.Error("JSON unmarshal error: %v", err)
+		return
+	}
+
+	switch message.Category {
+	case "connection":
+		s.handleConnection(c, message)
+	case "interaction":
+		s.handleInteraction(c, message)
+	}
+}
+
+func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) {
+	switch message.Type {
+	case "register":
+		var data model.Register
+		if err := json.Unmarshal(message.Data, &data); err != nil {
+			ylog.Error("JSON unmarshal error: %v", err)
+			return
+		}
+
+		if data.ClientType != "IM" && data.ClientType != "Client" {
+			// TODO: register_error.client_info_error
+			return
+		}
+
+		var old *Client
+
+		s.mutex.Lock()
+		if oldClient, ok := s.clients[data.ClientID]; ok == true {
+			if oldClient.Type != data.ClientType {
+				// TODO: register_error.client_conflict
+				s.mutex.Unlock()
+				return
+			}
+			old = oldClient
+		}
+
+		c.Type = data.ClientType
+		c.Name = data.ClientName
+		c.ID = data.ClientID
+
+		s.clients[data.ClientID] = c
+		s.mutex.Unlock()
+
+		if old != nil {
+			old.conn.Close(websocket.StatusNormalClosure, "")
+		}
+		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
+		// TODO: register_success
+	case "heartbeat":
+		var data model.HeartBeat
+		if err := json.Unmarshal(message.Data, &data); err != nil {
+			ylog.Error("JSON unmarshal error: %v", err)
+			return
+		}
+
+		if s.checkClient(c) == false {
+			return
+		}
+
+		c.LastHeartbeatTime = time.Now()
+	case "offline":
+		var data model.Offline
+		if err := json.Unmarshal(message.Data, &data); err != nil {
+			ylog.Error("JSON unmarshal error: %v", err)
+			return
+		}
+
+		if s.checkClient(c) == false {
+			return
+		}
+
+		s.unregister(c)
+	}
+}
+
+func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope) {
+	switch message.Type {
+	case "client_message":
+		var data model.ClientMessage
+		if err := json.Unmarshal(message.Data, &data); err != nil {
+			ylog.Error("JSON unmarshal error: %v", err)
+			return
+		}
+
+		if s.checkClient(c) == false {
+			return
+		}
+
+		s.channel.ToServer <- &trigger.Message{
+			Type:     "user",
+			Author:   "user",
+			Platform: c.Type,
+			Content:  data.Message,
+			Time:     time.Now().Unix(),
+
+			Address: address.Address{
+				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
+			},
+		}
+	}
+}
+
+func (s *JsonClientService) checkClient(c *Client) bool {
+	if c.ID == "" {
+		// TODO: unknown client
+		return false
+	}
+
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	client, ok := s.clients[c.ID];
+	
+	return ok && client == c
+}
+
+func (s *JsonClientService) unregister(c *Client) {
+	s.mutex.Lock()
+	if client, ok := s.clients[c.ID]; ok && client == c {
+		delete(s.clients, c.ID)
+	}
+	s.mutex.Unlock()
+
+	ylog.Success("Unregistered [%s @%s](%s).", c.Type, c.Name, c.ID)
+}
+
+func (s *JsonClientService) ListenSend() {
 }
