@@ -7,3 +7,7 @@ type Envelope struct {
 	Type     string          `json:"type"`
 	Data     json.RawMessage `json:"data"`
 }
+
+type DataPack interface {
+	DataPack()
+}
