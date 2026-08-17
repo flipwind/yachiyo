@@ -18,3 +18,11 @@ func (a *Address) Scheme() string {
 	}
 	return u.Scheme
 }
+
+func (a *Address) Host() string {
+	u, err := url.Parse(a.Content)
+	if err != nil {
+		ylog.Error("address parsing error: %v", err)
+	}
+	return u.Host
+}
