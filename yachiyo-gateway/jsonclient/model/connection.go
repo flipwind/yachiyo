@@ -15,7 +15,7 @@ type RegisterSuccess struct {
 
 func (_ *RegisterError) DataPack(){}
 type RegisterError struct {
-	ErrorType string `json:"register_error"`
+	ErrorType string `json:"error_type"`
 }
 
 func (_ *HeartBeat) DataPack(){}
