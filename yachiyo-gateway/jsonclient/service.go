@@ -8,6 +8,7 @@ import (
 	"time"
 	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -43,7 +44,7 @@ func (s *JsonClientService) Listen(c *gateway.GatewayChannel, p int64) {
 		}
 	}()
 
-	// go s.ListenSend()
+	go s.ListenSend()
 }
 
 func (s *JsonClientService) SchemeName() string {
@@ -87,7 +88,7 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		}
 
 		if data.ClientType != "IM" && data.ClientType != "Client" {
-			// TODO: register_error.client_info_error
+			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_info_error"})
 			return
 		}
 
@@ -96,7 +97,7 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		s.mutex.Lock()
 		if oldClient, ok := s.clients[data.ClientID]; ok == true {
 			if oldClient.Type != data.ClientType {
-				// TODO: register_error.client_conflict
+				c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_conflict"})
 				s.mutex.Unlock()
 				return
 			}
@@ -114,7 +115,8 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			old.conn.Close(websocket.StatusNormalClosure, "")
 		}
 		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
-		// TODO: register_success
+		c.send("connection", "register_success", &model.RegisterSuccess{RuntimeName: "Yachiyo", RuntimeVersion: "0.1"})
+		// TODO: read from config
 	case "heartbeat":
 		var data model.HeartBeat
 		if err := json.Unmarshal(message.Data, &data); err != nil {
@@ -193,4 +195,14 @@ func (s *JsonClientService) unregister(c *Client) {
 }
 
 func (s *JsonClientService) ListenSend() {
+	for act := range s.channel.ToClient {
+		switch t := act.(type) {
+		case *action.Message:
+			addr := t.Address.Host()
+			c := s.clients[addr]
+			c.send("interaction", "runtime_message", &model.RuntimeMessage{Message: t.Content, IsInitiative: false})
+		default:
+			ylog.Info("Unsupport value: %T", t)
+		}
+	}
 }

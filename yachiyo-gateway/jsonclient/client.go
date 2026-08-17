@@ -2,7 +2,9 @@ package jsonclient
 
 import (
 	"context"
+	"encoding/json"
 	"time"
+	"yachiyo/yachiyo-gateway/jsonclient/model"
 
 	"github.com/coder/websocket"
 )
@@ -14,13 +16,13 @@ type Client struct {
 
 	LastHeartbeatTime time.Time
 
-	conn *websocket.Conn
-	send chan []byte
+	conn     *websocket.Conn
+	sendChan chan model.Envelope
 }
 
 func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
-		conn: conn,
+		conn:              conn,
 		LastHeartbeatTime: time.Now(),
 	}
 }
@@ -51,11 +53,31 @@ func (c *Client) readListen(unregisterHandler func(c *Client), dataHandler func(
 }
 
 func (c *Client) writeListen() {
-	for data := range c.send {
+	for data := range c.sendChan {
+		dataJson, err := json.Marshal(data)
+		if err != nil {
+			ylog.Error("Data marshal to json error: %v", err)
+			return
+		}
+
 		c.conn.Write(
 			context.Background(),
 			websocket.MessageText,
-			data,
+			dataJson,
 		)
+	}
+}
+
+func (c *Client) send(category string, contentType string, d model.DataPack) {
+	dataJson, err := json.Marshal(d)
+	if err != nil {
+		ylog.Error("DataPack marshal to json error: %v", err)
+		return
+	}
+
+	c.sendChan <- model.Envelope{
+		Category: category,
+		Type: contentType,
+		Data: dataJson,
 	}
 }
