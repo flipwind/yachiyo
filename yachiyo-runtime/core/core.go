@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/config"
@@ -82,4 +83,14 @@ func (c *Core) Dispatch(t trigger.Trigger) {
 
 func (c *Core) Distribution(a action.Action) {
 	c.Pipe.Distribution <- a
+}
+
+func (c *Core) InternalState() string {
+	msg := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
+	for _, s := range c.State.Drives() {
+		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
+	}
+	msg += fmt.Sprintf("factors: %v\n", c.Factors.String())
+
+	return msg
 }

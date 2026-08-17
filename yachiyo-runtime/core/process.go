@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/history"
@@ -30,6 +31,8 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		c.LLMBusy = false
 
 		return a
+	case *trigger.RuntimeStateRequest:
+		return c.processRuntimeStateRequest(t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)
 		return nil
@@ -206,6 +209,19 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: c.History.GetLastUserHistory().Address,
+	}
+}
+
+func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
+	DebugMessage := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
+	for _, s := range c.State.Drives() {
+		DebugMessage += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
+	}
+	DebugMessage += fmt.Sprintf("factors: %v\n", c.Factors.String())
+
+	return &action.RuntimeState{
+		Content: DebugMessage,
+		Address: t.Address,
 	}
 }
 

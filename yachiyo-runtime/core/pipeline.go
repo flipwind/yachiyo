@@ -59,8 +59,8 @@ func (p *Pipeline) DistributionListen() {
 			case <-time.After(time.Second):
 				ylog.Error("gateway %s timeout", scheme)
 			}
-		case *action.Status:
-			scheme := "jsonclient"
+		case *action.RuntimeState:
+			scheme := t.Address.Scheme()
 			outputChan := p.Gateways[scheme]
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
