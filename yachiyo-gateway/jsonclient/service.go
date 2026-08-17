@@ -75,6 +75,8 @@ func (s *JsonClientService) handleReceive(c *Client, data []byte) {
 		s.handleConnection(c, message)
 	case "interaction":
 		s.handleInteraction(c, message)
+	case "state":
+		s.handleState(c, message)
 	}
 }
 
@@ -171,6 +173,17 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 	}
 }
 
+func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
+	switch message.Type {
+	case "runtime_state_request":
+		s.channel.ToServer <- &trigger.RuntimeStateRequest{
+			Address: address.Address{
+				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
+			},
+		}
+	}
+}
+
 func (s *JsonClientService) checkClient(c *Client) bool {
 	if c.ID == "" {
 		// TODO: unknown client
@@ -201,6 +214,10 @@ func (s *JsonClientService) ListenSend() {
 			addr := t.Address.Host()
 			c := s.clients[addr]
 			c.send("interaction", "runtime_message", &model.RuntimeMessage{Message: t.Content, IsInitiative: false})
+		case *action.RuntimeState:
+			addr := t.Address.Host()
+			c := s.clients[addr]
+			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
 		default:
 			ylog.Info("Unsupport value: %T", t)
 		}
