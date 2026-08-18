@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:provider/provider.dart';
 
 class YachiyoStatusWidget extends StatelessWidget {
@@ -16,9 +16,9 @@ class YachiyoStatusWidget extends StatelessWidget {
       leading: Icon(Icons.animation_outlined),
       title: Text("Yachiyo Status"),
       children: [
-        Consumer<YachiyoModel>(
+        Consumer<YachiyoProvider>(
           builder: (_, model, _) {
-            return Text(model.status);
+            return Text(model.state.runtime.state??"Unknown state.");
           },
         ),
       ],

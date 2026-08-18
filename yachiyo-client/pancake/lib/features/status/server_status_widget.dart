@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/web.dart';
-import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:provider/provider.dart';
 
 class ServerStatusWidget extends StatefulWidget {
@@ -24,7 +24,7 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
     setState(() {
       loading = true;
     });
-    var result = await context.read<YachiyoModel>().onServerAddrChange(serverAddr);
+    var result = await context.read<YachiyoProvider>().changeServerAddr(serverAddr);
     setState(() {
       logger.d("setstate serverconnected $result");
       if (result == false) {

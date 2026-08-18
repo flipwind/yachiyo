@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pancake/core/model/yachiyo_model.dart';
+import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:pancake/features/chat/widgets/message_item_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +16,7 @@ class _ChatWidgetState extends State<ChatWidget> {
   final TextEditingController textEditingController = TextEditingController();
 
   void sendMessage() {
-    context.read<YachiyoModel>().sendMessage(textEditingController.text);
+    context.read<YachiyoProvider>().sendMessage(textEditingController.text);
     setState(() {
       textEditingController.text = "";
     });
@@ -30,12 +30,12 @@ class _ChatWidgetState extends State<ChatWidget> {
         children: [
           Expanded(
             child: Card.filled(
-              child: Consumer<YachiyoModel>(
+              child: Consumer<YachiyoProvider>(
                 builder: (context, model, child) {
                   return ListView.builder(
-                    itemCount: model.messages.length,
+                    itemCount: model.state.runtime.messages.length,
                     itemBuilder: (context, index) {
-                      final message = model.messages[index];
+                      final message = model.state.runtime.messages[index];
                       return MessageItemWidget(
                         role: message.role,
                         content: message.message,
