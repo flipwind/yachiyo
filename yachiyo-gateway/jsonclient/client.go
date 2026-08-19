@@ -23,6 +23,7 @@ type Client struct {
 func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
 		conn:              conn,
+		sendChan: make(chan model.Envelope),
 		LastHeartbeatTime: time.Now(),
 	}
 }
