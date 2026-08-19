@@ -5,7 +5,7 @@ abstract final class Connection {
   static final String registerSuccess = "register_success";
   static final String registerError = "register_error";
   static final String heartbeat = "heartbeat";
-  static final String heartbeatRespond = "heartbeatRespond";
+  static final String heartbeatRespond = "heartbeat_respond";
   static final String offline = "offline";
 }
 
