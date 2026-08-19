@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pancake/core/model/message.dart';
 import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:pancake/features/chat/widgets/message_item_widget.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,13 @@ class _ChatWidgetState extends State<ChatWidget> {
   final TextEditingController textEditingController = TextEditingController();
 
   void sendMessage() {
-    context.read<YachiyoProvider>().sendMessage(textEditingController.text);
+    final provider = context.read<YachiyoProvider>();
+    final message = textEditingController.text;
+
+    provider.state.runtime.messages.add(
+      Message(role: "user", message: message, time: DateTime.now())
+    );
+    provider.sendMessage(message);
     setState(() {
       textEditingController.text = "";
     });
