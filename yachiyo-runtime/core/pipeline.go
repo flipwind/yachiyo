@@ -40,6 +40,9 @@ func (p *Pipeline) Listen() {
 		case *trigger.InitiativeMessage:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
+		case *trigger.RuntimeStateRequest:
+			dispatch := p.handler(t)
+			p.Distribution <- dispatch
 		}
 	}
 }
