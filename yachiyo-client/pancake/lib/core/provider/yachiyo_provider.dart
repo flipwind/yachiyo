@@ -15,6 +15,7 @@ import '../model/protocol/connection.dart';
 class YachiyoProvider extends ChangeNotifier {
   late final StreamSubscription<String> _messageSubscription;
   Timer? _heartbeatTimer;
+  Timer? _stateTimer;
 
   final YachiyoClient client;
   final YachiyoState state;
@@ -52,6 +53,7 @@ class YachiyoProvider extends ChangeNotifier {
         _setState(YachiyoStatus.registered);
         state.runtime.runtimeName = envelopeData.runtimeName;
         state.runtime.runtimeVersion = envelopeData.runtimeVersion;
+        notifyListeners();
     }
   }
 
@@ -74,6 +76,7 @@ class YachiyoProvider extends ChangeNotifier {
     switch (envelopeData) {
       case RuntimeState():
         state.runtime.state = envelopeData.state;
+        notifyListeners();
     }
   }
 
@@ -117,10 +120,6 @@ class YachiyoProvider extends ChangeNotifier {
     return client.connect();
   }
 
-  Future<bool> changeServerAddr(String addr) {
-    return client.changeServerAddr(addr);
-  }
-
   // heartbeat
 
   void _startHeartbeat() {
@@ -140,6 +139,25 @@ class YachiyoProvider extends ChangeNotifier {
     _heartbeatTimer?.cancel();
   }
 
+  // state change
+
+  void _startChangeState() {
+    _stateTimer?.cancel();
+
+    _stateTimer = Timer.periodic(
+      const Duration(seconds: 1),
+          (_) =>
+          _sendMessage(
+            Envelope(
+                category: "state", type: "runtime_state_request", data: RuntimeStateRequest()),
+          ),
+    );
+  }
+
+  void _stopChangeState() {
+    _stateTimer?.cancel();
+  }
+
   // message
 
   void sendMessage(String message) {
@@ -156,8 +174,10 @@ class YachiyoProvider extends ChangeNotifier {
     switch (status) {
       case YachiyoStatus.disconnected:
         _stopHeartbeat();
+        _stopChangeState();
       case YachiyoStatus.registered:
         _startHeartbeat();
+        _startChangeState();
       default:
         break;
     }
