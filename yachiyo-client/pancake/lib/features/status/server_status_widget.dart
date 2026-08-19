@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/web.dart';
+import 'package:pancake/core/model/state/yachiyo_state.dart';
 import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -13,8 +14,6 @@ class ServerStatusWidget extends StatefulWidget {
 class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   final logger = Logger();
   final List<IconData> serverStatusIcon = [Icons.cloud_off, Icons.cloud_outlined];
-  int serverConnected = 0;
-  String serverAddr = "";
 
   bool loading = false;
 
@@ -24,28 +23,28 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
     setState(() {
       loading = true;
     });
-    var result = await context.read<YachiyoProvider>().changeServerAddr(serverAddr);
+
+    final provider = context.read<YachiyoProvider>();
+    provider.state.network.serverAddr = _textEditingController.text;
+    await provider.start();
+
     setState(() {
-      logger.d("setstate serverconnected $result");
-      if (result == false) {
-        serverConnected = 0;
-      } else {
-        serverConnected = 1;
-      }
       loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final networkState = context.watch<YachiyoProvider>().state.network;
+    final serverStatus = context.watch<YachiyoProvider>().state.status;
     return Card.outlined(
       margin: EdgeInsets.all(8.0),
       child: Column(
         children: [
           ListTile(
-            leading: (loading == false)? Icon(serverStatusIcon[serverConnected]) : CircularProgressIndicator(),
+            leading: (loading == false)? Icon(serverStatusIcon[serverStatus == YachiyoStatus.registered ? 1 : 0]) : CircularProgressIndicator(),
             title: const Text("Server Status"),
-            subtitle: Text(serverConnected == 1 ? "Connected" : "Unconnected"),
+            subtitle: Text(serverStatus == YachiyoStatus.registered ? "Registered" : "Unregistered"),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(8.0, 0, 8.0, 12.0),
@@ -54,9 +53,6 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
                 Expanded(
                   child: TextField(
                     controller: _textEditingController,
-                    onChanged: (value) {
-                      serverAddr = value;
-                    },
                     onSubmitted: (value) {
                       onServerAddrChange();
                     },
@@ -68,10 +64,10 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
                   ),
                 ),
                 IconButton(onPressed: () {
-                  if (serverAddr == "") {
+                  if (_textEditingController.text == "") {
                     String defaultServerAddr = "127.0.0.1:16899";
                     _textEditingController.text = defaultServerAddr;
-                    serverAddr = defaultServerAddr;
+                    networkState.serverAddr = defaultServerAddr;
                   }
                   onServerAddrChange();
                 }, icon: Icon(Icons.refresh)),

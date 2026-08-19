@@ -5,8 +5,6 @@ import 'package:logger/logger.dart';
 import 'package:pancake/core/model/state/yachiyo_state.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../model/state/network_state.dart';
-
 class YachiyoClient {
   final logger = Logger();
 
@@ -15,45 +13,42 @@ class YachiyoClient {
       StreamController<String>.broadcast();
 
   late YachiyoState yachiyoState;
-  late NetworkState networkState;
+  late YachiyoStatus status;
   void setYachiyoState(YachiyoState state){
     yachiyoState = state;
-    networkState = state.network;
+    status = state.status;
   }
 
   Stream<String> get messages => _messageController.stream;
 
-  Future<String?> connect() async {
+  Future<void> connect() async {
     await _channel?.sink.close();
-    networkState.serverConnected = false;
+    status = YachiyoStatus.disconnected;
     
     try {
       final channel = WebSocketChannel.connect(
-        Uri.parse('ws://${networkState.serverAddr}/ws/'),
+        Uri.parse('ws://${yachiyoState.network.serverAddr}/ws/'),
       );
 
       try {
         await channel.ready;
-        networkState.serverConnected = true;
+        status = YachiyoStatus.connected;
       } on SocketException catch (e) {
-        networkState.serverConnected = false;
+        status = YachiyoStatus.disconnected;
         
-        logger.e(e);
-        return e.message;
+        rethrow;
       } on WebSocketChannelException catch (e) {
-        networkState.serverConnected = false;
+        status = YachiyoStatus.disconnected;
 
-        logger.e(e);
-        return "WebSocketChannelException";
+        rethrow;
       }
 
       _channel = channel;
       logger.i("Client Connected.");
-      networkState.serverConnected = true;
+      status = YachiyoStatus.connected;
 
       channel.stream.listen(
         (message) {
-          logger.i("received: $message");
           _messageController.add(message);
         },
         onDone: () {
@@ -61,17 +56,11 @@ class YachiyoClient {
         },
       );
 
-      if (networkState.serverConnected == false) {
-        // onDone
-        logger.i("Client Disconnected.");
-        return "Client Disconnected.";
-      }
-
     } catch (e) {
       logger.e("Connection failed: $e");
-      return "$e";
+      rethrow;
     }
-    return null;
+    return;
   }
 
   void send(String message) {
@@ -79,22 +68,5 @@ class YachiyoClient {
       return;
     }
     _channel!.sink.add(message);
-  }
-
-  bool getServerConnected() {
-    return networkState.serverConnected;
-  }
-
-  String getServerAddr() {
-    return networkState.serverAddr;
-  }
-
-  Future<bool> changeServerAddr(String addr) async {
-    networkState.serverAddr = addr;
-    var result = await connect();
-    if (result == null){
-      return true;
-    }
-    return false;
   }
 }

@@ -17,8 +17,8 @@ class YachiyoStatusWidget extends StatelessWidget {
       title: Text("Yachiyo Status"),
       children: [
         Consumer<YachiyoProvider>(
-          builder: (_, model, _) {
-            return Text(model.state.runtime.state??"Unknown state.");
+          builder: (_, provider, _) {
+            return Text(provider.state.runtime.state??"Unknown state.");
           },
         ),
       ],
