@@ -82,10 +82,12 @@ func NewFactors(threshold float64,
 // Update the values, and return a probably initiative advice
 //
 // Note: alonetime should be a one-minute scale value, so as the daytime
-func (fs *Factors) Update(alonetime float64, daytime float64) bool {
+func (fs *Factors) Update(alonetime float64, daytime float64) {
 	fs.AloneTime.Value = alonetime
 	fs.Daytime.Value = daytime
+}
 
+func (fs *Factors) InitiativeAdvice() bool {
 	max := fs.Sociability.Max*fs.Sociability.Weight +
 		fs.AloneTime.Max*fs.AloneTime.Weight +
 		fs.Daytime.Max*fs.Daytime.Weight

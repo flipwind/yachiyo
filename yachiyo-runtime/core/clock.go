@@ -28,7 +28,10 @@ func (c *Core) processTimetick() {
 
 	ylog.Debug("%s", c.InternalState())
 
-	if c.Factors.Update(alonetime.Minutes(), daytime.Hours()) {
+	c.Factors.Update(alonetime.Minutes(), daytime.Hours())
+	isTriggerInitiative := c.Factors.InitiativeAdvice()
+
+	if isTriggerInitiative {
 		ylog.Info("Initiative active.")
 
 		// Relieve
