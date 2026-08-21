@@ -14,7 +14,7 @@ var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
 	SystemPrompt   string
-	History        history.HistoryStorage
+	History        []history.History
 	State          state.State
 	Emotion        state.Emotion
 	Factors        initiative.Factors
@@ -22,13 +22,23 @@ type Context struct {
 	LastActiveTime time.Time
 }
 
-func UserPromptBuilder(c *Context, t *trigger.Message) []history.History {
-	if len(c.History.ListAll()) == 0 {
-		c.History.Remember(history.History{
+type Result struct {
+	Sequence []history.History
+	Delta []history.History
+}
+
+func UserPromptBuilder(c *Context, t *trigger.Message) Result {
+	hist := c.History
+	var delta []history.History
+
+	if len(hist) == 0 {
+		sys := history.History{
 			Role:    "system",
 			Content: string(c.SystemPrompt),
 			Time:    time.Now(),
-		})
+		}
+		hist = append(hist, sys)
+		delta = append(delta, sys)
 	}
 
 	// Current Message Build
@@ -50,23 +60,32 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
 		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, t.String())
 
-	c.History.Remember(history.History{
+	user := history.History{
 		Role:    "user",
 		Content: prompt,
 		Time:    time.Now(),
 		Address: t.Address,
-	})
+	}
+
+	hist = append(hist, user)
+	delta = append(delta, user)
 
 	ylog.Info("Received user message [%v]", t.String())
 	ylog.Debug("Prompt built: %s", prompt)
 
-	return c.History.ListAll()
+	return Result{
+		Sequence: hist,
+		Delta: delta,
+	}
 }
 
-func InitiativePromptBuilder(c *Context) []history.History {
-	if len(c.History.ListAll()) == 0 {
+func InitiativePromptBuilder(c *Context) Result {
+	hist := c.History
+	var delta []history.History
+
+	if len(hist) == 0 {
 		ylog.Error("History is empty.")
-		return nil
+		return Result{}
 	}
 
 	// Current Message Build
@@ -92,13 +111,20 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
 `,
 		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, c.Factors.String())
 
-	c.History.Remember(history.History{
+	user := history.History{
 		Role:    "user/runtime",
 		Content: prompt,
 		Time:    time.Now(),
-	})
+	}
+
+	hist = append(hist, user)
+	delta = append(delta, user)
+
 
 	ylog.Debug("Prompt built: %s", prompt)
 
-	return c.History.ListAll()
+	return Result{
+		Sequence: hist,
+		Delta: delta,
+	}
 }

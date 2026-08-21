@@ -2,8 +2,11 @@ package core
 
 import (
 	"fmt"
+	"slices"
+	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/basic"
@@ -32,6 +35,8 @@ type Core struct {
 	Pipe           *Pipeline
 	LastActiveTime time.Time
 	LLMBusy        bool
+
+	mu sync.Mutex
 }
 
 func New() (*Core, error) {
@@ -96,10 +101,76 @@ func (c *Core) Distribution(a action.Action) {
 
 func (c *Core) InternalState() string {
 	msg := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for _, s := range c.State.Drives() {
 		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
 	msg += fmt.Sprintf("factors: %v\n", c.Factors.String())
 
 	return msg
+}
+
+func (c *Core) AppendHistory(hist history.History) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.History.Remember(hist)
+}
+
+// Core snapshot
+
+type Snapshot struct {
+	State          state.State
+	Emotion        state.Emotion
+	Determination  state.Determination
+	Factors        initiative.Factors
+	JSONConstraint bool
+	Note           string
+	LastActiveTime time.Time
+}
+
+type HistorySnapshot struct {
+	History      []history.History
+	SystemPrompt string
+}
+
+func (c *Core) snapshot() Snapshot {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	snap := Snapshot{
+		State:          c.State,
+		Emotion:        c.Emotion,
+		Determination:  c.Determination,
+		Factors:        c.Factors,
+		JSONConstraint: c.JSONConstraint,
+		Note:           c.Note,
+		LastActiveTime: c.LastActiveTime,
+	}
+
+	return snap
+}
+
+func (c *Core) historyView() HistorySnapshot {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	hist := append([]history.History(nil), c.History.ListAll()...)
+
+	return HistorySnapshot{
+		History:      hist,
+		SystemPrompt: c.Config.Prompt.SystemPrompt,
+	}
+}
+
+func LastUserAddress(hist []history.History) address.Address {
+	for _, h := range slices.Backward(hist) {
+		if h.Role == "user" {
+			return h.Address
+		}
+	}
+
+	return address.Address{}
 }

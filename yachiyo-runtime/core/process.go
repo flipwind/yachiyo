@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/history"
@@ -16,19 +17,29 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 
 	switch t := e.(type) {
 	case *trigger.Message:
+		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
+		c.mu.Unlock()
 		a := c.processUserMessage(t)
+
+		c.mu.Lock()
 		c.LLMBusy = false
+		c.mu.Unlock()
 
 		return a
 	case *trigger.InitiativeMessage:
+		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
+		c.mu.Unlock()
 		a := c.processInitiativeMessage(t)
+
+		c.mu.Lock()
 		c.LLMBusy = false
+		c.mu.Unlock()
 
 		return a
 	case *trigger.RuntimeStateRequest:
@@ -56,12 +67,17 @@ type LLMOutput struct {
 	Note          string              `json:"note"`
 }
 
-func (c *Core) OutputProcess(schema string) (string, error) {
+func (c *Core) apply(schema string) (string, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
 		ylog.Error("Json unmarshal error: %v", err)
 		return "", err
 	}
+
+	ylog.Debug("%s", schema)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	c.Emotion.Type = output.Change.Emotion.Change
 	c.Emotion.Urgency = state.UrgencyFromString(output.Change.Emotion.Result)
@@ -86,14 +102,14 @@ func (c *Core) OutputProcess(schema string) (string, error) {
 		c.Note = output.Note
 	}
 
-	if output.Reply == false {
+	if output.Reply == false || strings.TrimSpace(output.Answer) == "" {
 		return "Yachiyo didn't reply.", nil
 	}
 	return output.Answer, nil
 }
 
 // utils
-func debugOutput(answer string, c_formal Core, c_later Core) {
+func debugOutput(answer string, c_formal Snapshot, c_later Snapshot) {
 	ylog.Debug(`== DEBUG MESSAGE ==
 Yachiyo > %s
 * Formal:
@@ -109,7 +125,7 @@ Yachiyo > %s
 		c_later.Note)
 }
 
-func processLLM(h []history.History, c *Core) string {
+func (c *Core) processLLM(h []history.History) string {
 	var answer string
 
 	for i := range 3 {
@@ -117,10 +133,16 @@ func processLLM(h []history.History, c *Core) string {
 			// This is desiged intentionally.
 			// In real use, once triggered, JSONConstraint should be true in a whole session,
 			// to cut down the token use.
+			c.mu.Lock()
 			c.JSONConstraint = true
+			c.mu.Unlock()
 		}
 
-		if c.JSONConstraint {
+		c.mu.Lock()
+		isJSONConstraint := c.JSONConstraint
+		c.mu.Unlock()
+
+		if isJSONConstraint {
 			h = append(h, history.History{
 				Role:    "user",
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
@@ -135,14 +157,14 @@ func processLLM(h []history.History, c *Core) string {
 			continue
 		}
 
-		answer, err = c.OutputProcess(result)
+		answer, err = c.apply(result)
 
 		if err != nil {
 			ylog.Error("%d request failed. Retrying...", i+1)
 			continue
 		}
 
-		c.History.Remember(history.History{
+		c.AppendHistory(history.History{
 			Role:    "assistant",
 			Content: answer,
 			Time:    time.Now(),
@@ -157,25 +179,27 @@ func processLLM(h []history.History, c *Core) string {
 // Trigger process part
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
-	histories := prompt.UserPromptBuilder(&prompt.Context{
-		SystemPrompt:   c.Config.Prompt.SystemPrompt,
-		History:        c.History,
-		Emotion:        c.Emotion,
-		State:          c.State,
-		Note:           c.Note,
-		Factors:        c.Factors,
-		LastActiveTime: c.LastActiveTime,
+	snap := c.snapshot()
+	historyView := c.historyView()
+
+	result := prompt.UserPromptBuilder(&prompt.Context{
+		SystemPrompt:   historyView.SystemPrompt,
+		History:        historyView.History,
+		Emotion:        snap.Emotion,
+		State:          snap.State,
+		Note:           snap.Note,
+		Factors:        snap.Factors,
+		LastActiveTime: snap.LastActiveTime,
 	}, m)
 
-	// <debug>
-	var core_copy Core
-	core_copy = *c
-	// </debug>
+	for _, msg := range result.Delta {
+		c.AppendHistory(msg)
+	}
 
-	answer := processLLM(histories, c)
-
-	debugOutput(answer, core_copy, *c)
+	answer := c.processLLM(result.Sequence)
 	
+	debugOutput(answer, snap, c.snapshot())
+
 	ylog.Success("Generated passive output [%v]", answer)
 	return &action.Message{
 		Content: answer,
@@ -185,47 +209,52 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 }
 
 func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
-	if len(c.History.ListAll()) == 0 {
+	snap := c.snapshot()
+	historyView := c.historyView()
+	if len(historyView.History) == 0 {
 		return nil
 	}
-	histories := prompt.InitiativePromptBuilder(&prompt.Context{
-		SystemPrompt:   c.Config.Prompt.SystemPrompt,
-		History:        c.History,
-		Emotion:        c.Emotion,
-		State:          c.State,
-		Note:           c.Note,
-		Factors:        c.Factors,
-		LastActiveTime: c.LastActiveTime,
+
+	addr := LastUserAddress(historyView.History)
+
+	result := prompt.InitiativePromptBuilder(&prompt.Context{
+		SystemPrompt:   historyView.SystemPrompt,
+		History:        historyView.History,
+		Emotion:        snap.Emotion,
+		State:          snap.State,
+		Note:           snap.Note,
+		Factors:        snap.Factors,
+		LastActiveTime: snap.LastActiveTime,
 	})
 
-	// <debug>
-	var core_copy Core
-	core_copy = *c
-	// </debug>
+	for _, msg := range result.Delta {
+		c.AppendHistory(msg)
+	}
 
-	answer := processLLM(histories, c)
+	answer := c.processLLM(result.Sequence)
 
-	debugOutput(answer, core_copy, *c)
+	debugOutput(answer, snap, c.snapshot())
 
 	ylog.Success("Generated active output [%v]", answer)
 	return &action.Message{
 		Content: answer,
 		Time:    time.Now().Unix(),
-		Address: c.History.GetLastUserHistory().Address,
+		Address: addr,
 	}
 }
 
 func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
 	DebugMessage := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
+
+	c.mu.Lock()
 	for _, s := range c.State.Drives() {
 		DebugMessage += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
 	DebugMessage += fmt.Sprintf("factors: %v\n", c.Factors.String())
+	c.mu.Unlock()
 
 	return &action.RuntimeState{
 		Content: DebugMessage,
 		Address: t.Address,
 	}
 }
-
-
