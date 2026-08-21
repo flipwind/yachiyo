@@ -48,13 +48,13 @@ func New() (*Core, error) {
 	initiativeConfig := config.Initiative
 
 	core := &Core{
-		History:        basic.New(),
-		State:          state.NewState(),
-		Emotion:        state.NewEmotion(),
-		LLM:            llm,
-		Config:         config,
-		Determination:  state.NewDetermination(),
-		Factors:        initiative.NewFactors(
+		History:       basic.New(),
+		State:         state.NewState(),
+		Emotion:       state.NewEmotion(),
+		LLM:           llm,
+		Config:        config,
+		Determination: state.NewDetermination(),
+		Factors: initiative.NewFactors(
 			// TODO: reflect
 			*initiativeConfig.Threshold,
 
@@ -78,11 +78,19 @@ func (c *Core) Run() {
 }
 
 func (c *Core) Dispatch(t trigger.Trigger) {
-	c.Pipe.Raw <- t
+	select {
+	case c.Pipe.Raw <- t:
+	default:
+		ylog.Warn("dispatch channel full, drop %T", t)
+	}
 }
 
 func (c *Core) Distribution(a action.Action) {
-	c.Pipe.Distribution <- a
+	select {
+	case c.Pipe.Distribution <- a:
+	default:
+		ylog.Warn("distribution channel full, drop %T", a)
+	}
 }
 
 func (c *Core) InternalState() string {
