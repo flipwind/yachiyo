@@ -30,7 +30,7 @@ type Core struct {
 	JSONConstraint bool
 	Note           string
 	Pipe           *Pipeline
-	LastActiveTime *time.Time
+	LastActiveTime time.Time
 	LLMBusy        bool
 }
 
@@ -64,6 +64,7 @@ func New() (*Core, error) {
 		),
 		JSONConstraint: false,
 		Note:           "",
+		LastActiveTime: time.Now(),
 	}
 
 	core.Pipe = NewPipeline(core.Process)

@@ -43,6 +43,8 @@ func (p *Pipeline) Listen() {
 		case *trigger.RuntimeStateRequest:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
+		default:
+			ylog.Warn("Unsupport trigger type: %T", t)
 		}
 	}
 }
@@ -73,6 +75,8 @@ func (p *Pipeline) DistributionListen() {
 			case <-time.After(time.Second):
 				ylog.Error("gateway %s timeout", scheme)
 			}
+		default:
+			ylog.Warn("Unsupport action type: %T", t)
 		}
 	}
 }

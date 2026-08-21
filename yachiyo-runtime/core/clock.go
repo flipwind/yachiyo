@@ -22,13 +22,8 @@ func (c *Core) processTimetick() {
 
 	// Initiative
 	timeNow := time.Now()
-	var alonetime time.Duration
 
-	if c.LastActiveTime == nil {
-		alonetime = time.Since(time.Now())
-	} else {
-		alonetime = time.Since(*c.LastActiveTime)
-	}
+	alonetime := time.Since(c.LastActiveTime)
 	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
 
 	ylog.Debug("%s", c.InternalState())

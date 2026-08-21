@@ -16,7 +16,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 
 	switch t := e.(type) {
 	case *trigger.Message:
-		c.LastActiveTime = &timeNow
+		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
 		a := c.processUserMessage(t)
@@ -24,7 +24,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 
 		return a
 	case *trigger.InitiativeMessage:
-		c.LastActiveTime = &timeNow
+		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
 		a := c.processInitiativeMessage(t)
@@ -164,7 +164,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		State:          c.State,
 		Note:           c.Note,
 		Factors:        c.Factors,
-		LastActiveTime: *c.LastActiveTime,
+		LastActiveTime: c.LastActiveTime,
 	}, m)
 
 	// <debug>
@@ -185,6 +185,9 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 }
 
 func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
+	if len(c.History.ListAll()) == 0 {
+		return nil
+	}
 	histories := prompt.InitiativePromptBuilder(&prompt.Context{
 		SystemPrompt:   c.Config.Prompt.SystemPrompt,
 		History:        c.History,
@@ -192,7 +195,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		State:          c.State,
 		Note:           c.Note,
 		Factors:        c.Factors,
-		LastActiveTime: *c.LastActiveTime,
+		LastActiveTime: c.LastActiveTime,
 	})
 
 	// <debug>
