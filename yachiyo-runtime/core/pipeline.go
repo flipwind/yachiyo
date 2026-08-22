@@ -8,6 +8,7 @@ import (
 
 type Pipeline struct {
 	Raw          chan trigger.Trigger
+	DecisionChan chan trigger.Trigger
 	Distribution chan action.Action
 	Gateways     map[string]chan action.Action // This should be GatewayChannel.ToClient for distribute
 
@@ -20,6 +21,7 @@ func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
 		// This is a test on purpose, a better solution is on the way.
 		// TODO: a better process solution
 		Raw:          make(chan trigger.Trigger, 65535),
+		DecisionChan: make(chan trigger.Trigger, 65535),
 		Distribution: make(chan action.Action, 65535),
 		Gateways:     make(map[string]chan action.Action),
 		handler:      handler,
@@ -35,17 +37,22 @@ func (p *Pipeline) Listen() {
 	for trig := range p.Raw {
 		switch t := trig.(type) {
 		case *trigger.Message:
-			dispatch := p.handler(t)
-			p.Distribution <- dispatch
+			p.DecisionChan <- t
 		case *trigger.InitiativeMessage:
-			dispatch := p.handler(t)
-			p.Distribution <- dispatch
+			p.DecisionChan <- t
 		case *trigger.RuntimeStateRequest:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
 		default:
 			ylog.Warn("Unsupport trigger type: %T", t)
 		}
+	}
+}
+
+func (p *Pipeline) DecisionListen() {
+	for trig := range p.DecisionChan {
+		dispatch := p.handler(trig)
+		p.Distribution <- dispatch
 	}
 }
 

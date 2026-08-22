@@ -79,6 +79,7 @@ func New() (*Core, error) {
 
 func (c *Core) Run() {
 	go c.Pipe.Listen()
+	go c.Pipe.DecisionListen()
 	go c.Pipe.DistributionListen()
 	go c.Clock()
 }

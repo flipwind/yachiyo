@@ -8,13 +8,7 @@ import (
 func (c *Core) Clock() {
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	for range ticker.C {
-
-		c.mu.Lock()
-		busy := c.LLMBusy
-		c.mu.Unlock()
-		if !busy {
-			c.processTimetick()
-		}
+		c.processTimetick()
 	}
 }
 
