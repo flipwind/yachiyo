@@ -45,6 +45,7 @@ func (s *JsonClientService) Listen(c *gateway.GatewayChannel, p int64) {
 	}()
 
 	go s.ListenSend()
+	go s.heartbeatCleanup()
 }
 
 func (s *JsonClientService) SchemeName() string {
@@ -131,6 +132,7 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		}
 
 		c.LastHeartbeatTime = time.Now()
+		c.send("connection", "heartbeat_respond", &model.HeartBeatRespond{})
 	case "offline":
 		var data model.Offline
 		if err := json.Unmarshal(message.Data, &data); err != nil {
@@ -204,6 +206,8 @@ func (s *JsonClientService) unregister(c *Client) {
 	}
 	s.mutex.Unlock()
 
+	c.conn.Close(websocket.StatusAbnormalClosure, "")
+
 	ylog.Success("Unregistered [%s @%s](%s).", c.Type, c.Name, c.ID)
 }
 
@@ -220,6 +224,27 @@ func (s *JsonClientService) ListenSend() {
 			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
 		default:
 			ylog.Info("Unsupport value: %T", t)
+		}
+	}
+}
+
+func (s *JsonClientService) heartbeatCleanup() {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		var expired []*Client
+		nowtime := time.Now()
+
+		s.mutex.RLock()
+		for _, client := range s.clients {
+			if nowtime.Sub(client.LastHeartbeatTime) > 30 * time.Second {
+				expired = append(expired, client)
+			}
+		}
+		s.mutex.RUnlock()
+
+		for _, client := range expired {
+			s.unregister(client)
 		}
 	}
 }
