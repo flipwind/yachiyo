@@ -13,6 +13,9 @@ gateway:
   client:
     enabled: True
     port: 16802
+  jsonclient:
+    enabled: True
+    port: 16899
 
 initiative:
   threshold: 0.9

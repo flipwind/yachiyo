@@ -46,6 +46,7 @@ type Config struct {
 	Gateway struct {
 		Onebot GatewayConfig `yaml:"onebot"`
 		Client GatewayConfig `yaml:"client"`
+		JsonClient GatewayConfig `yaml:"jsonclient"`
 	} `yaml:"gateway"`
 	Initiative struct {
 		Threshold *float64 `yaml:"threshold"`
@@ -151,8 +152,13 @@ func (c *Config) Check() (bool, []error) {
 		errs = append(errs, yerror.FieldIncomplete("gateway.client"))
 	}
 
-	if c.Gateway.Onebot.Enabled != nil && c.Gateway.Client.Enabled != nil &&
-		*c.Gateway.Onebot.Enabled == false && *c.Gateway.Client.Enabled == false {
+	if c.Gateway.JsonClient.Enabled == nil || c.Gateway.JsonClient.Port == nil {
+		pass = false
+		errs = append(errs, yerror.FieldIncomplete("gateway.jsonclient"))
+	}
+
+	if c.Gateway.Onebot.Enabled != nil && c.Gateway.Client.Enabled != nil && c.Gateway.JsonClient.Enabled != nil &&
+		*c.Gateway.Onebot.Enabled == false && *c.Gateway.Client.Enabled == false && *c.Gateway.JsonClient.Enabled == false {
 		errs = append(errs, ywarning.New("gateway",
 			fmt.Sprintf("Gateways are closed. %v may not notice any input.", *c.Nickname)))
 	}

@@ -35,9 +35,10 @@ func main() {
 	if *yconfig.Gateway.Client.Enabled {
 		go serviceChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
 	}
+	if *yconfig.Gateway.JsonClient.Enabled {
+		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(), *yconfig.Gateway.JsonClient.Port)
+	}
 	
-	// a experiential feature initially enabled.
-	go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(), 16899)
 
 	go ycore.Run()
 
