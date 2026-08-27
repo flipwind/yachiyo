@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class MessageItemWidget extends StatelessWidget {
   final String role;
   final String content;
+  final double maxWidth;
 
   const MessageItemWidget({
     super.key,
     required this.role,
     required this.content,
+    required this.maxWidth
   });
 
   @override
@@ -19,8 +21,11 @@ class MessageItemWidget extends StatelessWidget {
       );
     }
 
-    Widget messageContainer(String content) {
-      return Flexible(
+    Widget messageContainer(String content, double maxWidth) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+        ),
         child: Card(
           margin: EdgeInsetsGeometry.symmetric(vertical: 4.0),
           child: Padding(
@@ -35,19 +40,19 @@ class MessageItemWidget extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
-        children: [headProfile(role), messageContainer(content)],
+        children: [headProfile(role), messageContainer(content, maxWidth)],
       );
     } else if (role == "user") {
       return Row(
         mainAxisAlignment: MainAxisAlignment.end,
         mainAxisSize: MainAxisSize.max,
-        children: [messageContainer(content), headProfile(role)],
+        children: [messageContainer(content, maxWidth), headProfile(role)],
       );
     } else {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
-        children: [messageContainer(content)],
+        children: [messageContainer(content, maxWidth)],
       );
     }
   }

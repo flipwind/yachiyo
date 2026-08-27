@@ -33,11 +33,11 @@ class YachiyoClient {
       try {
         await channel.ready;
         status = YachiyoStatus.connected;
-      } on SocketException catch (e) {
+      } on SocketException {
         status = YachiyoStatus.disconnected;
         
         rethrow;
-      } on WebSocketChannelException catch (e) {
+      } on WebSocketChannelException {
         status = YachiyoStatus.disconnected;
 
         rethrow;

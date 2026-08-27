@@ -43,10 +43,13 @@ class _ChatWidgetState extends State<ChatWidget> {
                     itemCount: model.state.runtime.messages.length,
                     itemBuilder: (context, index) {
                       final message = model.state.runtime.messages[index];
-                      return MessageItemWidget(
-                        role: message.role,
-                        content: message.message,
-                      );
+                      return LayoutBuilder(builder: (context, constraints){
+                        return MessageItemWidget(
+                          role: message.role,
+                          content: message.message,
+                          maxWidth: constraints.maxWidth * 0.6,
+                        );
+                      });
                     },
                   );
                 },
