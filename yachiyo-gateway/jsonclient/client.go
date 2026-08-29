@@ -23,20 +23,19 @@ type Client struct {
 func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
 		conn:              conn,
-		sendChan: make(chan model.Envelope),
+		sendChan:          make(chan model.Envelope, 64),
 		LastHeartbeatTime: time.Now(),
 	}
 }
 
 func (c *Client) Run(unregisterHandler func(c *Client), dataHandler func(c *Client, data []byte)) {
 	go c.readListen(unregisterHandler, dataHandler)
-	go c.writeListen()
+	go c.writeListen(unregisterHandler)
 }
 
 func (c *Client) readListen(unregisterHandler func(c *Client), dataHandler func(c *Client, data []byte)) {
 	defer func() {
 		unregisterHandler(c)
-		c.conn.Close(websocket.StatusNormalClosure, "")
 	}()
 
 	for {
@@ -46,26 +45,36 @@ func (c *Client) readListen(unregisterHandler func(c *Client), dataHandler func(
 
 		if err != nil {
 			ylog.Error("Reading error: %v", err)
-			return
+			break
 		}
 
 		dataHandler(c, data)
 	}
 }
 
-func (c *Client) writeListen() {
+func (c *Client) writeListen(unregisterHandler func(c *Client)) {
+	defer func() {
+		unregisterHandler(c)
+	}()
+
 	for data := range c.sendChan {
 		dataJson, err := json.Marshal(data)
 		if err != nil {
 			ylog.Error("Data marshal to json error: %v", err)
-			return
+			break
 		}
 
-		c.conn.Write(
+		err = c.conn.Write(
 			context.Background(),
 			websocket.MessageText,
 			dataJson,
 		)
+
+		if err != nil {
+			ylog.Error("Can't write to connection: %s", c.ID)
+			unregisterHandler(c)
+			break
+		}
 	}
 }
 
@@ -78,7 +87,7 @@ func (c *Client) send(category string, contentType string, d model.DataPack) {
 
 	c.sendChan <- model.Envelope{
 		Category: category,
-		Type: contentType,
-		Data: dataJson,
+		Type:     contentType,
+		Data:     dataJson,
 	}
 }

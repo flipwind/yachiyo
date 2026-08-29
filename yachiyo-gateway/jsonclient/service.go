@@ -216,11 +216,29 @@ func (s *JsonClientService) ListenSend() {
 		switch t := act.(type) {
 		case *action.Message:
 			addr := t.Address.Host()
+
+			s.mutex.RLock()
 			c := s.clients[addr]
+			s.mutex.RUnlock()
+
+			if c == nil {
+				ylog.Error("Unknown address: %s", addr)
+				continue
+			}
+
 			c.send("interaction", "runtime_message", &model.RuntimeMessage{Message: t.Content, IsInitiative: false})
 		case *action.RuntimeState:
 			addr := t.Address.Host()
+
+			s.mutex.RLock()
 			c := s.clients[addr]
+			s.mutex.RUnlock()
+
+			if c == nil {
+				ylog.Error("Unknown address: %s", addr)
+				continue
+			}
+
 			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
 		default:
 			ylog.Info("Unsupport value: %T", t)
