@@ -11,6 +11,7 @@ import (
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -23,11 +24,14 @@ type JsonClientService struct {
 
 	clients map[string]*Client
 	mutex   sync.RWMutex
+
+	mutableContext func() ycontext.Context
 }
 
-func NewJsonClientService() *JsonClientService {
+func NewJsonClientService(fn func() ycontext.Context) *JsonClientService {
 	return &JsonClientService{
-		clients: make(map[string]*Client),
+		clients:        make(map[string]*Client),
+		mutableContext: fn,
 	}
 }
 
@@ -118,8 +122,10 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			old.conn.Close(websocket.StatusNormalClosure, "")
 		}
 		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
-		c.send("connection", "register_success", &model.RegisterSuccess{RuntimeName: "Yachiyo", RuntimeVersion: "0.1"})
-		// TODO: read from config
+
+		ctx := s.mutableContext()
+		c.send("connection", "register_success",
+			&model.RegisterSuccess{RuntimeName: ctx.Name, RuntimeVersion: ctx.Version})
 	case "heartbeat":
 		var data model.HeartBeat
 		if err := json.Unmarshal(message.Data, &data); err != nil {
@@ -194,8 +200,8 @@ func (s *JsonClientService) checkClient(c *Client) bool {
 
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	client, ok := s.clients[c.ID];
-	
+	client, ok := s.clients[c.ID]
+
 	return ok && client == c
 }
 
@@ -255,7 +261,7 @@ func (s *JsonClientService) heartbeatCleanup() {
 
 		s.mutex.RLock()
 		for _, client := range s.clients {
-			if nowtime.Sub(client.LastHeartbeatTime) > 30 * time.Second {
+			if nowtime.Sub(client.LastHeartbeatTime) > 30*time.Second {
 				expired = append(expired, client)
 			}
 		}
