@@ -194,7 +194,7 @@ func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 
 func (s *JsonClientService) checkClient(c *Client) bool {
 	if c.ID == "" {
-		// TODO: unknown client
+		c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_unknown"})
 		return false
 	}
 

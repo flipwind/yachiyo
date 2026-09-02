@@ -59,6 +59,7 @@ data {
 根据错误类型的不同，`error_type` 的值会在以下类型中产生：
 - `client_info_error`: `client_type` 不在其字段限定中。建议检查字段内容的大小写和拼写。
 - `client_conflict`: 注册设备冲突，表现为 `client_id` 存在重复但 `client_type` 不同。建议更换 `client_id`。
+- `client_unknown`: 未知的设备。即，我们没有看到你的 `client_id`。遇到此问题时，建议重新注册。
 
 ## Heartbeat
 
