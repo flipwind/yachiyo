@@ -67,7 +67,8 @@ For some reason, the original prompt is private temporarily.
 However, some prompt are important.
 
 **Currently**, you **must** provide your own system prompt.  
-According to the code, the system prompt is located in `server/prompt/systemPrompt.md`.
+By the way, we provide a default simple system prompt.  
+And anyway, **don't forget** the config file.  
 
 First of all, constrain the model's output.  
 By the way, it may helps a lot by reading the code.  

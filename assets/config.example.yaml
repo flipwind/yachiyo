@@ -4,7 +4,7 @@ log:
   level: debug
 
 prompt:
-  system: <dir-to-system-prompt>
+  system: ./prompt/system.md
 
 gateway:
   onebot:

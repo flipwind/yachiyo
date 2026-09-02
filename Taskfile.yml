@@ -7,10 +7,9 @@ tasks:
     cmds:
       - mkdir -p build/server
       - go build -o build/server/server.exe yachiyo-runtime/server.go
-      - cp config.example.yaml ./build/server
       - cp README.md build/server
       - cp LICENSE build/server
-      - mkdir -p build/server/prompt
+      - cp -r assets/* build/server
       
       # running server
       - cd build/server && ./server.exe
