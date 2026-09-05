@@ -9,7 +9,7 @@ class MessageItemWidget extends StatelessWidget {
     super.key,
     required this.role,
     required this.content,
-    required this.maxWidth
+    required this.maxWidth,
   });
 
   @override
@@ -23,9 +23,7 @@ class MessageItemWidget extends StatelessWidget {
 
     Widget messageContainer(String content, double maxWidth) {
       return ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: maxWidth,
-        ),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: Card(
           margin: EdgeInsetsGeometry.symmetric(vertical: 4.0),
           child: Padding(
@@ -55,5 +53,27 @@ class MessageItemWidget extends StatelessWidget {
         children: [messageContainer(content, maxWidth)],
       );
     }
+  }
+}
+
+class NoReplyMessageItemWidget extends StatelessWidget {
+  final String character;
+
+  const NoReplyMessageItemWidget({super.key, required this.character});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        Card.outlined(
+          child: Padding(
+            padding: EdgeInsetsGeometry.all(8.0),
+            child: Text("🍪 $character didn't reply."),
+          ),
+        ),
+      ],
+    );
   }
 }

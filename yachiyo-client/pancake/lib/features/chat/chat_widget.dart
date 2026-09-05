@@ -21,7 +21,7 @@ class _ChatWidgetState extends State<ChatWidget> {
     final message = textEditingController.text;
 
     provider.state.runtime.messages.add(
-      Message(role: "user", message: message, time: DateTime.now())
+      Message(role: "user", message: message, time: DateTime.now()),
     );
     provider.sendMessage(message);
     setState(() {
@@ -43,13 +43,19 @@ class _ChatWidgetState extends State<ChatWidget> {
                     itemCount: model.state.runtime.messages.length,
                     itemBuilder: (context, index) {
                       final message = model.state.runtime.messages[index];
-                      return LayoutBuilder(builder: (context, constraints){
-                        return MessageItemWidget(
-                          role: message.role,
-                          content: message.message,
-                          maxWidth: constraints.maxWidth * 0.6,
-                        );
-                      });
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (message.reply == false) {
+                            return NoReplyMessageItemWidget(character: model.state.runtime.runtimeName??"Yachiyo");
+                          } else {
+                            return MessageItemWidget(
+                              role: message.role,
+                              content: message.message,
+                              maxWidth: constraints.maxWidth * 0.6,
+                            );
+                          }
+                        },
+                      );
                     },
                   );
                 },

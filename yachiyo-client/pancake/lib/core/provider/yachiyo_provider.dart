@@ -63,6 +63,7 @@ class YachiyoProvider extends ChangeNotifier {
       case RuntimeMessage():
         state.runtime.messages.add(
           Message(
+            reply: envelopeData.reply,
             role: "assistant",
             message: envelopeData.message,
             time: DateTime.now(),
