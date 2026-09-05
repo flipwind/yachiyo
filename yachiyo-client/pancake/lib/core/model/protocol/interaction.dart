@@ -30,16 +30,19 @@ class ClientMessage implements DataPack {
 }
 
 class RuntimeMessage implements DataPack {
+  final bool reply;
   final String message;
   final bool isInitiative;
 
   const RuntimeMessage({
+    required this.reply,
     required this.message,
     required this.isInitiative,
   });
 
   factory RuntimeMessage.fromJson(Map<String, dynamic> json) {
     return RuntimeMessage(
+      reply: json["reply"] as bool,
       message: json["message"] as String,
       isInitiative: json["is_initiative"] as bool,
     );
@@ -51,6 +54,7 @@ class RuntimeMessage implements DataPack {
   @override
   Map<String, dynamic> toJson() {
     return {
+      "reply": reply,
       "message": message,
       "is_initiative": isInitiative,
     };

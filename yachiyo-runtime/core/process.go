@@ -67,11 +67,11 @@ type LLMOutput struct {
 	Note          string              `json:"note"`
 }
 
-func (c *Core) apply(schema string) (string, error) {
+func (c *Core) apply(schema string) (string, bool, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
 		ylog.Error("Json unmarshal error: %v", err)
-		return "", err
+		return "", false, err
 	}
 
 	ylog.Debug("%s", schema)
@@ -103,9 +103,9 @@ func (c *Core) apply(schema string) (string, error) {
 	}
 
 	if output.Reply == false || strings.TrimSpace(output.Answer) == "" {
-		return "Yachiyo didn't reply.", nil
+		return "Yachiyo didn't reply.", false, nil
 	}
-	return output.Answer, nil
+	return output.Answer, true, nil
 }
 
 // utils
@@ -125,8 +125,9 @@ Yachiyo > %s
 		c_later.Note)
 }
 
-func (c *Core) processLLM(h []history.History) string {
+func (c *Core) processLLM(h []history.History) (string, bool) {
 	var answer string
+	var reply bool
 
 	for i := range 3 {
 		if i == 1 {
@@ -157,11 +158,15 @@ func (c *Core) processLLM(h []history.History) string {
 			continue
 		}
 
-		answer, err = c.apply(result)
+		answer, reply, err = c.apply(result)
 
 		if err != nil {
 			ylog.Error("%d request failed. Retrying...", i+1)
 			continue
+		}
+
+		if reply == false {
+			break
 		}
 
 		c.AppendHistory(history.History{
@@ -173,7 +178,7 @@ func (c *Core) processLLM(h []history.History) string {
 		break
 	}
 
-	return answer
+	return answer, reply
 }
 
 // Trigger process part
@@ -196,12 +201,13 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		c.AppendHistory(msg)
 	}
 
-	answer := c.processLLM(result.Sequence)
+	answer, reply := c.processLLM(result.Sequence)
 	
 	debugOutput(answer, snap, c.snapshot())
 
 	ylog.Success("Generated passive output [%v]", answer)
 	return &action.Message{
+		Empty:   !reply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: m.Address,
@@ -231,12 +237,13 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		c.AppendHistory(msg)
 	}
 
-	answer := c.processLLM(result.Sequence)
+	answer, reply := c.processLLM(result.Sequence)
 
 	debugOutput(answer, snap, c.snapshot())
 
 	ylog.Success("Generated active output [%v]", answer)
 	return &action.Message{
+		Empty:   !reply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: addr,

@@ -26,10 +26,12 @@ data {
 ```
 type: string = "runtime_message"
 data {
+    reply: bool
     message: string
     is_initiative: bool
 }
 ```
 
+`reply` 表示 runtime 是否自身决定回复。
 `message` 内为消息。  
 `is_initiative` 用于标示是否为 runtime 主动发出的消息。
