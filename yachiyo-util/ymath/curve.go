@@ -34,9 +34,9 @@ type ExprCurve struct {
 func New(expression string, x float64) (*ExprCurve, error) {
 	env := maps.Clone(baseEnv)
 
-    env["x"] = x
-	
-	program, err := expr.Compile(expression, expr.Env(env))
+	env["x"] = x
+
+	program, err := expr.Compile(expression, expr.Env(env), expr.AsFloat64())
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func New(expression string, x float64) (*ExprCurve, error) {
 func (c *ExprCurve) Verify(x float64, expect float64) (bool, error) {
 	env := maps.Clone(baseEnv)
 
-    env["x"] = x
+	env["x"] = x
 
 	const accuracy = 1e-5
 	result, err := expr.Run(c.Program, env)
@@ -75,7 +75,7 @@ func (c *ExprCurve) Verify(x float64, expect float64) (bool, error) {
 func (c *ExprCurve) Calculate(x float64) (float64, error) {
 	env := maps.Clone(baseEnv)
 
-    env["x"] = x
+	env["x"] = x
 
 	result, err := expr.Run(c.Program, env)
 	if err != nil {
