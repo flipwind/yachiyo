@@ -52,21 +52,30 @@ func New() (*Core, error) {
 
 	initiativeConfig := config.Initiative
 
-	core := &Core{
-		History:       basic.New(),
-		State:         state.NewState(),
-		Emotion:       state.NewEmotion(),
-		LLM:           llm,
-		Config:        config,
-		Determination: state.NewDetermination(),
-		Factors: initiative.NewFactors(
-			// TODO: reflect
-			*initiativeConfig.Threshold,
+	factors, errs := initiative.NewFactors(
+		// TODO: reflect
+		*initiativeConfig.Threshold,
 
-			initiativeConfig.Factors.Sociability,
-			initiativeConfig.Factors.AloneTime,
-			initiativeConfig.Factors.Daytime,
-		),
+		initiativeConfig.Factors.Sociability,
+		initiativeConfig.Factors.AloneTime,
+		initiativeConfig.Factors.Daytime,
+	)
+
+	if len(errs) != 0 {
+		for _, err := range errs {
+			ylog.Error("Factor curve error: %v", err)
+		}
+		return nil, yerror.FieldInvalid("Factor", "curves invalid")
+	}
+
+	core := &Core{
+		History:        basic.New(),
+		State:          state.NewState(),
+		Emotion:        state.NewEmotion(),
+		LLM:            llm,
+		Config:         config,
+		Determination:  state.NewDetermination(),
+		Factors:        factors,
 		JSONConstraint: false,
 		Note:           "",
 		LastActiveTime: time.Now(),

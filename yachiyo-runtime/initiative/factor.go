@@ -49,12 +49,11 @@ type Factors struct {
 	RandomBonus float64
 }
 
-func newFactor(f config.FactorConfig) Factor {
-	// TODO: error
-
+func newFactor(f config.FactorConfig) (Factor, error) {
 	curve, err := ymath.New(*f.Curve, *f.DefaultValue)
 	if err != nil {
 		ylog.Error("Curve error: %v", err)
+		return Factor{}, err
 	}
 
 	return Factor{
@@ -62,21 +61,38 @@ func newFactor(f config.FactorConfig) Factor {
 		Value: *f.DefaultValue,
 		Max: *f.Max,
 		Weight: *f.Weight,
-	}
+	}, nil
 }
 
 
 func NewFactors(threshold float64,
 	sociability config.FactorConfig,
 	alonetime config.FactorConfig,
-	daytime config.FactorConfig) Factors {
+	daytime config.FactorConfig) (Factors, []error) {
 	// TODO: Setting
+	var errs []error
+
+	soci, err := newFactor(sociability)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	alon, err := newFactor(alonetime)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	dayt, err := newFactor(daytime)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	return Factors{
 		Threshold: threshold,
-		Sociability: newFactor(sociability),
-		AloneTime: newFactor(alonetime),
-		Daytime: newFactor(daytime),
-	}
+		Sociability: soci,
+		AloneTime: alon,
+		Daytime: dayt,
+	}, errs
 }
 
 // Update the values, and return a probably initiative advice
