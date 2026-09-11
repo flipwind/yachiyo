@@ -85,9 +85,15 @@ func (c *Client) send(category string, contentType string, d model.DataPack) {
 		return
 	}
 
-	c.sendChan <- model.Envelope{
+	envelope := model.Envelope{
 		Category: category,
 		Type:     contentType,
 		Data:     dataJson,
+	}
+
+	select {
+	case c.sendChan <- envelope:
+	default:
+		ylog.Warn("Client [%s] send channel is full, drop %s", c.Name, envelope.Type)
 	}
 }
