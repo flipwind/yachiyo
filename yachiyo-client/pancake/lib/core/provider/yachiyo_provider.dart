@@ -184,6 +184,10 @@ class YachiyoProvider extends ChangeNotifier {
     }
   }
 
+  void clearMessages(){
+    state.runtime.messages.clear();
+  }
+
   @override
   void dispose() {
     _messageSubscription.cancel();
