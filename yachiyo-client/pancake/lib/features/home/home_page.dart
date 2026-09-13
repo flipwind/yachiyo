@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pancake/features/chat/chat_widget.dart';
 import 'package:pancake/features/status/server_status_widget.dart';
 import 'package:pancake/features/status/yachiyo_status_widget.dart';
 
 class PancakeHomePage extends StatefulWidget {
   const PancakeHomePage({super.key});
-  
+
   @override
   State<PancakeHomePage> createState() => _PancakeHomePageState();
 }
@@ -13,33 +14,43 @@ class PancakeHomePage extends StatefulWidget {
 class _PancakeHomePageState extends State<PancakeHomePage> {
   String title = "Pancake!";
   String subtitle = "Yachiyo Runtime Viewer";
+  bool isYachiyoStatusShown = true;
+
+  void _toggleYachiyoStatusShown() {
+    setState(() {
+      isYachiyoStatusShown = !isYachiyoStatusShown;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme;
-    final colorStyle = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        leading: Icon(Icons.gesture),
+
+        centerTitle: true,
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(title, style: textStyle.titleLarge),
-            Text(
-              subtitle,
-              style: textStyle.bodyMedium?.copyWith(
-                color: colorStyle.onSurfaceVariant,
-              ),
-            ),
+            Text(title, style: GoogleFonts.kiwiMaru(fontWeight: FontWeight.w500,letterSpacing: -0.5,)),
+            ServerStatusBadge(),
           ],
         ),
-        leading: Icon(Icons.gesture),
+        
+        actions: [
+          IconButton(
+            onPressed: () => _toggleYachiyoStatusShown(),
+            icon: Icon(
+              isYachiyoStatusShown == true
+                  ? Icons.face_retouching_natural_rounded
+                  : Icons.face_retouching_off_rounded,
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          ServerStatusWidget(),
-          YachiyoStatusWidget(),
+          if (isYachiyoStatusShown == true) YachiyoStatusWidget(),
           Expanded(child: ChatWidget()),
         ],
       ),

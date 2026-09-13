@@ -13,7 +13,10 @@ class ServerStatusWidget extends StatefulWidget {
 
 class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   final logger = Logger();
-  final List<IconData> serverStatusIcon = [Icons.cloud_off, Icons.cloud_outlined];
+  final List<IconData> serverStatusIcon = [
+    Icons.cloud_off,
+    Icons.cloud_outlined,
+  ];
 
   bool loading = false;
 
@@ -37,14 +40,27 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   Widget build(BuildContext context) {
     final networkState = context.watch<YachiyoProvider>().state.network;
     final serverStatus = context.watch<YachiyoProvider>().state.status;
-    return Card.outlined(
+    _textEditingController.text = networkState.serverAddr;
+    
+    return Card.filled(
       margin: EdgeInsets.all(8.0),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: (loading == false)? Icon(serverStatusIcon[serverStatus == YachiyoStatus.registered ? 1 : 0]) : CircularProgressIndicator(),
+            leading: (loading == false)
+                ? Icon(
+                    serverStatusIcon[serverStatus == YachiyoStatus.registered
+                        ? 1
+                        : 0],
+                  )
+                : CircularProgressIndicator(),
             title: const Text("Server Status"),
-            subtitle: Text(serverStatus == YachiyoStatus.registered ? "Registered" : "Unregistered"),
+            subtitle: Text(
+              serverStatus == YachiyoStatus.registered
+                  ? "Registered"
+                  : "Unregistered",
+            ),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(8.0, 0, 8.0, 12.0),
@@ -63,19 +79,84 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
                     ),
                   ),
                 ),
-                IconButton(onPressed: () {
-                  if (_textEditingController.text == "") {
-                    String defaultServerAddr = "127.0.0.1:16899";
-                    _textEditingController.text = defaultServerAddr;
-                    networkState.serverAddr = defaultServerAddr;
-                  }
-                  onServerAddrChange();
-                }, icon: Icon(Icons.refresh)),
+                IconButton(
+                  onPressed: () {
+                    if (_textEditingController.text == "") {
+                      String defaultServerAddr = "127.0.0.1:16899";
+                      _textEditingController.text = defaultServerAddr;
+                      networkState.serverAddr = defaultServerAddr;
+                    }
+                    onServerAddrChange();
+                  },
+                  icon: Icon(Icons.refresh),
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class ServerStatusBadge extends StatefulWidget {
+  const ServerStatusBadge({super.key});
+
+  @override
+  State<ServerStatusBadge> createState() => _ServerStatusBadgeState();
+}
+
+class _ServerStatusBadgeState extends State<ServerStatusBadge> {
+  final List<IconData> serverStatusIcon = [
+    Icons.cloud_off,
+    Icons.cloud_outlined,
+  ];
+
+  bool loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final serverStatus = context.watch<YachiyoProvider>().state.status;
+
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: colorScheme.primary,
+
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: () {
+        showModalBottomSheet(
+          showDragHandle: true,
+          context: context,
+          builder: (context) {
+            return ServerStatusWidget();
+          },
+        );
+      },
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            serverStatus == YachiyoStatus.registered
+                ? "Registered"
+                : "Unregistered",
+          ),
+          Icon(Icons.arrow_drop_down_rounded),
+        ],
+      ),
+      icon: (loading == false)
+          ? Icon(
+              serverStatusIcon[serverStatus == YachiyoStatus.registered
+                  ? 1
+                  : 0],
+            )
+          : CircularProgressIndicator(),
     );
   }
 }
