@@ -93,10 +93,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             IconButton(
-                              tooltip: "Reload all messages",
-                              onPressed: () {
-                                // TODO: protocol support
-                              },
+                              tooltip: "Reload all messages(unavailiable)",
+                              onPressed: null, // TODO: protocol support
                               icon: Icon(Icons.refresh_rounded),
                             ),
                             IconButton(
