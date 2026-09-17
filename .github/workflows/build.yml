@@ -1,0 +1,79 @@
+name: Runtime Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-runtime:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            binary: server
+            archive: yachiyo-runtime-linux-${{github.ref_name}}.tar.gz
+            archive_command: tar -zcvf yachiyo-runtime-linux-${{github.ref_name}}.tar.gz -C build/server .
+
+          - os: windows-latest
+            platform: windows
+            binary: server.exe
+            archive: yachiyo-runtime-windows-${{github.ref_name}}.zip
+            archive_command: powershell "Compress-Archive -Path 'build/server/*' -DestinationPath 'yachiyo-runtime-windows-${{github.ref_name}}.zip' -Force"
+          
+    name: Runtime Build (${{matrix.os}})
+    runs-on: ${{matrix.os}}
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Go
+      uses: actions/setup-go@v7
+      with:
+        go-version-file: "go.mod"
+        cache: true
+
+    - name: Prepare Assets
+      shell: bash
+      run: |
+        mkdir -p build/server
+        cp README.md build/server
+        cp LICENSE build/server
+        cp -r assets/* build/server
+    - name: Build Runtime
+      shell: bash
+      run: go build -trimpath -o build/server/${{matrix.binary}} yachiyo-runtime/server.go
+
+    - name: Archive
+      shell: bash
+      run: ${{matrix.archive_command}}
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+       name: yachiyo-runtime-${{matrix.platform}}
+       if-no-files-found: error
+       path: ${{matrix.archive}}
+  
+  release:
+    name: Create Release
+    needs: build-runtime
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v5
+        with: 
+          path: release
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with: 
+          generate_release_notes: true
+          files: | 
+            release/yachiyo-runtime-linux/*
+            release/yachiyo-runtime-windows/*
+        
