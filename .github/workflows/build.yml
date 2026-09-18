@@ -1,4 +1,4 @@
-name: Runtime Build and Release
+name: Build and Release
 
 on:
   push:
@@ -54,10 +54,64 @@ jobs:
        name: yachiyo-runtime-${{matrix.platform}}
        if-no-files-found: error
        path: ${{matrix.archive}}
+
+  build-pancake:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: android
+            archive: pancake-android-${{github.ref_name}}.apk
+            build_command: flutter build apk --release
+
+          - os: windows-latest
+            platform: windows
+            archive: pancake-windows-${{github.ref_name}}.zip
+            build_command: flutter build windows --release
+          
+    name: Pancake Build (${{matrix.os}})
+    runs-on: ${{matrix.os}}
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with: 
+        channel: stable
+        cache: true
+    
+    - name: Install Dependencies
+      working-directory: yachiyo-client/pancake
+      run: flutter pub get
+    
+    - name: Build Pancake
+      working-directory: yachiyo-client/pancake
+      run: ${{matrix.build_command}}
+
+    - name: Archive Windows
+      if: matrix.platform == 'windows'
+      working-directory: yachiyo-client/pancake
+      shell: powershell
+      run: Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "${{matrix.archive}}" -Force
+
+    - name: Archive Android
+      if: matrix.platform == 'android'
+      shell: bash
+      working-directory: yachiyo-client/pancake
+      run: cp build/app/outputs/flutter-apk/app-release.apk "${{matrix.archive}}"
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+       name: pancake-${{matrix.platform}}
+       if-no-files-found: error
+       path: yachiyo-client/pancake/${{matrix.archive}}
   
   release:
     name: Create Release
-    needs: build-runtime
+    needs: 
+      - build-runtime
+      - build-pancake
     runs-on: ubuntu-latest
 
     permissions:
@@ -76,4 +130,5 @@ jobs:
           files: | 
             release/yachiyo-runtime-linux/*
             release/yachiyo-runtime-windows/*
-        
+            release/pancake-windows/*
+            release/pancake-android/*
