@@ -1,25 +1,49 @@
 version: 3
 
 tasks:
-  serverdev:
-    desc: build and run Yachiyo server (Windows) # development
+  server:build:
+    desc: Build Yachiyo server
     silent: true
     cmds:
       - mkdir -p build/server
-      - go build -o build/server/server.exe yachiyo-runtime/server.go
+      - go build -trimpath -o build/server/server{{exeExt}} yachiyo-runtime/server.go
       - cp README.md build/server
       - cp LICENSE build/server
       - cp -r assets/* build/server
       
-      # running server
-      - cd build/server && ./server.exe
+  server:
+    desc: Build and run Yachiyo server
+    silent: true
+    cmds:
+      - task: server:build
+      - cd build/server && ./server{{exeExt}}
 
-  clidev:
-    desc: build and run Yachiyo CLI (Windows) # development
+  cli:build:
+    desc: Build Yachiyo CLI
     silent: true
     cmds:
       - mkdir -p build/cli
-      - go build -o build/cli/client.exe yachiyo-client/cli/main.go
+      - go build -trimpath -o build/cli/client{{exeExt}} yachiyo-client/cli/main.go
 
-      # running CLI
-      - cd build/cli && ./client.exe
+  cli:
+    desc: Build and run Yachiyo CLI
+    silent: true
+    cmds:
+      - task: cli:build
+      - cd build/server && ./client{{exeExt}}
+  
+  pancake:
+    desc: Build Pancake
+    dir: yachiyo-client/pancake
+    silent: true
+    cmds:
+      - flutter pub get
+      - flutter build {{.CLI_ARGS}}
+  
+  pancake:release:
+    desc: Build Pancake (Release)
+    dir: yachiyo-client/pancake
+    silent: true
+    cmds:
+      - flutter pub get
+      - flutter build {{.CLI_ARGS}} --release
