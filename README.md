@@ -27,8 +27,8 @@ As a result, these steps are also very simple.
 
 > [!IMPORTANT]  
 > Before starting, we hope that you have been already aware of **these risks**:  
-> - Local first: We **didn't** complete any authentication. As the result, please deploy it in trusted machine. Deploy in open network is **highly not recommended**. Also, **exposed it directly to the LAN or the public network** are also not recommended.
-> - Unsaved history: We think that our Yachiyo is unable to run a long time. So storage currently is **in-memory**. And you **can't reload histories from runtime**.
+> - Local first: We **didn't** do any authentication. As the result, please deploy it in trusted machine. Deploy it in open network is **highly not recommended**. Also, **exposed it directly to the LAN or the public network** are also not recommended.
+> - Unsaved history: We think that our Yachiyo is currently unable to run a long time. So any storage now is in **in-memory**. And you **can't reload histories from runtime** currently.
 > - Experimental protocol: Since our json protocol is under explore, it's **not suitable** for you to code or vibe a your own client.
 
 
@@ -36,44 +36,52 @@ Project Yachiyo consists of two parts, the server and the external clients.
 
 ### Server
 
-1. Compile according to the target platform.  
-Reading `Taskfile.yml` may help a lot.
-2. Edit `config.example.yaml` with your information, and rename it to `config.yaml`.
+1. Download the server package in **release page**.   
+For non-provided platforms, try to compile according to the target platform. You can also just run `task server:build` to complete this step.
+2. Edit `config.example.yaml` with your information, and **rename** it to `config.yaml`.
 3. Run it.
 
 ### Client
 
 Clients can be categorized into lots of kinds. Currently, there are only onebot, CLI and flutter clients which are built in.
 
-#### For flutter client(Recommend):
+> [!Note]  
+> Currently, `Pancake!`, the flutter client is the only recommended client, for it has the most completed features.  
+> The other clients in this monorepo, like onebot and CLI is too simple to be suitable for use.  
 
-`Pancake!`, the flutter client, is designed to be a simple cross-platform application.  
-Most platforms lack necessary tests and verifications, please notice.  
-Windows and Android applications are supported in current stage.
+#### For flutter client (Recommend):
+
+`Pancake!`, the flutter client, is designed to be a  cross-platform application.  
+Most flutter-supported platforms, except `Android` and `Windows`, lack necessary tests and verifications, please notice.  
+As the result, use `Pancake!` in platforms like `Linux` may have some unexpected problems.
 
 `Pancake!` allows changing the connection address, monitoring runtime state and messaging with the runtime.  
 
-Currently, `Pancake!` uses json over websocket to communicate with the runtime.  
+In current period, `Pancake!` uses json over websocket to communicate with the runtime.  
 A switch to gRPC is planned in the future.
 
-1. Compile according to the target platform.
+1. Download the server package in **release page**.   
+For non-provided platforms, try to compile according to the target platform. You can also just run `task pancake` to complete this step.
 2. Run it.
-3. Enter the server address field to message with the runtime.
+3. Enter the server address field to monitor or message with the runtime.
 
 #### For CLI client:
 
 1. Compile according to the target platform.   
-Reading `Taskfile.yml` may help a lot.
+Or run `task cli:build` to compile it.
 2. Run it. 
 
 #### For onebot client:
 
-They don't need a client. The server serves as a Websocket Server.  
-Use your onebot realization as a client, and fill in the URL, probably like `ws://localhost:16801/ws/onebot`.
+This part is crude, and you may not hope it can work well.  
+
+It don't need a specific client.   
+The server serves as a Websocket Server, and the server have a gateway for translation.    
+Use your onebot realization as a client, and use URL `ws://<host>:<port>/ws/onebot` to connect the server.
 
 ### About Prompt
 
-Prompt currently is **a simplified version** of the origin.  
+Prompt for public is **a simplified version** of the origin.  
 For some reason, the original prompt is private temporarily.
 
 If you hope, you can provide your own system prompt.  
@@ -128,7 +136,11 @@ A simple development documentation site is available at [Project Yachiyo Docs](h
 ## Contact
 
 If you are interested in this project, discussions are welcome.  
-You can contact me at `me[at]zako.ink`
+You can contact me at `me[at]zako.ink` :>
+
+Also, if you are a user, you can also join these groups to communicate with others. You are welcome to discuss your thoughts with us:  
+- Telegram Group: [@project_yachiyo](https://t.me/project_yachiyo)
+- QQ Group: [1126376305](https://qm.qq.com/q/u7w1xQ3a2k)
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
