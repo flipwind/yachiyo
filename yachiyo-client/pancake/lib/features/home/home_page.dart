@@ -32,11 +32,17 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(title, style: GoogleFonts.kiwiMaru(fontWeight: FontWeight.w500,letterSpacing: -0.5,)),
+            Text(
+              title,
+              style: GoogleFonts.kiwiMaru(
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.5,
+              ),
+            ),
             ServerStatusBadge(),
           ],
         ),
-        
+
         actions: [
           IconButton(
             onPressed: () => _toggleYachiyoStatusShown(),
@@ -48,11 +54,16 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (isYachiyoStatusShown == true) YachiyoStatusWidget(),
-          Expanded(child: ChatWidget()),
-        ],
+      body: Padding(
+        padding: EdgeInsetsGeometry.only(
+          bottom: MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Column(
+          children: [
+            if (isYachiyoStatusShown == true) YachiyoStatusWidget(),
+            Expanded(child: ChatWidget()),
+          ],
+        ),
       ),
     );
   }
