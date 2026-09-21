@@ -41,7 +41,7 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
     final networkState = context.watch<YachiyoProvider>().state.network;
     final serverStatus = context.watch<YachiyoProvider>().state.status;
     _textEditingController.text = networkState.serverAddr;
-    
+
     return Card.filled(
       margin: EdgeInsets.all(8.0),
       child: Column(
@@ -68,7 +68,9 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
               children: [
                 Expanded(
                   child: TextField(
+                    keyboardType: TextInputType.url,
                     controller: _textEditingController,
+                    autocorrect: false,
                     onSubmitted: (value) {
                       onServerAddrChange();
                     },
@@ -133,9 +135,15 @@ class _ServerStatusBadgeState extends State<ServerStatusBadge> {
       onPressed: () {
         showModalBottomSheet(
           showDragHandle: true,
+          isScrollControlled: true,
           context: context,
           builder: (context) {
-            return ServerStatusWidget();
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: ServerStatusWidget(),
+            );
           },
         );
       },
