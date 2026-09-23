@@ -2,10 +2,7 @@ package prompt
 
 import (
 	"fmt"
-	"time"
 	"yachiyo/yachiyo-runtime/history"
-	"yachiyo/yachiyo-runtime/initiative"
-	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
 )
@@ -13,118 +10,108 @@ import (
 var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
-	SystemPrompt   string
-	History        []history.History
-	State          state.State
-	Emotion        state.Emotion
-	Factors        initiative.Factors
-	Note           string
-	LastActiveTime time.Time
+	SystemPrompt string
+	History      []history.History
+	Note         string
 }
 
-type Result struct {
-	Sequence []history.History
-	Delta []history.History
-}
-
-func UserPromptBuilder(c *Context, t *trigger.Message) Result {
-	hist := c.History
-	var delta []history.History
-
-	if len(hist) == 0 {
-		sys := history.History{
-			Role:    "system",
-			Content: string(c.SystemPrompt),
-			Time:    time.Now(),
-		}
-		hist = append(hist, sys)
-		delta = append(delta, sys)
-	}
-
-	// Current Message Build
-	currentTime := time.Now().Format("2006.01.02 15:04:05")
-
-	prompt := fmt.Sprintf(`[UserMessage]
-<Yachiyo Runtime>
-This part, either Emotion and State, you must follow it, in this round of conversation.
-Time: %s
+func StatementPrompt(snap history.Snapshot, note string) SystemPrompt {
+	content := fmt.Sprintf(`<Yachiyo Runtime>
+In this round of conversation, you must consider these statements and follow them.
 Emotion: %s
 State: %s
-Last Conversation Active: %s
+Last Active Time: %s
 Session Context: %s
 ---
-User Content: %s
----
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
-OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
-`,
-		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, t.String())
+OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
+		snap.Emotion.String(),
+		snap.State.Prompt(),
+		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
+		note,
+	)
 
-	user := history.History{
-		Role:    "user",
-		Content: prompt,
-		Time:    time.Now(),
-		Address: t.Address,
+	return SystemPrompt{
+		Content: content,
+	}
+}
+
+func InitiativePrompt(snap history.Snapshot) SystemPrompt {
+	content := fmt.Sprintf(`[Initiative Trigger]
+<Runtime Factors>
+Factors determined whether to active initiative message. As the result, when you read this, it means the initiative threshold was reached.
+Now the factors are given to know why you should send initiative message.
+Following are some percentage. Notice that percentage is accumulated with the time normally.
+%s`,
+		snap.Factors.String(),
+	)
+
+	return SystemPrompt{
+		Content: content,
+	}
+}
+
+func HistoryPrompt(histories []history.History) []Prompts {
+	var prompts []Prompts
+	for _, h := range histories {
+		switch hist := h.(type) {
+		case history.UserMessage:
+			prompts = append(prompts, UserPrompt{
+				Content: hist.Render(),
+			})
+		case history.AssistantMessage:
+			prompts = append(prompts, AssistantPrompt{
+				Content: hist.Render(),
+			})
+		default:
+			ylog.Debug("Unsupport history: %T", hist)
+		}
 	}
 
-	hist = append(hist, user)
-	delta = append(delta, user)
+	return prompts
+}
+
+func UserPromptBuilder(c Context, t *trigger.Message, snap history.Snapshot) []Prompts {
+	var prompts []Prompts
+
+	// 1. System Prompt
+	prompts = append(prompts, SystemPrompt{Content: c.SystemPrompt})
+
+	// 2. History Prompt (Including new message)
+	prompts = append(prompts, HistoryPrompt(c.History)...)
+
+	// 3. Current Statement
+	statementPrompt := StatementPrompt(snap, c.Note)
+	prompts = append(prompts, statementPrompt)
 
 	ylog.Info("Received user message [%v]", t.String())
-	ylog.Debug("Prompt built: %s", prompt)
 
-	return Result{
-		Sequence: hist,
-		Delta: delta,
-	}
+	return prompts
 }
 
-func InitiativePromptBuilder(c *Context) Result {
-	hist := c.History
-	var delta []history.History
-
-	if len(hist) == 0 {
+func InitiativePromptBuilder(c Context, snap history.Snapshot) []Prompts {
+	// 0. Check if the trigger vaild
+	if len(c.History) == 0 {
 		ylog.Error("History is empty.")
-		return Result{}
+		return nil
 	}
 
-	// Current Message Build
-	currentTime := time.Now().Format("2006.01.02 15:04:05")
+	// 1. System Prompt
+	var prompts []Prompts
+	prompts = append(prompts, SystemPrompt{Content: c.SystemPrompt})
 
-	prompt := fmt.Sprintf(`[InitiativeMessage]
----
-<Yachiyo Runtime>
-This part, either Emotion and State, you must follow it, in this round of conversation.
-Time: %s
-Emotion: %s
-State: %s
-Last Conversation Active: %s
-Session Context: %s
----
-<Runtime Factors>
-Factors will active initiative message. As the result, these factors are given to know why you should send initiative message.
-Following are some percentage. Notice that percentage is accumulated with the time normally.
-%s
----
-Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
-OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.
-`,
-		currentTime, c.Emotion.String(), c.State.Prompt(), c.LastActiveTime.Format("2006.01.02 15:04:05"), c.Note, c.Factors.String())
+	// 2. History Prompt (Including new message)
+	prompts = append(prompts, HistoryPrompt(c.History)...)
 
-	user := history.History{
-		Role:    "user/runtime",
-		Content: prompt,
-		Time:    time.Now(),
-	}
+	// 3. Current Statement
+	statementPrompt := StatementPrompt(snap, c.Note)
+	prompts = append(prompts, statementPrompt)
 
-	hist = append(hist, user)
-	delta = append(delta, user)
+	// 4. Initiative trigger reason
+	initiativePrompt := InitiativePrompt(snap)
+	prompts = append(prompts, initiativePrompt)
 
+	ylog.Info("Initiative Message triggered.")
 
-	ylog.Debug("Prompt built: %s", prompt)
-
-	return Result{
-		Sequence: hist,
-		Delta: delta,
-	}
+	return prompts
 }

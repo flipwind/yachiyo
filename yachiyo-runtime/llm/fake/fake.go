@@ -2,7 +2,7 @@ package fake
 
 import (
 	"fmt"
-	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/prompt"
 )
 
 type FakeLLM struct{}
@@ -13,6 +13,6 @@ func NewFakeLLM() *FakeLLM {
 
 func (l *FakeLLM) LLM() {}
 
-func (l *FakeLLM) Gen(history []history.History) (string, error) {
+func (l *FakeLLM) Gen(history []prompt.Prompts) (string, error) {
 	return fmt.Sprintf("%v", history), nil
 }

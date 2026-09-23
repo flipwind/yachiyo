@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"time"
-	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 
@@ -31,16 +31,17 @@ func NewOpenAIProvider(baseUrl, apiKey, model string) *OpenAIProvider {
 
 func (p *OpenAIProvider) LLM() {}
 
-func (p *OpenAIProvider) Gen(history []history.History) (string, error) {
+func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
 	var OpenAIMessages []openai.ChatCompletionMessageParamUnion
-	for _, m := range history {
-		switch m.Role {
-		case "system":
-			OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(m.Content))
-		case "user", "user/runtime":
-			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(m.Content))
-		case "assistant":
-			OpenAIMessages = append(OpenAIMessages, openai.AssistantMessage(m.Content))
+	for _, m := range prompts {
+		switch p := m.(type) {
+		case prompt.SystemPrompt:
+			OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(p.Content))
+		case prompt.UserPrompt:
+			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(p.Content))
+		case prompt.AssistantPrompt:
+			OpenAIMessages = append(OpenAIMessages, openai.AssistantMessage(p.Content))
+		default: ylog.Warn("Unknown type of prompt: %T", p)
 		}
 	}
 

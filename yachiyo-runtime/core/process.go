@@ -125,7 +125,7 @@ Yachiyo > %s
 		c_later.Note)
 }
 
-func (c *Core) processLLM(h []history.History) (string, bool) {
+func (c *Core) processLLM(prompts []prompt.Prompts) (string, bool) {
 	var answer string
 	var reply bool
 
@@ -144,14 +144,12 @@ func (c *Core) processLLM(h []history.History) (string, bool) {
 		c.mu.Unlock()
 
 		if isJSONConstraint {
-			h = append(h, history.History{
-				Role:    "user",
+			prompts = append(prompts, prompt.SystemPrompt{
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
-				Time:    time.Now(),
 			})
 		}
 
-		result, err := c.LLM.Gen(h)
+		result, err := c.LLM.Gen(prompts)
 
 		if err != nil {
 			ylog.Error("LLM Generating error: %v", err)
@@ -169,12 +167,6 @@ func (c *Core) processLLM(h []history.History) (string, bool) {
 			break
 		}
 
-		c.AppendHistory(history.History{
-			Role:    "assistant",
-			Content: answer,
-			Time:    time.Now(),
-		})
-
 		break
 	}
 
@@ -185,29 +177,59 @@ func (c *Core) processLLM(h []history.History) (string, bool) {
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	snap := c.snapshot()
-	historyView := c.historyView()
-
-	result := prompt.UserPromptBuilder(&prompt.Context{
-		SystemPrompt:   historyView.SystemPrompt,
-		History:        historyView.History,
+	histSnap := history.Snapshot{
+		Time:           time.Now(),
 		Emotion:        snap.Emotion,
 		State:          snap.State,
-		Note:           snap.Note,
 		Factors:        snap.Factors,
 		LastActiveTime: snap.LastActiveTime,
-	}, m)
-
-	for _, msg := range result.Delta {
-		c.AppendHistory(msg)
 	}
 
-	answer, reply := c.processLLM(result.Sequence)
-	
+	c.AppendHistory(history.UserMessage{
+		Snapshot: histSnap,
+		Content:  m.Content,
+
+		Author:   m.Author,
+		Platform: m.Platform,
+		Time:     time.Now(),
+		Address:  m.Address,
+	})
+
+	prompts := prompt.UserPromptBuilder(prompt.Context{
+		SystemPrompt: c.getSystemPrompt(),
+		History:      c.getHistory(),
+		Note:         c.getNote(),
+	}, m, histSnap)
+
+	answer, isReply := c.processLLM(prompts)
 	debugOutput(answer, snap, c.snapshot())
+
+	// After processed, store the assistant message
+
+	snap = c.snapshot()
+	histSnap = history.Snapshot{
+		Time:           time.Now(),
+		Emotion:        snap.Emotion,
+		State:          snap.State,
+		Factors:        snap.Factors,
+		LastActiveTime: snap.LastActiveTime,
+	}
+
+	c.AppendHistory(history.AssistantMessage{
+		Snapshot: histSnap,
+		Content:  answer,
+
+		Time:      time.Now(),
+		ToAddress: m.Address,
+		Note:      c.getNote(),
+
+		IsInitiative: false,
+		IsEmpty:      !isReply,
+	})
 
 	ylog.Success("Generated passive output [%v]", answer)
 	return &action.Message{
-		Empty:   !reply,
+		Empty:   !isReply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: m.Address,
@@ -215,35 +237,63 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 }
 
 func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
+	// Check if this trigger vaild.
 	snap := c.snapshot()
-	historyView := c.historyView()
-	if len(historyView.History) == 0 {
+	hist := c.getHistory()
+	if len(hist) == 0 {
 		return nil
 	}
 
-	addr := LastUserAddress(historyView.History)
-
-	result := prompt.InitiativePromptBuilder(&prompt.Context{
-		SystemPrompt:   historyView.SystemPrompt,
-		History:        historyView.History,
-		Emotion:        snap.Emotion,
-		State:          snap.State,
-		Note:           snap.Note,
-		Factors:        snap.Factors,
-		LastActiveTime: snap.LastActiveTime,
-	})
-
-	for _, msg := range result.Delta {
-		c.AppendHistory(msg)
+	addr, ok := GetLastUserAddress(hist)
+	if ok == false {
+		return nil
 	}
 
-	answer, reply := c.processLLM(result.Sequence)
+	histSnap := history.Snapshot{
+		Time:           time.Now(),
+		Emotion:        snap.Emotion,
+		State:          snap.State,
+		Factors:        snap.Factors,
+		LastActiveTime: snap.LastActiveTime,
+	}
 
+	// Build Prompt
+	prompts := prompt.InitiativePromptBuilder(
+		prompt.Context{
+			SystemPrompt: c.getSystemPrompt(),
+			History:      c.getHistory(),
+			Note:         c.getNote(),
+		}, histSnap)
+
+	answer, isReply := c.processLLM(prompts)
 	debugOutput(answer, snap, c.snapshot())
+
+	// After processed, store the assistant message
+
+	snap = c.snapshot()
+	histSnap = history.Snapshot{
+		Time:           time.Now(),
+		Emotion:        snap.Emotion,
+		State:          snap.State,
+		Factors:        snap.Factors,
+		LastActiveTime: snap.LastActiveTime,
+	}
+
+	c.AppendHistory(history.AssistantMessage{
+		Snapshot: histSnap,
+		Content:  answer,
+
+		Time:      time.Now(),
+		ToAddress: addr,
+		Note:      c.getNote(),
+
+		IsInitiative: true,
+		IsEmpty:      !isReply,
+	})
 
 	ylog.Success("Generated active output [%v]", answer)
 	return &action.Message{
-		Empty:   !reply,
+		Empty:   !isReply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: addr,

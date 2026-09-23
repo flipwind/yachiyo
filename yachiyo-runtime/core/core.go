@@ -126,7 +126,7 @@ func (c *Core) AppendHistory(hist history.History) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.History.Remember(hist)
+	c.History.Append(hist)
 }
 
 // Core snapshot
@@ -141,10 +141,6 @@ type Snapshot struct {
 	LastActiveTime time.Time
 }
 
-type HistorySnapshot struct {
-	History      []history.History
-	SystemPrompt string
-}
 
 func (c *Core) snapshot() Snapshot {
 	c.mu.Lock()
@@ -163,24 +159,35 @@ func (c *Core) snapshot() Snapshot {
 	return snap
 }
 
-func (c *Core) historyView() HistorySnapshot {
+func (c *Core) getHistory() []history.History {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	hist := append([]history.History(nil), c.History.ListAll()...)
 
-	return HistorySnapshot{
-		History:      hist,
-		SystemPrompt: c.Config.Prompt.SystemPrompt,
-	}
+	return hist
 }
 
-func LastUserAddress(hist []history.History) address.Address {
+func (c *Core) getSystemPrompt() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.Config.Prompt.SystemPrompt
+}
+
+func (c *Core) getNote() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.Note
+}
+
+func GetLastUserAddress(hist []history.History) (address.Address, bool) {
 	for _, h := range slices.Backward(hist) {
-		if h.Role == "user" {
-			return h.Address
+		if item, ok := h.(history.UserMessage); ok {
+			return item.Address, true
 		}
 	}
 
-	return address.Address{}
+	return address.Address{}, false
 }
