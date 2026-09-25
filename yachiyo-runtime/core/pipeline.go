@@ -53,6 +53,9 @@ func (p *Pipeline) Listen() {
 		case *trigger.RuntimeStateRequest:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
+		case *trigger.MessageHistoryRequest:
+			dispatch := p.handler(t)
+			p.Distribution <- dispatch
 		default:
 			ylog.Warn("Unsupport trigger type: %T", t)
 		}
@@ -70,11 +73,12 @@ func (p *Pipeline) DistributionListen() {
 	for trig := range p.Distribution {
 		ylog.Debug("Receiving trigger %#v", trig)
 		switch t := trig.(type) {
-		case *action.Message:
+		case *action.AssistantMessage:
 			scheme := t.Address.Scheme()
 			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
+				continue
 			}
 			select {
 			case outputChan <- t:
@@ -86,6 +90,19 @@ func (p *Pipeline) DistributionListen() {
 			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
+				continue
+			}
+			select {
+			case outputChan <- t:
+			case <-time.After(time.Second):
+				ylog.Error("gateway %s timeout", scheme)
+			}
+		case *action.MessageHistory:
+			scheme := t.Address.Scheme()
+			outputChan := p.GetGateway(scheme)
+			if outputChan == nil {
+				ylog.Error("scheme <%v> is not registered", scheme)
+				continue
 			}
 			select {
 			case outputChan <- t:

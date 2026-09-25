@@ -45,6 +45,8 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		return a
 	case *trigger.RuntimeStateRequest:
 		return c.processRuntimeStateRequest(t)
+	case *trigger.MessageHistoryRequest:
+		return c.processMessageHistoryRequest(t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)
 		return nil
@@ -225,7 +227,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	})
 
 	ylog.Success("Generated passive output [%v]", answer)
-	return &action.Message{
+	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: m.Address,
@@ -297,7 +299,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	})
 
 	ylog.Success("Generated active output [%v]", answer)
-	return &action.Message{
+	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: addr,
@@ -319,6 +321,47 @@ func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action
 
 	return &action.RuntimeState{
 		Content: DebugMessage,
+		Address: t.Address,
+	}
+}
+
+func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) action.Action {
+	hist := c.getHistory()
+	msgs := make([]action.Message, 0)
+
+	for _, h := range hist {
+		switch m := h.(type) {
+		case history.AssistantMessage:
+			if m.ToAddress != t.Address {
+				break
+			}
+
+			if m.Initiative == true && m.Reply == false {
+				break
+			}
+
+			msgs = append(msgs, &action.AssistantMessage{
+				Content: m.Content,
+				Time: m.Time.Unix(),
+				Initiative: m.Initiative,
+				Reply: m.Reply,
+				Address: m.ToAddress,
+			})
+		case history.UserMessage:
+			if m.Address != t.Address {
+				break
+			}
+
+			msgs = append(msgs, &action.UserMessage{
+				Content: m.Content,
+				Time: m.Time.Unix(),
+				Address: m.Address,
+			})
+		}
+	}
+
+	return &action.MessageHistory{
+		Messages: msgs,
 		Address: t.Address,
 	}
 }

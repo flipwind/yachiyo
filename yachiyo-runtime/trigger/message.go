@@ -27,3 +27,8 @@ func (m *Message) String() string {
 }
 
 func (m *Message) trigger() {}
+
+type MessageHistoryRequest struct {
+	Address address.Address
+}
+func (*MessageHistoryRequest) trigger() {}
