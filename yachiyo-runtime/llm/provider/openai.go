@@ -56,8 +56,6 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
 		},
 	})
 
-	// JSON_object mode is unreliable(!!!!!!!!!) on deepseek-v4.
-
 	if err != nil {
 		return "", err
 	}

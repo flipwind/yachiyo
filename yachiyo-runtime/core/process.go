@@ -10,6 +10,7 @@ import (
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-util/yerror"
 )
 
 func (c *Core) Process(e trigger.Trigger) action.Action {
@@ -125,26 +126,16 @@ Yachiyo > %s
 		c_later.Note)
 }
 
-func (c *Core) processLLM(prompts []prompt.Prompts) (string, bool) {
+func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 	var answer string
 	var reply bool
+	var prompts = rawPrompts
+
+	var jsonConstraint = false
 
 	for i := range 3 {
-		if i == 1 {
-			// This is desiged intentionally.
-			// In real use, once triggered, JSONConstraint should be true in a whole session,
-			// to cut down the token use.
-			c.mu.Lock()
-			c.JSONConstraint = true
-			c.mu.Unlock()
-		}
-
-		c.mu.Lock()
-		isJSONConstraint := c.JSONConstraint
-		c.mu.Unlock()
-
-		if isJSONConstraint {
-			prompts = append(prompts, prompt.SystemPrompt{
+		if jsonConstraint {
+			prompts = append(rawPrompts, prompt.SystemPrompt{
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 			})
 		}
@@ -159,23 +150,25 @@ func (c *Core) processLLM(prompts []prompt.Prompts) (string, bool) {
 		answer, reply, err = c.apply(result)
 
 		if err != nil {
+			jsonConstraint = true
 			ylog.Error("%d request failed. Retrying...", i+1)
 			continue
 		}
 
-		if reply == false {
-			break
-		}
-
-		break
+		// If successfully generated, return.
+		return answer, reply, nil
 	}
 
-	return answer, reply
+	return "", false, yerror.RuntimeError{
+		Type: "LLM",
+		Reason: "generated failed",
+	}
 }
 
 // Trigger process part
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
+	ylog.Info("Received user message [%v]", m.String())
 	snap := c.snapshot()
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
@@ -199,9 +192,13 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		SystemPrompt: c.getSystemPrompt(),
 		History:      c.getHistory(),
 		Note:         c.getNote(),
-	}, m, histSnap)
+	}, histSnap)
 
-	answer, isReply := c.processLLM(prompts)
+	answer, isReply, err := c.processLLM(prompts)
+	if err != nil {
+		ylog.Error("Process UserMessage failed: %s", err)
+		return nil
+	}
 	debugOutput(answer, snap, c.snapshot())
 
 	// After processed, store the assistant message
@@ -244,10 +241,12 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		return nil
 	}
 
-	addr, ok := GetLastUserAddress(hist)
+	addr, ok := history.GetLastUserAddress(hist)
 	if ok == false {
 		return nil
 	}
+
+	ylog.Info("Initiative Message triggered.")
 
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
@@ -265,7 +264,11 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 			Note:         c.getNote(),
 		}, histSnap)
 
-	answer, isReply := c.processLLM(prompts)
+	answer, isReply, err := c.processLLM(prompts)
+	if err != nil {
+		ylog.Error("Process InitiativeMessage failed: %s", err)
+		return nil
+	}
 	debugOutput(answer, snap, c.snapshot())
 
 	// After processed, store the assistant message

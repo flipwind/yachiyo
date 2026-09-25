@@ -2,11 +2,9 @@ package core
 
 import (
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/basic"
@@ -30,7 +28,6 @@ type Core struct {
 	Determination state.Determination
 	Factors       initiative.Factors
 
-	JSONConstraint bool
 	Note           string
 	Pipe           *Pipeline
 	LastActiveTime time.Time
@@ -76,7 +73,6 @@ func New() (*Core, error) {
 		Config:         config,
 		Determination:  state.NewDetermination(),
 		Factors:        factors,
-		JSONConstraint: false,
 		Note:           "",
 		LastActiveTime: time.Now(),
 	}
@@ -151,7 +147,6 @@ func (c *Core) snapshot() Snapshot {
 		Emotion:        c.Emotion,
 		Determination:  c.Determination,
 		Factors:        c.Factors,
-		JSONConstraint: c.JSONConstraint,
 		Note:           c.Note,
 		LastActiveTime: c.LastActiveTime,
 	}
@@ -182,12 +177,4 @@ func (c *Core) getNote() string {
 	return c.Note
 }
 
-func GetLastUserAddress(hist []history.History) (address.Address, bool) {
-	for _, h := range slices.Backward(hist) {
-		if item, ok := h.(history.UserMessage); ok {
-			return item.Address, true
-		}
-	}
 
-	return address.Address{}, false
-}

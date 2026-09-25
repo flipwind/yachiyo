@@ -2,6 +2,7 @@ package history
 
 import (
 	"fmt"
+	"slices"
 	"time"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/initiative"
@@ -58,4 +59,14 @@ func (AssistantMessage) History() {}
 func (m AssistantMessage) Render() string {
 	// e.g. (2030.07.21 16:16:09) Iroha! Suki~
 	return fmt.Sprintf("(%s) %s", m.Time.Format("2006.01.02 15:04:05"), m.Content)
+}
+
+func GetLastUserAddress(hist []History) (address.Address, bool) {
+	for _, h := range slices.Backward(hist) {
+		if item, ok := h.(UserMessage); ok {
+			return item.Address, true
+		}
+	}
+
+	return address.Address{}, false
 }
