@@ -226,10 +226,12 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 
 	ylog.Success("Generated passive output [%v]", answer)
 	return &action.Message{
-		Empty:   !isReply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: m.Address,
+
+		IsInitiative: false,
+		IsEmpty: !isReply,
 	}
 }
 
@@ -296,10 +298,12 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 
 	ylog.Success("Generated active output [%v]", answer)
 	return &action.Message{
-		Empty:   !isReply,
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: addr,
+		
+		IsInitiative: true,
+		IsEmpty: !isReply,
 	}
 }
 
