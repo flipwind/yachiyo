@@ -106,7 +106,7 @@ func (c *Core) apply(schema string) (string, bool, error) {
 	}
 
 	if output.Reply == false || strings.TrimSpace(output.Answer) == "" {
-		return "Yachiyo didn't reply.", false, nil
+		return output.Answer, false, nil
 	}
 	return output.Answer, true, nil
 }
