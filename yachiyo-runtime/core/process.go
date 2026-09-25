@@ -160,7 +160,7 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 	}
 
 	return "", false, yerror.RuntimeError{
-		Type: "LLM",
+		Type:   "LLM",
 		Reason: "generated failed",
 	}
 }
@@ -220,8 +220,8 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		ToAddress: m.Address,
 		Note:      c.getNote(),
 
-		IsInitiative: false,
-		IsEmpty:      !isReply,
+		Initiative: false,
+		Reply:      isReply,
 	})
 
 	ylog.Success("Generated passive output [%v]", answer)
@@ -230,8 +230,8 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Time:    time.Now().Unix(),
 		Address: m.Address,
 
-		IsInitiative: false,
-		IsEmpty: !isReply,
+		Initiative: false,
+		Reply:      isReply,
 	}
 }
 
@@ -292,8 +292,8 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		ToAddress: addr,
 		Note:      c.getNote(),
 
-		IsInitiative: true,
-		IsEmpty:      !isReply,
+		Initiative: true,
+		Reply:      isReply,
 	})
 
 	ylog.Success("Generated active output [%v]", answer)
@@ -301,9 +301,9 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Content: answer,
 		Time:    time.Now().Unix(),
 		Address: addr,
-		
-		IsInitiative: true,
-		IsEmpty: !isReply,
+
+		Initiative: true,
+		Reply:      isReply,
 	}
 }
 

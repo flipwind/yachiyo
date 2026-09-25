@@ -232,7 +232,7 @@ func (s *JsonClientService) ListenSend() {
 				continue
 			}
 
-			c.send("interaction", "runtime_message", &model.RuntimeMessage{Reply: !t.IsEmpty, Message: t.Content, IsInitiative: t.IsInitiative})
+			c.send("interaction", "runtime_message", &model.RuntimeMessage{Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 		case *action.RuntimeState:
 			addr := t.Address.Host()
 

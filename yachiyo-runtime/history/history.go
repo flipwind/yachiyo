@@ -51,14 +51,21 @@ type AssistantMessage struct {
 	ToAddress address.Address
 	Note      string
 
-	IsInitiative bool
-	IsEmpty      bool
+	Initiative bool
+	Reply      bool
 }
 
 func (AssistantMessage) History() {}
 func (m AssistantMessage) Render() string {
-	// e.g. (2030.07.21 16:16:09) Iroha! Suki~
-	return fmt.Sprintf("(%s) %s", m.Time.Format("2006.01.02 15:04:05"), m.Content)
+	// e.g. <Message initiative: False><Reply: True>(2030.07.21 16:16:09) Iroha! Suki~
+	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Time.Format("2006.01.02 15:04:05"))
+	if m.Reply {
+		msg += m.Content
+	} else {
+		msg += fmt.Sprintf("<Reason: %s>", m.Content)
+	}
+
+	return msg
 }
 
 func GetLastUserAddress(hist []History) (address.Address, bool) {
