@@ -55,6 +55,11 @@ class YachiyoProvider extends ChangeNotifier {
         state.runtime.runtimeName = envelopeData.runtimeName;
         state.runtime.runtimeVersion = envelopeData.runtimeVersion;
         notifyListeners();
+      case RegisterError():
+        switch (envelopeData.errorType) {
+          case "client_conflict": reGenerateClientID();
+          default: throw Exception("Unexcepted error when register: ${envelopeData.errorType}");
+        }
     }
   }
 
@@ -74,13 +79,20 @@ class YachiyoProvider extends ChangeNotifier {
         state.runtime.messages = envelopeData.messages.map((message) {
           switch (message) {
             case RuntimeMessage():
-              return Message(reply: message.reply, role: "assistant", message: message.message, time: DateTime.fromMillisecondsSinceEpoch(message.time ~/ 1000));
-            case ClientMessage():
-              return Message(role: "user", message: message.message, time: DateTime.fromMillisecondsSinceEpoch(message.time ~/ 1000));
-            default:
-              throw FormatException(
-                "Unknown message type: ${message.type}",
+              return Message(
+                reply: message.reply,
+                role: "assistant",
+                message: message.message,
+                time: DateTime.fromMillisecondsSinceEpoch(message.time * 1000),
               );
+            case ClientMessage():
+              return Message(
+                role: "user",
+                message: message.message,
+                time: DateTime.fromMillisecondsSinceEpoch(message.time * 1000),
+              );
+            default:
+              throw FormatException("Unknown message type: ${message.type}");
           }
         }).toList();
     }
@@ -103,12 +115,19 @@ class YachiyoProvider extends ChangeNotifier {
   }
 
   // network
+  Future<void> reGenerateClientID() async {
+    final pref = await SharedPreferences.getInstance();
+    var clientID = Uuid().v4();
+    await pref.setString("client_id", clientID);
+
+    await start();
+  }
 
   Future<void> start() async {
     final pref = await SharedPreferences.getInstance();
     var clientID = pref.getString("client_id");
 
-    if(clientID == null){
+    if (clientID == null) {
       clientID = Uuid().v4();
       await pref.setString("client_id", clientID);
     }
@@ -188,7 +207,10 @@ class YachiyoProvider extends ChangeNotifier {
       Envelope(
         category: "interaction",
         type: "client_message",
-        data: ClientMessage(message: message, time: DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        data: ClientMessage(
+          message: message,
+          time: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        ),
       ),
     );
   }

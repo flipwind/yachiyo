@@ -15,6 +15,7 @@ import (
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
+	"github.com/google/uuid"
 )
 
 var ylog = logger.New("Yachiyo.Jsonclient")
@@ -99,10 +100,18 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			return
 		}
 
+		clientUuid, err := uuid.Parse(data.ClientID)
+		if err != nil {
+			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_id_invalid"})
+			return
+		}
+
+		var clientID = clientUuid.String()
+
 		var old *Client
 
 		s.mutex.Lock()
-		if oldClient, ok := s.clients[data.ClientID]; ok == true {
+		if oldClient, ok := s.clients[clientID]; ok == true {
 			if oldClient.Type != data.ClientType {
 				c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_conflict"})
 				s.mutex.Unlock()
@@ -113,9 +122,9 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 
 		c.Type = data.ClientType
 		c.Name = data.ClientName
-		c.ID = data.ClientID
+		c.ID = clientID
 
-		s.clients[data.ClientID] = c
+		s.clients[clientID] = c
 		s.mutex.Unlock()
 
 		if old != nil {
@@ -230,7 +239,11 @@ func (s *JsonClientService) ListenSend() {
 	for act := range s.channel.ToClient {
 		switch t := act.(type) {
 		case *action.AssistantMessage:
-			addr := t.Address.Host()
+			addr, err := t.Address.Host()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 
 			s.mutex.RLock()
 			c := s.clients[addr]
@@ -247,7 +260,11 @@ func (s *JsonClientService) ListenSend() {
 
 			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Time, Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 		case *action.RuntimeState:
-			addr := t.Address.Host()
+			addr, err := t.Address.Host()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 
 			s.mutex.RLock()
 			c := s.clients[addr]
@@ -260,7 +277,11 @@ func (s *JsonClientService) ListenSend() {
 
 			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
 		case *action.MessageHistory:
-			addr := t.Address.Host()
+			addr, err := t.Address.Host()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 
 			s.mutex.RLock()
 			c := s.clients[addr]

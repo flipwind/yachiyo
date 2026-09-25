@@ -74,7 +74,11 @@ func (p *Pipeline) DistributionListen() {
 		ylog.Debug("Receiving trigger %#v", trig)
 		switch t := trig.(type) {
 		case *action.AssistantMessage:
-			scheme := t.Address.Scheme()
+			scheme, err := t.Address.Scheme()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
@@ -86,7 +90,11 @@ func (p *Pipeline) DistributionListen() {
 				ylog.Error("gateway %s timeout", scheme)
 			}
 		case *action.RuntimeState:
-			scheme := t.Address.Scheme()
+			scheme, err := t.Address.Scheme()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
@@ -98,7 +106,11 @@ func (p *Pipeline) DistributionListen() {
 				ylog.Error("gateway %s timeout", scheme)
 			}
 		case *action.MessageHistory:
-			scheme := t.Address.Scheme()
+			scheme, err := t.Address.Scheme()
+			if err != nil {
+				ylog.Error("Action address error: %v", err)
+				continue
+			}
 			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)

@@ -28,7 +28,7 @@ As a result, these steps are also very simple.
 > [!IMPORTANT]  
 > Before starting, we hope that you have been already aware of **these risks**:  
 > - Local first: We **didn't** do any authentication. As the result, please deploy it in trusted machine. Deploy it in open network is **highly not recommended**. Also, **exposed it directly to the LAN or the public network** are also not recommended.
-> - Unsaved history: We think that our Yachiyo is currently unable to run a long time. So any storage now is in **in-memory**. And you **can't reload histories from runtime** currently.
+> - Unsaved history: We think that our Yachiyo is currently unable to run a long time. So any storage now is in **in-memory**.  
 > - Experimental protocol: Since our json protocol is under explore, it's **not suitable** for you to code or vibe a your own client.
 
 

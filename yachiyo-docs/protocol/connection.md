@@ -29,7 +29,7 @@ data {
     2. `Client`: 自定义的通讯实例，例如本项目的 Pancake。
 
 - `client_name` 是一个字符串，该字段会被告知 LLM，建议增加其可读性。
-- `client_id` 是该 client 的唯一标识符。请注意，相同 client 的多次连接应复用同一 `client_id`；推荐使用 uuid。  
+- `client_id` 是该 client 的唯一标识符。请注意，相同 client 的多次连接应复用同一 `client_id`；为了方便处理，该字段**必须使用 uuid**。  
     注意，同一 client 仅能同时拥有一个连接。当新的连接使用相同 `client_id` 注册时，gateway 将会拒绝或替换已有连接。
 
 ### 注册成功
@@ -60,6 +60,7 @@ data {
 - `client_info_error`: `client_type` 不在其字段限定中。建议检查字段内容的大小写和拼写。
 - `client_conflict`: 注册设备冲突，表现为 `client_id` 存在重复但 `client_type` 不同。建议更换 `client_id`。
 - `client_unknown`: 未知的设备。即，我们没有看到你的 `client_id`。遇到此问题时，建议重新注册。
+- `client_id_invalid`: `client_id` 不是合法的 uuid 字段。
 
 ## Heartbeat
 
