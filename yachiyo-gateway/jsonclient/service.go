@@ -178,6 +178,15 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
 			},
 		}
+	case "get_relative_message_history":
+		if s.checkClient(c) == false {
+			return
+		}
+		s.channel.ToServer <- &trigger.MessageHistoryRequest{
+			Address: address.Address{
+				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
+			},
+		}
 	}
 }
 
@@ -220,7 +229,7 @@ func (s *JsonClientService) unregister(c *Client) {
 func (s *JsonClientService) ListenSend() {
 	for act := range s.channel.ToClient {
 		switch t := act.(type) {
-		case *action.Message:
+		case *action.AssistantMessage:
 			addr := t.Address.Host()
 
 			s.mutex.RLock()
@@ -236,7 +245,7 @@ func (s *JsonClientService) ListenSend() {
 				break
 			}
 
-			c.send("interaction", "runtime_message", &model.RuntimeMessage{Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
+			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Time, Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 		case *action.RuntimeState:
 			addr := t.Address.Host()
 
@@ -250,6 +259,55 @@ func (s *JsonClientService) ListenSend() {
 			}
 
 			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
+		case *action.MessageHistory:
+			addr := t.Address.Host()
+
+			s.mutex.RLock()
+			c := s.clients[addr]
+			s.mutex.RUnlock()
+
+			if c == nil {
+				ylog.Error("Unknown address: %s", addr)
+				continue
+			}
+
+			msgs := make([]model.Envelope, 0)
+			for _, msg := range t.Messages {
+				switch m := msg.(type) {
+				case *action.AssistantMessage:
+					data, err := json.Marshal(model.RuntimeMessage{
+						Reply:        m.Reply,
+						IsInitiative: m.Initiative,
+						Message:      m.Content,
+						Time:         m.Time,
+					})
+					if err != nil {
+						ylog.Error("AssistantMessage Marshal error: %v", err)
+					}
+
+					msgs = append(msgs, model.Envelope{
+						Category: "interaction",
+						Type:     "runtime_message",
+						Data:     data,
+					})
+				case *action.UserMessage:
+					data, err := json.Marshal(model.ClientMessage{
+						Message: m.Content,
+						Time:    m.Time,
+					})
+					if err != nil {
+						ylog.Error("AssistantMessage Marshal error: %v", err)
+					}
+
+					msgs = append(msgs, model.Envelope{
+						Category: "interaction",
+						Type:     "client_message",
+						Data:     data,
+					})
+				}
+			}
+
+			c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
 		default:
 			ylog.Info("Unsupport value: %T", t)
 		}

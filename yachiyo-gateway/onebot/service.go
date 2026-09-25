@@ -39,7 +39,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 				return
 			case msg := <-channel.ToClient:
 				switch t := msg.(type) {
-				case *action.Message:
+				case *action.AssistantMessage:
 					u, err := url.Parse(t.Address.Content)
 					if err != nil {
 						ylog.Error("Address url parse error: %v", err)
