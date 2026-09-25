@@ -1,6 +1,7 @@
 package core
 
 import (
+	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/trigger"
@@ -13,6 +14,7 @@ type Pipeline struct {
 	Gateways     map[string]chan action.Action // This should be GatewayChannel.ToClient for distribute
 
 	handler func(trigger.Trigger) action.Action
+	mu      sync.RWMutex
 }
 
 func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
@@ -29,7 +31,15 @@ func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {
 }
 
 func (p *Pipeline) Register(scheme string, outputChan chan action.Action) {
+	p.mu.Lock()
 	p.Gateways[scheme] = outputChan
+	p.mu.Unlock()
+}
+
+func (p *Pipeline) GetGateway(scheme string) chan action.Action{
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.Gateways[scheme]
 }
 
 // Listen and process.
@@ -62,7 +72,7 @@ func (p *Pipeline) DistributionListen() {
 		switch t := trig.(type) {
 		case *action.Message:
 			scheme := t.Address.Scheme()
-			outputChan := p.Gateways[scheme]
+			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
 			}
@@ -73,7 +83,7 @@ func (p *Pipeline) DistributionListen() {
 			}
 		case *action.RuntimeState:
 			scheme := t.Address.Scheme()
-			outputChan := p.Gateways[scheme]
+			outputChan := p.GetGateway(scheme)
 			if outputChan == nil {
 				ylog.Error("scheme <%v> is not registered", scheme)
 			}
