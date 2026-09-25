@@ -7,6 +7,7 @@ import 'package:pancake/core/model/protocol/interaction.dart';
 import 'package:pancake/core/model/protocol/state.dart';
 import 'package:pancake/core/model/state/yachiyo_state.dart';
 import 'package:pancake/core/network/client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../model/message.dart';
@@ -69,6 +70,19 @@ class YachiyoProvider extends ChangeNotifier {
             time: DateTime.now(),
           ),
         );
+      case RelativeMessageHistory():
+        state.runtime.messages = envelopeData.messages.map((message) {
+          switch (message) {
+            case RuntimeMessage():
+              return Message(reply: message.reply, role: "assistant", message: message.message, time: DateTime.fromMillisecondsSinceEpoch(message.time ~/ 1000));
+            case ClientMessage():
+              return Message(role: "user", message: message.message, time: DateTime.fromMillisecondsSinceEpoch(message.time ~/ 1000));
+            default:
+              throw FormatException(
+                "Unknown message type: ${message.type}",
+              );
+          }
+        }).toList();
     }
   }
 
@@ -91,7 +105,15 @@ class YachiyoProvider extends ChangeNotifier {
   // network
 
   Future<void> start() async {
-    state.client.clientID = Uuid().v4();
+    final pref = await SharedPreferences.getInstance();
+    var clientID = pref.getString("client_id");
+
+    if(clientID == null){
+      clientID = Uuid().v4();
+      await pref.setString("client_id", clientID);
+    }
+
+    state.client.clientID = clientID;
     _setState(YachiyoStatus.connecting);
     try {
       await client.connect();
@@ -128,11 +150,9 @@ class YachiyoProvider extends ChangeNotifier {
 
     _heartbeatTimer = Timer.periodic(
       const Duration(seconds: 20),
-          (_) =>
-          _sendMessage(
-            Envelope(
-                category: "connection", type: "heartbeat", data: Heartbeat()),
-          ),
+      (_) => _sendMessage(
+        Envelope(category: "connection", type: "heartbeat", data: Heartbeat()),
+      ),
     );
   }
 
@@ -147,11 +167,13 @@ class YachiyoProvider extends ChangeNotifier {
 
     _stateTimer = Timer.periodic(
       const Duration(seconds: 1),
-          (_) =>
-          _sendMessage(
-            Envelope(
-                category: "state", type: "runtime_state_request", data: RuntimeStateRequest()),
-          ),
+      (_) => _sendMessage(
+        Envelope(
+          category: "state",
+          type: "runtime_state_request",
+          data: RuntimeStateRequest(),
+        ),
+      ),
     );
   }
 
@@ -162,9 +184,13 @@ class YachiyoProvider extends ChangeNotifier {
   // message
 
   void sendMessage(String message) {
-    _sendMessage(Envelope(category: "interaction",
+    _sendMessage(
+      Envelope(
+        category: "interaction",
         type: "client_message",
-        data: ClientMessage(message: message)));
+        data: ClientMessage(message: message, time: DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      ),
+    );
   }
 
   // utils
@@ -184,8 +210,18 @@ class YachiyoProvider extends ChangeNotifier {
     }
   }
 
-  void clearMessages(){
+  void clearMessages() {
     state.runtime.messages.clear();
+  }
+
+  void refreshMessagesFromRuntime() {
+    _sendMessage(
+      Envelope(
+        category: "interaction",
+        type: "get_relative_message_history",
+        data: GetRelativeMessageHistory(),
+      ),
+    );
   }
 
   @override

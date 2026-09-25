@@ -17,6 +17,8 @@ class DataPackParser {
 
     Interaction.clientMessage: ClientMessage.fromJson,
     Interaction.runtimeMessage: RuntimeMessage.fromJson,
+    Interaction.getRelativeMessageHistory: GetRelativeMessageHistory.fromJson,
+    Interaction.relativeMessageHistory: RelativeMessageHistory.fromJson,
 
     State.runtimeStateRequest: RuntimeStateRequest.fromJson,
     State.runtimeState: RuntimeState.fromJson,

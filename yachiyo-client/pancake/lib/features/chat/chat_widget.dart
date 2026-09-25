@@ -39,6 +39,11 @@ class _ChatWidgetState extends State<ChatWidget> {
     });
   }
 
+  void refreshMessageFromRuntime() {
+    final provider = context.read<YachiyoProvider>();
+    provider.refreshMessagesFromRuntime();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -93,8 +98,10 @@ class _ChatWidgetState extends State<ChatWidget> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             IconButton(
-                              tooltip: "Reload all messages(unavailiable)",
-                              onPressed: null, // TODO: protocol support
+                              tooltip: "Reload all messages",
+                              onPressed: () {
+                                refreshMessageFromRuntime();
+                              },
                               icon: Icon(Icons.refresh_rounded),
                             ),
                             IconButton(
