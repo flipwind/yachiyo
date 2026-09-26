@@ -146,7 +146,10 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			return
 		}
 
+		s.mutex.Lock()
 		c.LastHeartbeatTime = time.Now()
+		s.mutex.Unlock()
+		
 		c.send("connection", "heartbeat_respond", &model.HeartBeatRespond{})
 	case "offline":
 		var data model.Offline
