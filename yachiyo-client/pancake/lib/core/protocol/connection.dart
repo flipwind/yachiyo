@@ -1,4 +1,4 @@
-import 'package:pancake/core/model/protocol/envelope.dart';
+import 'package:pancake/core/protocol/envelope.dart';
 
 abstract final class Connection {
   static final String register = "register";

@@ -1,13 +1,27 @@
-class Message {
-  bool? reply;
-  String role;
-  String message;
+abstract class Message {
+  String content;
   DateTime time;
 
   Message({
-    this.reply,
-    required this.role,
-    required this.message,
+    required this.content,
     required this.time,
+  });
+}
+
+class UserMessage extends Message {
+  UserMessage({
+    required super.content,
+    required super.time
+  });
+}
+
+class AssistantMessage extends Message {
+  bool reply;
+  bool initiative;
+  AssistantMessage({
+    required super.content,
+    required super.time,
+    required this.reply,
+    required this.initiative,
   });
 }

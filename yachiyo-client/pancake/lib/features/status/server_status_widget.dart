@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/web.dart';
-import 'package:pancake/core/model/state/yachiyo_state.dart';
-import 'package:pancake/core/provider/yachiyo_provider.dart';
+import 'package:pancake/application/provider/provider.dart';
 import 'package:provider/provider.dart';
 
 class ServerStatusWidget extends StatefulWidget {
@@ -21,15 +20,16 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   bool loading = false;
 
   final TextEditingController _textEditingController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   Future<void> onServerAddrChange() async {
     setState(() {
       loading = true;
     });
 
-    final provider = context.read<YachiyoProvider>();
-    provider.state.network.serverAddr = _textEditingController.text;
-    await provider.start();
+    final provider = context.read<PancakeProvider>();
+    final addr = _textEditingController.text;
+    provider.changeServerAddr(addr);
 
     setState(() {
       loading = false;
@@ -38,9 +38,11 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final networkState = context.watch<YachiyoProvider>().state.network;
-    final serverStatus = context.watch<YachiyoProvider>().state.status;
-    _textEditingController.text = networkState.serverAddr;
+    final data = context.watch<PancakeProvider>().data;
+    final registered = context.watch<PancakeProvider>().data.registered;
+    if (_focusNode.hasFocus == false) {
+      _textEditingController.text = data.serverAddr;
+    }
 
     return Card.filled(
       margin: EdgeInsets.all(8.0),
@@ -49,18 +51,10 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
         children: [
           ListTile(
             leading: (loading == false)
-                ? Icon(
-                    serverStatusIcon[serverStatus == YachiyoStatus.registered
-                        ? 1
-                        : 0],
-                  )
+                ? Icon(serverStatusIcon[registered ? 1 : 0])
                 : CircularProgressIndicator(),
             title: const Text("Server Status"),
-            subtitle: Text(
-              serverStatus == YachiyoStatus.registered
-                  ? "Registered"
-                  : "Unregistered",
-            ),
+            subtitle: Text(registered ? "Registered" : "Unregistered"),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(8.0, 0, 8.0, 12.0),
@@ -70,6 +64,7 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
                   child: TextField(
                     keyboardType: TextInputType.url,
                     controller: _textEditingController,
+                    focusNode: _focusNode,
                     autocorrect: false,
                     onSubmitted: (value) {
                       onServerAddrChange();
@@ -86,7 +81,6 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
                     if (_textEditingController.text == "") {
                       String defaultServerAddr = "127.0.0.1:16899";
                       _textEditingController.text = defaultServerAddr;
-                      networkState.serverAddr = defaultServerAddr;
                     }
                     onServerAddrChange();
                   },
@@ -118,7 +112,7 @@ class _ServerStatusBadgeState extends State<ServerStatusBadge> {
 
   @override
   Widget build(BuildContext context) {
-    final serverStatus = context.watch<YachiyoProvider>().state.status;
+    final registered = context.watch<PancakeProvider>().data.registered;
 
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
@@ -150,20 +144,12 @@ class _ServerStatusBadgeState extends State<ServerStatusBadge> {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            serverStatus == YachiyoStatus.registered
-                ? "Registered"
-                : "Unregistered",
-          ),
+          Text(registered ? "Registered" : "Unregistered"),
           Icon(Icons.arrow_drop_down_rounded),
         ],
       ),
       icon: (loading == false)
-          ? Icon(
-              serverStatusIcon[serverStatus == YachiyoStatus.registered
-                  ? 1
-                  : 0],
-            )
+          ? Icon(serverStatusIcon[registered ? 1 : 0])
           : CircularProgressIndicator(),
     );
   }

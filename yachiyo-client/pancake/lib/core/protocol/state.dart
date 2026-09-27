@@ -1,4 +1,4 @@
-import 'package:pancake/core/model/protocol/envelope.dart';
+import 'package:pancake/core/protocol/envelope.dart';
 
 abstract final class State {
   static final String runtimeStateRequest = "runtime_state_request";

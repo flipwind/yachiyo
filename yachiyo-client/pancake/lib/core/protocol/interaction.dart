@@ -1,4 +1,4 @@
-import 'package:pancake/core/model/protocol/envelope.dart';
+import 'package:pancake/core/protocol/envelope.dart';
 
 abstract final class Interaction {
   static const String clientMessage = "client_message";

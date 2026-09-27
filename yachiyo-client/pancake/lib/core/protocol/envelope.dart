@@ -1,4 +1,4 @@
-import 'package:pancake/core/model/protocol/parser.dart';
+import 'package:pancake/core/protocol/parser.dart';
 
 class Envelope {
   final String category;

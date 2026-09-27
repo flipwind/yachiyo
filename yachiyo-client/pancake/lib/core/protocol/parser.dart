@@ -1,5 +1,5 @@
-import 'package:pancake/core/model/protocol/interaction.dart';
-import 'package:pancake/core/model/protocol/state.dart';
+import 'package:pancake/core/protocol/interaction.dart';
+import 'package:pancake/core/protocol/state.dart';
 
 import 'connection.dart';
 import 'envelope.dart';

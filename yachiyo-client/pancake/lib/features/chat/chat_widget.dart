@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pancake/application/provider/provider.dart';
 import 'package:pancake/core/model/message.dart';
-import 'package:pancake/core/provider/yachiyo_provider.dart';
 import 'package:pancake/features/chat/widgets/message_item_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -20,12 +20,9 @@ class _ChatWidgetState extends State<ChatWidget> {
   final FocusNode focusNode = FocusNode();
 
   void sendMessage() {
-    final provider = context.read<YachiyoProvider>();
+    final provider = context.read<PancakeProvider>();
     final message = textEditingController.text;
 
-    provider.state.runtime.messages.add(
-      Message(role: "user", message: message, time: DateTime.now()),
-    );
     provider.sendMessage(message);
     setState(() {
       textEditingController.text = "";
@@ -33,15 +30,15 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   void clearMessages() {
-    final provider = context.read<YachiyoProvider>();
+    final provider = context.read<PancakeProvider>();
     setState(() {
       provider.clearMessages();
     });
   }
 
   void refreshMessageFromRuntime() {
-    final provider = context.read<YachiyoProvider>();
-    provider.refreshMessagesFromRuntime();
+    final provider = context.read<PancakeProvider>();
+    provider.reloadMessagesFromRuntime();
   }
 
   @override
@@ -52,8 +49,8 @@ class _ChatWidgetState extends State<ChatWidget> {
         children: [
           Expanded(
             child: Card.filled(
-              child: Consumer<YachiyoProvider>(
-                builder: (context, model, child) {
+              child: Consumer<PancakeProvider>(
+                builder: (context, provider, child) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (listViewController.hasClients) {
                       listViewController.animateTo(
@@ -69,23 +66,33 @@ class _ChatWidgetState extends State<ChatWidget> {
                       Expanded(
                         child: ListView.builder(
                           controller: listViewController,
-                          itemCount: model.state.runtime.messages.length,
+                          itemCount: provider.data.messages.length,
                           itemBuilder: (context, index) {
-                            final message = model.state.runtime.messages[index];
+                            final message = provider.data.messages[index];
                             return LayoutBuilder(
                               builder: (context, constraints) {
-                                if (message.reply == false) {
-                                  return NoReplyMessageItemWidget(
-                                    character:
-                                        model.state.runtime.runtimeName ??
-                                        "Yachiyo",
-                                  );
-                                } else {
-                                  return MessageItemWidget(
-                                    role: message.role,
-                                    content: message.message,
-                                    maxWidth: constraints.maxWidth * 0.6,
-                                  );
+                                final maxWidth = constraints.maxWidth * 0.6;
+                                switch (message) {
+                                  case AssistantMessage():
+                                    if (message.reply == false) {
+                                      return NonReplyMessageItemWidget(
+                                        character: provider.data.runtimeName,
+                                      );
+                                    } else {
+                                      return AssistantItemWidget(
+                                        content: message.content,
+                                        maxWidth: maxWidth,
+                                      );
+                                    }
+                                  case UserMessage():
+                                    return UserItemWidget(
+                                      content: message.content,
+                                      maxWidth: maxWidth,
+                                    );
+                                  default:
+                                    throw Exception(
+                                      "Unknown message type: ${message.toString()}",
+                                    );
                                 }
                               },
                             );

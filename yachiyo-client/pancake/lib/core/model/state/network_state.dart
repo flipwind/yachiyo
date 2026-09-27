@@ -1,3 +1,0 @@
-class NetworkState {
-  String serverAddr = "";
-}
