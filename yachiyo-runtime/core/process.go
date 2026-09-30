@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -73,8 +74,7 @@ type LLMOutput struct {
 func (c *Core) apply(schema string) (string, bool, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
-		ylog.Error("Json unmarshal error: %v", err)
-		return "", false, err
+		return "", false, fmt.Errorf("Json unmarshal error: %w", err)
 	}
 
 	ylog.Debug("%s", schema)
@@ -129,13 +129,11 @@ Yachiyo > %s
 }
 
 func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
-	var answer string
-	var reply bool
 	var prompts = rawPrompts
-
 	var jsonConstraint = false
+	var lastErr error
 
-	for i := range 3 {
+	for range 3 {
 		if jsonConstraint {
 			prompts = append(rawPrompts, prompt.SystemPrompt{
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
@@ -145,15 +143,16 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 		result, err := c.LLM.Gen(prompts)
 
 		if err != nil {
-			ylog.Error("LLM Generating error: %v", err)
+			lastErr = err
+			ylog.Error("LLM Generating error, retrying: %v", err)
 			continue
 		}
 
-		answer, reply, err = c.apply(result)
+		answer, reply, err := c.apply(result)
 
 		if err != nil {
 			jsonConstraint = true
-			ylog.Error("%d request failed. Retrying...", i+1)
+			lastErr = fmt.Errorf("LLM output unusable: %w", err)
 			continue
 		}
 
@@ -161,10 +160,7 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 		return answer, reply, nil
 	}
 
-	return "", false, yerror.RuntimeError{
-		Type:   "LLM",
-		Reason: "generated failed",
-	}
+	return "", false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
 }
 
 // Trigger process part
@@ -341,11 +337,11 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 			}
 
 			msgs = append(msgs, &action.AssistantMessage{
-				Content: m.Content,
-				Time: m.Time.Unix(),
+				Content:    m.Content,
+				Time:       m.Time.Unix(),
 				Initiative: m.Initiative,
-				Reply: m.Reply,
-				Address: m.ToAddress,
+				Reply:      m.Reply,
+				Address:    m.ToAddress,
 			})
 		case history.UserMessage:
 			if m.Address != t.Address {
@@ -354,7 +350,7 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 
 			msgs = append(msgs, &action.UserMessage{
 				Content: m.Content,
-				Time: m.Time.Unix(),
+				Time:    m.Time.Unix(),
 				Address: m.Address,
 			})
 		}
@@ -362,6 +358,6 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 
 	return &action.MessageHistory{
 		Messages: msgs,
-		Address: t.Address,
+		Address:  t.Address,
 	}
 }

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-util/logger"
@@ -61,8 +62,7 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
 	}
 
 	if len(reply.Choices) == 0 {
-		ylog.Error("Reply's choices is empty.")
-		return "", yerror.TypeMissing("reply.choices")
+		return "", fmt.Errorf("reply.choices is empty: %w", yerror.ErrLLMChoice)
 	}
 
 	return reply.Choices[0].Message.Content, nil

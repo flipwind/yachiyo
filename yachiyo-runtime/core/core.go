@@ -14,7 +14,6 @@ import (
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-util/logger"
-	"yachiyo/yachiyo-util/yerror"
 )
 
 var ylog = logger.New("Yachiyo.Core")
@@ -40,7 +39,7 @@ func New() (*Core, error) {
 	// TODO: change config status (dev)
 	config, err := config.LoadConfig("config.yaml")
 	if err != nil {
-		return nil, yerror.TypeMissing("Config")
+		return nil, fmt.Errorf("Core loading config failed: %w", err)
 	}
 
 	// TODO: LLM List
@@ -49,7 +48,7 @@ func New() (*Core, error) {
 
 	initiativeConfig := config.Initiative
 
-	factors, errs := initiative.NewFactors(
+	factors, err := initiative.NewFactors(
 		// TODO: reflect
 		*initiativeConfig.Threshold,
 
@@ -58,11 +57,8 @@ func New() (*Core, error) {
 		initiativeConfig.Factors.Daytime,
 	)
 
-	if len(errs) != 0 {
-		for _, err := range errs {
-			ylog.Error("Factor curve error: %v", err)
-		}
-		return nil, yerror.FieldInvalid("Factor", "curves invalid")
+	if err != nil {
+		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
 	}
 
 	core := &Core{

@@ -1,6 +1,7 @@
 package initiative
 
 import (
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"yachiyo/yachiyo-runtime/config"
@@ -52,8 +53,7 @@ type Factors struct {
 func newFactor(f config.FactorConfig) (Factor, error) {
 	curve, err := ymath.New(*f.Curve, *f.DefaultValue)
 	if err != nil {
-		ylog.Error("Curve error: %v", err)
-		return Factor{}, err
+		return Factor{}, fmt.Errorf("Curve error: %w", err)
 	}
 
 	return Factor{
@@ -68,7 +68,7 @@ func newFactor(f config.FactorConfig) (Factor, error) {
 func NewFactors(threshold float64,
 	sociability config.FactorConfig,
 	alonetime config.FactorConfig,
-	daytime config.FactorConfig) (Factors, []error) {
+	daytime config.FactorConfig) (Factors, error) {
 	// TODO: Setting
 	var errs []error
 
@@ -87,12 +87,16 @@ func NewFactors(threshold float64,
 		errs = append(errs, err)
 	}
 
+	if err := errors.Join(errs...); err != nil {
+		return Factors{}, err
+	}
+
 	return Factors{
 		Threshold: threshold,
 		Sociability: soci,
 		AloneTime: alon,
 		Daytime: dayt,
-	}, errs
+	}, nil
 }
 
 // Update the values, and return a probably initiative advice

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"math"
-	"yachiyo/yachiyo-util/yerror"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -61,8 +60,7 @@ func (c *ExprCurve) Verify(x float64, expect float64) (bool, error) {
 
 	res, ok := result.(float64)
 	if ok != true {
-		return false, yerror.FieldInvalid(fmt.Sprintf("curve `%s`", c.Expression),
-			fmt.Sprintf("need `%v`, got `%v`(%T), which can't be converted into float64", expect, result, result))
+		return false, fmt.Errorf("curve `%s` got `%v`(%T), which can't be converted into float64", c.Expression, result, result)
 	}
 
 	if math.Abs(res-expect) > accuracy {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -44,8 +45,8 @@ type Config struct {
 		SystemPrompt     string
 	} `yaml:"prompt"`
 	Gateway struct {
-		Onebot GatewayConfig `yaml:"onebot"`
-		Client GatewayConfig `yaml:"client"`
+		Onebot     GatewayConfig `yaml:"onebot"`
+		Client     GatewayConfig `yaml:"client"`
 		JsonClient GatewayConfig `yaml:"jsonclient"`
 	} `yaml:"gateway"`
 	Initiative struct {
@@ -66,27 +67,21 @@ type Config struct {
 func LoadConfig(configPath string) (Config, error) {
 	fileData, err := os.ReadFile(configPath)
 	if err != nil {
-		ylog.Error("Config reading error: %v", err)
-		return Config{}, err
+		return Config{}, fmt.Errorf("Failed to read config: %w", err)
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(fileData, &config); err != nil {
-		ylog.Error("Config unmarshal yaml failed: %v", err)
-		return Config{}, err
+		return Config{}, fmt.Errorf("Config unmarshal yaml failed: %w", err)
 	}
 
-	pass, errs := config.Check()
-	for _, err := range errs {
-		if ywarning.IsWarning(err) {
-			ylog.Warn("%v", err)
-		} else {
-			ylog.Error("%v", err)
-		}
+	warns, errs := config.Check()
+	for _, warn := range warns {
+		ylog.Warn("%v", warn)
 	}
 
-	if !pass {
-		return Config{}, yerror.FieldIncomplete("Config")
+	if err := errors.Join(errs...); err != nil {
+		return Config{}, fmt.Errorf("Config invalid: %w", err)
 	}
 
 	for _, prov := range config.LLM.Providers {
@@ -98,7 +93,7 @@ func LoadConfig(configPath string) (Config, error) {
 
 	systemPrompt, err := os.ReadFile(*config.Prompt.SystemPromptPath)
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("Failed to read system prompt: %w", err)
 	}
 
 	config.Prompt.SystemPrompt = string(systemPrompt)
@@ -106,20 +101,20 @@ func LoadConfig(configPath string) (Config, error) {
 	return config, nil
 }
 
-func (c *Config) Check() (bool, []error) {
-	pass := true
-	var errs []error
+func (c *Config) Check() ([]ywarning.Warning, []error) {
+	warns := make([]ywarning.Warning, 0)
+	errs := make([]error, 0)
 
 	// nickname
 	if c.Nickname == nil {
-		errs = append(errs, ywarning.FieldMissing("nickname", "Yachiyo"))
+		warns = append(warns, ywarning.FieldMissing("nickname", "Yachiyo"))
 		nickname := "Yachiyo"
 		c.Nickname = &nickname
 	}
 
 	// loglevel
 	if c.Log.Level == nil {
-		errs = append(errs, ywarning.FieldMissing("log.level", "info"))
+		warns = append(warns, ywarning.FieldMissing("log.level", "info"))
 		logger.SetLogLevel(logger.Info)
 	} else {
 		level := strings.ToLower(*c.Log.Level)
@@ -130,42 +125,38 @@ func (c *Config) Check() (bool, []error) {
 		case "debug":
 			logger.SetLogLevel(logger.Debug)
 		default:
-			errs = append(errs, ywarning.FieldIncorrect("log.level", "info"))
+			warns = append(warns, ywarning.FieldIncorrect("log.level", "info"))
 			logger.SetLogLevel(logger.Info)
 		}
 	}
 
 	// prompt
 	if c.Prompt.SystemPromptPath == nil {
-		pass = false
-		errs = append(errs, yerror.FieldRequired("prompt.system"))
+		errs = append(errs, fmt.Errorf("prompt.system: %w", yerror.ErrFieldRequired))
 	}
 
 	// gateway
 	if c.Gateway.Onebot.Enabled == nil || c.Gateway.Onebot.Port == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("gateway.onebot"))
+		errs = append(errs, fmt.Errorf("gateway.onebot: %w", yerror.ErrFieldIncomplete))
 	}
 
 	if c.Gateway.Client.Enabled == nil || c.Gateway.Client.Port == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("gateway.client"))
+		errs = append(errs, fmt.Errorf("gateway.client: %w", yerror.ErrFieldIncomplete))
 	}
 
 	if c.Gateway.JsonClient.Enabled == nil || c.Gateway.JsonClient.Port == nil {
-		pass = false
-		errs = append(errs, yerror.FieldIncomplete("gateway.jsonclient"))
+		errs = append(errs, fmt.Errorf("gateway.jsonclient: %w", yerror.ErrFieldIncomplete))
 	}
 
 	if c.Gateway.Onebot.Enabled != nil && c.Gateway.Client.Enabled != nil && c.Gateway.JsonClient.Enabled != nil &&
 		*c.Gateway.Onebot.Enabled == false && *c.Gateway.Client.Enabled == false && *c.Gateway.JsonClient.Enabled == false {
-		errs = append(errs, ywarning.New("gateway",
+		warns = append(warns, ywarning.New("gateway",
 			fmt.Sprintf("Gateways are closed. %v may not notice any input.", *c.Nickname)))
 	}
 
 	// initiative
 	if c.Initiative.Threshold == nil {
-		errs = append(errs, ywarning.FieldMissing("initiative.threshold", "0.9"))
+		warns = append(warns, ywarning.FieldMissing("initiative.threshold", "0.9"))
 		value := 0.9
 		c.Initiative.Threshold = &value
 	}
@@ -176,11 +167,8 @@ func (c *Config) Check() (bool, []error) {
 		"daytime":     &c.Initiative.Factors.Daytime,
 	}
 
-	for name, config := range factorConfigs {
-		isPassed, err := config.Check(name)
-		if isPassed == false {
-			pass = false
-		}
+	for name, factorConfig := range factorConfigs {
+		err := factorConfig.Check(name)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -190,23 +178,18 @@ func (c *Config) Check() (bool, []error) {
 
 	// llm
 	if c.LLM.DefaultProviderName == nil {
-		pass = false
-		errs = append(errs, yerror.FieldRequired("llm.default"))
+		errs = append(errs, fmt.Errorf("llm.default: %w", yerror.ErrFieldRequired))
 	}
 
 	if len(c.LLM.Providers) == 0 {
-		pass = false
-		errs = append(errs, yerror.FieldRequired("llm.providers"))
+		errs = append(errs, fmt.Errorf("llm.providers: %w", yerror.ErrFieldIncomplete))
 	}
 
 	llm_any_enabled := false
 	var llm_names []string
 	for i, prov := range c.LLM.Providers {
 		if prov.Enabled == nil || prov.Name == nil || prov.BaseUrl == nil || prov.Secret == nil || prov.Model == nil {
-			pass = false
-			errs = append(errs, yerror.FieldIncomplete(
-				fmt.Sprintf("llm.providers[%v]", i),
-			))
+			errs = append(errs, fmt.Errorf("llm.providers[%v]: %w", i, yerror.ErrFieldIncomplete))
 		}
 		if prov.Enabled != nil && *prov.Enabled == true {
 			llm_any_enabled = true
@@ -217,28 +200,27 @@ func (c *Config) Check() (bool, []error) {
 	}
 
 	if llm_any_enabled == false {
-		errs = append(errs, ywarning.New("llm.provider",
+		warns = append(warns, ywarning.New("llm.provider",
 			fmt.Sprintf("No providers are enabled. %v may not process any input.", *c.Nickname)))
 	}
 
 	if c.LLM.DefaultProviderName != nil {
 		if slices.Contains(llm_names, *c.LLM.DefaultProviderName) == false {
-			pass = false
-			errs = append(errs, yerror.FieldInvalid("llm.default", "should be one of the providers' name"))
+			errs = append(errs, fmt.Errorf("llm.default should be one of the providers' name: %w", yerror.ErrFieldInvalid))
 		}
 	}
 
-	return pass, errs
+	return warns, errs
 }
 
-func (f *FactorConfig) Check(name string) (bool, error) {
+func (f *FactorConfig) Check(name string) error {
 	if f.Curve == nil || f.DefaultValue == nil || f.Max == nil || f.Weight == nil {
-		return false, yerror.FieldIncomplete("initiative.factors." + name)
+		return fmt.Errorf("initiative.factors.%s: %w", name, yerror.ErrFieldIncomplete)
 	} else {
 		if *f.DefaultValue > *f.Max {
-			return false, yerror.FieldInvalid("initiative.factors."+name, "DefaultValue should be less than Max")
+			return fmt.Errorf("initiative.factors.%s: %w, DefaultValue should be less than Max", name, yerror.ErrFieldInvalid)
 		}
 	}
 
-	return true, nil
+	return nil
 }
