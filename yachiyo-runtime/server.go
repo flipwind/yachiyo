@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,12 +19,18 @@ import (
 var ylog = logger.New("Yachiyo.Server.Main")
 
 func main() {
+	if err := run(); err != nil {
+		ylog.Error("Yachiyo server exit with error: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ylog.Info("Initializing Yachiyo server...")
 
 	ycore, err := core.New()
 	if err != nil {
-		ylog.Error("Core loading unsuccessfully: %v", err)
-		return
+		return fmt.Errorf("Core loading failed: %w", err)
 	}
 
 	yconfig := ycore.Config
@@ -52,6 +59,7 @@ func main() {
 	<-ctx.Done()
 
 	ylog.Info("Shutting down...")
+	return nil
 }
 
 func serviceChannel(p *core.Pipeline, s gateway.Service, port int64) {
