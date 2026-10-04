@@ -68,3 +68,26 @@ data {
     ]
 }
 ```
+
+## Error Message
+
+由于一些这种那种的原因，我们的 runtime 最终没有处理好你的消息。
+
+由 runtime 推送。
+
+```
+type: string = "runtime_error"
+data {
+    code: string
+    message: string
+}
+```
+
+`code` 是发生错误的代号。
+`message` 是具体错误的内容，通常较长。
+
+| Code | Reason |
+| -- | -- |
+| llm_choice_empty | 在 OpenAI Completions 格式中，choices[0] 不存在。通常由输入内容触发安全限制而引发。 |
+| llm_generate | 可能是 JSON 输出格式不规范，也可能是因为网络问题。但在 LLM 生成文本时发生。 |
+| message_process | 难以归类的错误。但在 Message 处理时发生。 |
