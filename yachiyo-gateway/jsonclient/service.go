@@ -149,7 +149,7 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		s.mutex.Lock()
 		c.LastHeartbeatTime = time.Now()
 		s.mutex.Unlock()
-		
+
 		c.send("connection", "heartbeat_respond", &model.HeartBeatRespond{})
 	case "offline":
 		var data model.Offline
@@ -242,18 +242,9 @@ func (s *JsonClientService) ListenSend() {
 	for act := range s.channel.ToClient {
 		switch t := act.(type) {
 		case *action.AssistantMessage:
-			addr, err := t.Address.Host()
+			c, err := s.getClient(t)
 			if err != nil {
-				ylog.Error("Action address error: %v", err)
-				continue
-			}
-
-			s.mutex.RLock()
-			c := s.clients[addr]
-			s.mutex.RUnlock()
-
-			if c == nil {
-				ylog.Error("Unknown address: %s", addr)
+				ylog.Error("Process action failed: %v", err)
 				continue
 			}
 
@@ -263,35 +254,17 @@ func (s *JsonClientService) ListenSend() {
 
 			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Time, Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 		case *action.RuntimeState:
-			addr, err := t.Address.Host()
+			c, err := s.getClient(t)
 			if err != nil {
-				ylog.Error("Action address error: %v", err)
-				continue
-			}
-
-			s.mutex.RLock()
-			c := s.clients[addr]
-			s.mutex.RUnlock()
-
-			if c == nil {
-				ylog.Error("Unknown address: %s", addr)
+				ylog.Error("Process action failed: %v", err)
 				continue
 			}
 
 			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
 		case *action.MessageHistory:
-			addr, err := t.Address.Host()
+			c, err := s.getClient(t)
 			if err != nil {
-				ylog.Error("Action address error: %v", err)
-				continue
-			}
-
-			s.mutex.RLock()
-			c := s.clients[addr]
-			s.mutex.RUnlock()
-
-			if c == nil {
-				ylog.Error("Unknown address: %s", addr)
+				ylog.Error("Process action failed: %v", err)
 				continue
 			}
 
@@ -332,6 +305,17 @@ func (s *JsonClientService) ListenSend() {
 			}
 
 			c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
+		case *action.Error:
+			c, err := s.getClient(t)
+			if err != nil {
+				ylog.Error("Process action failed: %v", err)
+				continue
+			}
+
+			c.send("interaction", "runtime_error", &model.RuntimeError{
+				Code: string(t.Code),
+				Message: t.Message,
+			})
 		default:
 			ylog.Info("Unsupport value: %T", t)
 		}
@@ -357,4 +341,24 @@ func (s *JsonClientService) heartbeatCleanup() {
 			s.unregister(client)
 		}
 	}
+}
+
+// utils
+
+func (s *JsonClientService) getClient(a action.Action) (*Client, error) {
+	address := a.GetAddress()
+	host, err := address.Host()
+	if err != nil {
+		return nil, fmt.Errorf("Action address error: %w", err)
+	}
+
+	s.mutex.RLock()
+	c := s.clients[host]
+	s.mutex.RUnlock()
+
+	if c == nil {
+		return nil, fmt.Errorf("Unknown address: %s", host)
+	}
+
+	return c, nil
 }
