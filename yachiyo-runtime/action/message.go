@@ -16,6 +16,9 @@ type UserMessage struct {
 }
 
 func (m *UserMessage) action() {}
+func (m *UserMessage) GetAddress() address.Address {
+	return m.Address
+}
 func (*UserMessage) Message(){}
 
 type AssistantMessage struct {
@@ -28,6 +31,9 @@ type AssistantMessage struct {
 }
 
 func (m *AssistantMessage) action() {}
+func (m *AssistantMessage) GetAddress() address.Address {
+	return m.Address
+}
 func (*AssistantMessage) Message(){}
 
 type MessageHistory struct {
@@ -36,3 +42,6 @@ type MessageHistory struct {
 }
 
 func (*MessageHistory) action(){}
+func (m *MessageHistory) GetAddress() address.Address {
+	return m.Address
+}

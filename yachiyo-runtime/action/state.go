@@ -9,3 +9,6 @@ type RuntimeState struct {
 }
 
 func (m *RuntimeState) action() {}
+func (m *RuntimeState) GetAddress() address.Address {
+	return  m.Address
+}

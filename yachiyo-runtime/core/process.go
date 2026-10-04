@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-runtime/state"
@@ -128,6 +129,30 @@ Yachiyo > %s
 		c_later.Note)
 }
 
+func processError(err error, addr address.Address) action.Action {
+	if errors.Is(err, yerror.ErrLLMChoice) {
+		return &action.Error{
+			Code:    action.ErrLLMChoiceEmpty,
+			Message: err.Error(),
+			Address: addr,
+		}
+	}
+
+	if errors.Is(err, yerror.ErrLLMGenerate) {
+		return &action.Error{
+			Code:    action.ErrLLMGenerate,
+			Message: err.Error(),
+			Address: addr,
+		}
+	}
+
+	return &action.Error{
+		Code:    action.ErrMessageProcess,
+		Message: err.Error(),
+		Address: addr,
+	}
+}
+
 func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 	var prompts = rawPrompts
 	var jsonConstraint = false
@@ -195,7 +220,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	answer, isReply, err := c.processLLM(prompts)
 	if err != nil {
 		ylog.Error("Process UserMessage failed: %s", err)
-		return nil
+		return processError(err, m.Address)
 	}
 	debugOutput(answer, snap, c.snapshot())
 
@@ -267,7 +292,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	answer, isReply, err := c.processLLM(prompts)
 	if err != nil {
 		ylog.Error("Process InitiativeMessage failed: %s", err)
-		return nil
+		return processError(err, addr)
 	}
 	debugOutput(answer, snap, c.snapshot())
 

@@ -73,40 +73,9 @@ func (p *Pipeline) DistributionListen() {
 	for trig := range p.Distribution {
 		ylog.Debug("Receiving trigger %#v", trig)
 		switch t := trig.(type) {
-		case *action.AssistantMessage:
-			scheme, err := t.Address.Scheme()
-			if err != nil {
-				ylog.Error("Action address error: %v", err)
-				continue
-			}
-			outputChan := p.GetGateway(scheme)
-			if outputChan == nil {
-				ylog.Error("scheme <%v> is not registered", scheme)
-				continue
-			}
-			select {
-			case outputChan <- t:
-			case <-time.After(time.Second):
-				ylog.Error("gateway %s timeout", scheme)
-			}
-		case *action.RuntimeState:
-			scheme, err := t.Address.Scheme()
-			if err != nil {
-				ylog.Error("Action address error: %v", err)
-				continue
-			}
-			outputChan := p.GetGateway(scheme)
-			if outputChan == nil {
-				ylog.Error("scheme <%v> is not registered", scheme)
-				continue
-			}
-			select {
-			case outputChan <- t:
-			case <-time.After(time.Second):
-				ylog.Error("gateway %s timeout", scheme)
-			}
-		case *action.MessageHistory:
-			scheme, err := t.Address.Scheme()
+		case *action.AssistantMessage, *action.RuntimeState, *action.MessageHistory, *action.Error:
+			address := t.GetAddress()
+			scheme, err := address.Scheme()
 			if err != nil {
 				ylog.Error("Action address error: %v", err)
 				continue
