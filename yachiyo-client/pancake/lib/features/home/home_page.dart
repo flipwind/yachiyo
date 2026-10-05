@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pancake/application/provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:pancake/features/chat/chat_widget.dart';
 import 'package:pancake/features/status/server_status_widget.dart';
 import 'package:pancake/features/status/yachiyo_status_widget.dart';
@@ -16,10 +18,59 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
   String subtitle = "Yachiyo Runtime Viewer";
   bool isYachiyoStatusShown = true;
 
+  @override
+  void initState() {
+    super.initState();
+
+    final provider = context.read<PancakeProvider>();
+    provider.events.listen((event) {
+      switch (event) {
+        case EventErrorMessage():
+        _show("(${event.code}) ${event.message}");
+      };
+    });
+  } 
+
   void _toggleYachiyoStatusShown() {
     setState(() {
       isYachiyoStatusShown = !isYachiyoStatusShown;
     });
+  }
+
+  void _show(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          children: [
+            Row(
+              children: [
+                Padding(
+                  padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
+                  child: Icon(Icons.warning_amber_rounded, color: Colors.white),
+                ),
+                Text("Warning from runtime"),
+              ],
+            ),
+            Padding(
+              padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
+              child: Text(message, softWrap: true),
+            ),
+          ],
+        ),
+        width: 280.0, // Width of the SnackBar.
+        padding: EdgeInsetsGeometry.symmetric(horizontal: 4.0, vertical: 8.0),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        action: SnackBarAction(label: "OK", onPressed: () {}),
+        persist: true,
+      ),
+      snackBarAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 100),
+        reverseDuration: Duration(milliseconds: 800),
+      ),
+    );
   }
 
   @override

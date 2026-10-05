@@ -1,7 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pancake/application/session/session.dart';
 import 'package:pancake/core/model/message.dart';
 import 'package:pancake/core/network/connection.dart';
+
+sealed class ProviderEvent {}
+
+class EventErrorMessage extends ProviderEvent {
+  final String code;
+  final String message;
+  EventErrorMessage(this.code, this.message);
+}
 
 class PancakeProvider extends ChangeNotifier {
   final PancakeSession _session;
@@ -10,6 +20,8 @@ class PancakeProvider extends ChangeNotifier {
   ConnectionStatus get status => _status;
   final ProviderData _data = ProviderData();
   ProviderData get data => _data;
+  final _eventController = StreamController<ProviderEvent>.broadcast();
+  Stream<ProviderEvent> get events => _eventController.stream;
 
   PancakeProvider(this._session) {
     _session.events.listen((event) {
@@ -38,6 +50,9 @@ class PancakeProvider extends ChangeNotifier {
 
         case SessionMessageReload():
           _data.messages = event.messages;
+
+        case SessionErrorMessage():
+          _eventController.add(EventErrorMessage(event.code, event.message));
       }
 
       notifyListeners();

@@ -38,6 +38,12 @@ class SessionMessageReload extends SessionEvent {
   SessionMessageReload(this.messages);
 }
 
+class SessionErrorMessage extends SessionEvent {
+  final String code;
+  final String message;
+  SessionErrorMessage(this.code, this.message);
+}
+
 class PancakeSession {
   final PancakeConnection _connection = PancakeConnection();
   final Identity identity;
@@ -175,6 +181,8 @@ class PancakeSession {
             }).toList(),
           ),
         );
+      case ErrorMessage():
+        _pushSessionEvent(SessionErrorMessage(data.code, data.message));
     }
   }
 

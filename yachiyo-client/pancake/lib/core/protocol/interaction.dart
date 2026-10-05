@@ -6,6 +6,7 @@ abstract final class Interaction {
   static const String getRelativeMessageHistory =
       "get_relative_message_history";
   static const String relativeMessageHistory = "relative_message_history";
+  static const String errorMessage = "runtime_error";
 }
 
 abstract interface class MessageDataPack implements DataPack {}
@@ -125,5 +126,27 @@ class RelativeMessageHistory implements DataPack {
           )
           .toList(),
     };
+  }
+}
+
+class ErrorMessage implements DataPack {
+  final String code;
+  final String message;
+
+  const ErrorMessage({required this.code, required this.message});
+
+  factory ErrorMessage.fromJson(Map<String, dynamic> json) {
+    return ErrorMessage(
+      code: json["code"] as String,
+      message: json["message"] as String,
+    );
+  }
+
+  @override
+  String get type => Interaction.errorMessage;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"code": code, "message": message};
   }
 }

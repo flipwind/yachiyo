@@ -19,6 +19,7 @@ class DataPackParser {
     Interaction.runtimeMessage: RuntimeMessage.fromJson,
     Interaction.getRelativeMessageHistory: GetRelativeMessageHistory.fromJson,
     Interaction.relativeMessageHistory: RelativeMessageHistory.fromJson,
+    Interaction.errorMessage: ErrorMessage.fromJson,
 
     State.runtimeStateRequest: RuntimeStateRequest.fromJson,
     State.runtimeState: RuntimeState.fromJson,
