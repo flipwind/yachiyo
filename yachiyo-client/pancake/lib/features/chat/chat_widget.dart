@@ -19,6 +19,8 @@ class _ChatWidgetState extends State<ChatWidget> {
   final ScrollController listViewController = ScrollController();
   final FocusNode focusNode = FocusNode();
 
+  int previousMessageCount = 0;
+
   void sendMessage() {
     final provider = context.read<PancakeProvider>();
     final message = textEditingController.text;
@@ -51,15 +53,21 @@ class _ChatWidgetState extends State<ChatWidget> {
             child: Card.filled(
               child: Consumer<PancakeProvider>(
                 builder: (context, provider, child) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (listViewController.hasClients) {
-                      listViewController.animateTo(
-                        listViewController.position.maxScrollExtent,
-                        duration: Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
-                      );
-                    }
-                  });
+                  final messageCount = provider.data.messages.length;
+
+                  if (messageCount > previousMessageCount) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (listViewController.hasClients) {
+                        listViewController.animateTo(
+                          listViewController.position.maxScrollExtent,
+                          duration: Duration(milliseconds: 400),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    });
+                  }
+
+                  previousMessageCount = messageCount;
 
                   return Column(
                     children: [
