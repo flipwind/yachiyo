@@ -95,14 +95,75 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   }
 }
 
-class ServerStatusBadge extends StatefulWidget {
-  const ServerStatusBadge({super.key});
+class ClientIDWidget extends StatefulWidget {
+  const ClientIDWidget({super.key});
 
   @override
-  State<ServerStatusBadge> createState() => _ServerStatusBadgeState();
+  State<ClientIDWidget> createState() => _ClientIDWidgetState();
 }
 
-class _ServerStatusBadgeState extends State<ServerStatusBadge> {
+class _ClientIDWidgetState extends State<ClientIDWidget> {
+  final TextEditingController _textEditingController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  Future<void> onClientIDChanged() async {
+    final provider = context.read<PancakeProvider>();
+    provider.changeClientID(_textEditingController.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final identity = context.watch<PancakeProvider>().identity;
+    if (_focusNode.hasFocus == false) {
+      _textEditingController.text = identity.clientID;
+    }
+
+    return Card.filled(
+      margin: EdgeInsets.symmetric(horizontal: 8.0),
+      child: Padding(
+        padding: EdgeInsetsGeometry.all(8.0),
+        child: Row(
+          children: [
+            Padding(
+              padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
+              child: Icon(Icons.fingerprint_rounded),
+            ),
+            Expanded(
+              child: TextField(
+                keyboardType: TextInputType.text,
+                controller: _textEditingController,
+                focusNode: _focusNode,
+                autocorrect: false,
+                onSubmitted: (value) {
+                  onClientIDChanged();
+                },
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Client ID",
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                onClientIDChanged();
+              },
+              icon: Icon(Icons.check_rounded),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ConfigStatusBadge extends StatefulWidget {
+  const ConfigStatusBadge({super.key});
+
+  @override
+  State<ConfigStatusBadge> createState() => _ConfigStatusBadgeState();
+}
+
+class _ConfigStatusBadgeState extends State<ConfigStatusBadge> {
   final List<IconData> serverStatusIcon = [
     Icons.cloud_off,
     Icons.cloud_outlined,
@@ -136,7 +197,11 @@ class _ServerStatusBadgeState extends State<ServerStatusBadge> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.viewInsetsOf(context).bottom,
               ),
-              child: ServerStatusWidget(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 4.0,
+                children: [ClientIDWidget(), ServerStatusWidget()],
+              ),
             );
           },
         );

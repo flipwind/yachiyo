@@ -44,6 +44,11 @@ class SessionErrorMessage extends SessionEvent {
   SessionErrorMessage(this.code, this.message);
 }
 
+class SessionSelfErrorMessage extends SessionEvent {
+  final String message;
+  SessionSelfErrorMessage(this.message);
+}
+
 class PancakeSession {
   final PancakeConnection _connection = PancakeConnection();
   final Identity identity;
@@ -75,6 +80,20 @@ class PancakeSession {
     final Identity identity = await Identity.create();
 
     return PancakeSession(identity: identity);
+  }
+
+  void changeClientID(String id) async {
+    bool isUuid(String value) {
+      return RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(value);
+    }
+
+    identity.changeID(id);
+    
+    if(!isUuid(id)){
+      _pushSessionEvent(SessionSelfErrorMessage("Entered ClientID is not a valid uuid."));
+    }
   }
 
   Future<void> start(String address) async {

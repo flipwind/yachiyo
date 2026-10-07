@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pancake/application/provider/provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pancake/features/chat/chat_widget.dart';
-import 'package:pancake/features/status/server_status_widget.dart';
+import 'package:pancake/features/status/config_status_widget.dart';
 import 'package:pancake/features/status/yachiyo_status_widget.dart';
 
 class PancakeHomePage extends StatefulWidget {
@@ -26,10 +26,11 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
     provider.events.listen((event) {
       switch (event) {
         case EventErrorMessage():
-        _show("(${event.code}) ${event.message}");
-      };
+          _show("(${event.code}) ${event.message}");
+      }
+      ;
     });
-  } 
+  }
 
   void _toggleYachiyoStatusShown() {
     setState(() {
@@ -48,7 +49,7 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
                   padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
                   child: Icon(Icons.warning_amber_rounded, color: Colors.white),
                 ),
-                Text("Warning from runtime"),
+                Text("Warning", style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             Padding(
@@ -90,7 +91,7 @@ class _PancakeHomePageState extends State<PancakeHomePage> {
                 letterSpacing: -0.5,
               ),
             ),
-            ServerStatusBadge(),
+            ConfigStatusBadge(),
           ],
         ),
 

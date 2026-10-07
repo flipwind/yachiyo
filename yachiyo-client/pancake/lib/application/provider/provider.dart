@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:pancake/application/session/session.dart';
+import 'package:pancake/core/identity/identity.dart';
 import 'package:pancake/core/model/message.dart';
 import 'package:pancake/core/network/connection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,7 +25,10 @@ class PancakeProvider extends ChangeNotifier {
   final _eventController = StreamController<ProviderEvent>.broadcast();
   Stream<ProviderEvent> get events => _eventController.stream;
 
-  PancakeProvider(this._session, this._data) {
+  final Identity _identity;
+  Identity get identity => _identity;
+
+  PancakeProvider(this._session, this._data, this._identity) {
     _session.events.listen((event) {
       switch (event) {
         case SessionConnected():
@@ -54,6 +58,8 @@ class PancakeProvider extends ChangeNotifier {
 
         case SessionErrorMessage():
           _eventController.add(EventErrorMessage(event.code, event.message));
+        case SessionSelfErrorMessage():
+          _eventController.add(EventErrorMessage("pancake_error", event.message));
       }
 
       notifyListeners();
@@ -61,7 +67,9 @@ class PancakeProvider extends ChangeNotifier {
   }
 
   static Future<PancakeProvider> create() async {
-    return PancakeProvider(await PancakeSession.create(), await ProviderData.create());
+    final session = await PancakeSession.create();
+    final data = await ProviderData.create();
+    return PancakeProvider(session, data, session.identity);
   }
 
   void sendMessage(String message) {
@@ -84,6 +92,12 @@ class PancakeProvider extends ChangeNotifier {
     _data.serverAddr = address;
     _session.start(address);
     _data.setServerAddr(address);
+
+    notifyListeners();
+  }
+
+  void changeClientID(String clientID) {
+    _session.changeClientID(clientID);
 
     notifyListeners();
   }
