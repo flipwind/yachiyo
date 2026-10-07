@@ -313,7 +313,7 @@ func (s *JsonClientService) ListenSend() {
 			}
 
 			c.send("interaction", "runtime_error", &model.RuntimeError{
-				Code: string(t.Code),
+				Code:    string(t.Code),
 				Message: t.Message,
 			})
 		default:

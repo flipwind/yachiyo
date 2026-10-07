@@ -7,13 +7,13 @@ import (
 
 type State struct {
 	SocialDesire Drive
-	Interest Drive
+	Interest     Drive
 }
 
 func NewState() State {
 	return State{
 		SocialDesire: UrgencyDrive(Medium),
-		Interest: UrgencyDrive(Medium),
+		Interest:     UrgencyDrive(Medium),
 	}
 }
 
@@ -25,7 +25,7 @@ func (s *State) Prompt() string {
 	result := ""
 
 	var advice string
-	switch s.SocialDesire.Urgency(){
+	switch s.SocialDesire.Urgency() {
 	case Trivial, Low:
 		advice = "Don't want to talk. Make conversation brief. Avoid extend or introduce topic."
 	case Medium:
@@ -37,7 +37,7 @@ func (s *State) Prompt() string {
 	}
 	result += fmt.Sprintf("SocialDesire: %s(%s), ", s.SocialDesire.String(), advice)
 
-	switch s.Interest.Urgency(){
+	switch s.Interest.Urgency() {
 	case Trivial, Low:
 		advice = "This topic is not attractive. Don't want to introduce new topic unless necessarily."
 	case Medium, High, Urgent:
@@ -50,13 +50,22 @@ func (s *State) Prompt() string {
 	return result
 }
 
-func (s *State) Drives() []struct{Name string; Drive *Drive} {
+func (s *State) Drives() []struct {
+	Name  string
+	Drive *Drive
+} {
 	v := reflect.ValueOf(s).Elem()
-	
-	drives := make([]struct{Name string; Drive *Drive}, 0, v.NumField())
+
+	drives := make([]struct {
+		Name  string
+		Drive *Drive
+	}, 0, v.NumField())
 	for field, value := range v.Fields() {
-		drives = append(drives, struct{Name string; Drive *Drive}{
-			Name: field.Name,
+		drives = append(drives, struct {
+			Name  string
+			Drive *Drive
+		}{
+			Name:  field.Name,
 			Drive: value.Addr().Interface().(*Drive),
 		})
 	}

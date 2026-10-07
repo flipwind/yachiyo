@@ -4,15 +4,16 @@ import "math"
 
 // Why there are so many MAGIC NUMBERS...
 // I *hate* these MAGIC NUMBERS.
-// 
+//
 // And,
 // We may need a better curve.
 //
 // TODO: a better curve
 
 type Drive struct {
-	Value float64	// the `x` on the curve, not `y` value
+	Value float64 // the `x` on the curve, not `y` value
 }
+
 // TODO: float64 to int, avoiding numbers like 0.018000000000000002
 
 func curveF(x float64) float64 {

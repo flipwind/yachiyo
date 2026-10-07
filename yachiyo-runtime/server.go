@@ -35,7 +35,7 @@ func run() error {
 
 	yconfig := ycore.Config
 
-	mutableContext := ycontext.Generate(func(c *ycontext.Context){
+	mutableContext := ycontext.Generate(func(c *ycontext.Context) {
 		c.Name = *ycore.Config.Nickname
 	})
 

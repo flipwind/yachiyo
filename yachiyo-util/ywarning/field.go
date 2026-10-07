@@ -15,21 +15,21 @@ func (w FieldWarning) Warning() {}
 
 func FieldMissing(field string, defaultValue string) FieldWarning {
 	return FieldWarning{
-		Field: field,
+		Field:  field,
 		Reason: fmt.Sprintf("undefined, default value to [%v]", defaultValue),
 	}
 }
 
 func FieldIncorrect(field string, defaultValue string) FieldWarning {
 	return FieldWarning{
-		Field: field,
+		Field:  field,
 		Reason: fmt.Sprintf("incorrect, default value to [%v]", defaultValue),
 	}
 }
 
 func New(field string, reason string) FieldWarning {
 	return FieldWarning{
-		Field: field,
+		Field:  field,
 		Reason: reason,
 	}
 }

@@ -19,11 +19,11 @@ func (m *UserMessage) action() {}
 func (m *UserMessage) GetAddress() address.Address {
 	return m.Address
 }
-func (*UserMessage) Message(){}
+func (*UserMessage) Message() {}
 
 type AssistantMessage struct {
-	Content string
-	Time    int64
+	Content    string
+	Time       int64
 	Initiative bool
 	Reply      bool
 
@@ -34,14 +34,14 @@ func (m *AssistantMessage) action() {}
 func (m *AssistantMessage) GetAddress() address.Address {
 	return m.Address
 }
-func (*AssistantMessage) Message(){}
+func (*AssistantMessage) Message() {}
 
 type MessageHistory struct {
 	Messages []Message
-	Address address.Address
+	Address  address.Address
 }
 
-func (*MessageHistory) action(){}
+func (*MessageHistory) action() {}
 func (m *MessageHistory) GetAddress() address.Address {
 	return m.Address
 }

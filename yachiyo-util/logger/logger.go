@@ -22,7 +22,7 @@ type Logger struct {
 	sourcename string
 }
 
-func New(sourcename string) *Logger{
+func New(sourcename string) *Logger {
 	return &Logger{
 		sourcename: sourcename,
 	}
@@ -53,7 +53,7 @@ func (l *Logger) Warn(format string, v ...any) {
 }
 
 func (l *Logger) Debug(format string, v ...any) {
-	if (logLevel == Info) {
+	if logLevel == Info {
 		return
 	}
 

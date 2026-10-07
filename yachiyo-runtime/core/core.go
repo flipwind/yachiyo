@@ -133,7 +133,6 @@ type Snapshot struct {
 	LastActiveTime time.Time
 }
 
-
 func (c *Core) snapshot() Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -172,5 +171,3 @@ func (c *Core) getNote() string {
 
 	return c.Note
 }
-
-

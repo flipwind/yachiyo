@@ -7,7 +7,7 @@ const version = "0.1.0"
 type MutableContext struct {
 	context Context
 
-	mu sync.RWMutex
+	mu     sync.RWMutex
 	update func(*Context)
 }
 

@@ -1,15 +1,15 @@
 package module
 
 import (
-	"strings"
 	"charm.land/lipgloss/v2"
+	"strings"
 )
 
 func (m *model) updateViewport() {
 	var lines []string
 
 	style := lipgloss.NewStyle().
-    	Width(m.viewport.Width())
+		Width(m.viewport.Width())
 
 	for _, msg := range m.messages {
 		rendertext := style.Render(msg.String())

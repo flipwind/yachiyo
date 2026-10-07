@@ -5,9 +5,9 @@ type Determination struct {
 	WaitForReply bool `json:"should_wait_for_reply"`
 }
 
-func NewDetermination() Determination{
+func NewDetermination() Determination {
 	return Determination{
-		NewSession: false,
+		NewSession:   false,
 		WaitForReply: false,
 	}
 }

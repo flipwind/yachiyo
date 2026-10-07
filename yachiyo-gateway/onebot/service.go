@@ -93,7 +93,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type OnebotService struct {}
+type OnebotService struct{}
 
 func (s *OnebotService) Listen(c *gateway.GatewayChannel, p int64) {
 	channel = c

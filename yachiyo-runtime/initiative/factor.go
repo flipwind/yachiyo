@@ -57,13 +57,12 @@ func newFactor(f config.FactorConfig) (Factor, error) {
 	}
 
 	return Factor{
-		Curve: *curve,
-		Value: *f.DefaultValue,
-		Max: *f.Max,
+		Curve:  *curve,
+		Value:  *f.DefaultValue,
+		Max:    *f.Max,
 		Weight: *f.Weight,
 	}, nil
 }
-
 
 func NewFactors(threshold float64,
 	sociability config.FactorConfig,
@@ -92,10 +91,10 @@ func NewFactors(threshold float64,
 	}
 
 	return Factors{
-		Threshold: threshold,
+		Threshold:   threshold,
 		Sociability: soci,
-		AloneTime: alon,
-		Daytime: dayt,
+		AloneTime:   alon,
+		Daytime:     dayt,
 	}, nil
 }
 

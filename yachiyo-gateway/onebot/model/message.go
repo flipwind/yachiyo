@@ -5,6 +5,6 @@ type Message struct {
 }
 
 type MessageSegment struct {
-	Type string		`json:"type"`
-	Data any		`json:"data"`
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }

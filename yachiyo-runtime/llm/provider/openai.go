@@ -42,11 +42,12 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
 			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(p.Content))
 		case prompt.AssistantPrompt:
 			OpenAIMessages = append(OpenAIMessages, openai.AssistantMessage(p.Content))
-		default: ylog.Warn("Unknown type of prompt: %T", p)
+		default:
+			ylog.Warn("Unknown type of prompt: %T", p)
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	reply, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{

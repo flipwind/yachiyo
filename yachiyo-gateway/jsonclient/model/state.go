@@ -1,9 +1,11 @@
 package model
 
-func (*RuntimeStateRequest) DataPack(){}
-type RuntimeStateRequest struct {}
+func (*RuntimeStateRequest) DataPack() {}
 
-func (*RuntimeState) DataPack(){}
+type RuntimeStateRequest struct{}
+
+func (*RuntimeState) DataPack() {}
+
 type RuntimeState struct {
 	State string `json:"state"`
 }

@@ -36,7 +36,7 @@ func (p *Pipeline) Register(scheme string, outputChan chan action.Action) {
 	p.mu.Unlock()
 }
 
-func (p *Pipeline) GetGateway(scheme string) chan action.Action{
+func (p *Pipeline) GetGateway(scheme string) chan action.Action {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.Gateways[scheme]

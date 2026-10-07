@@ -1,5 +1,5 @@
 package trigger
 
-type InitiativeMessage struct {}
+type InitiativeMessage struct{}
 
 func (m *InitiativeMessage) trigger() {}
