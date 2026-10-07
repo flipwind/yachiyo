@@ -60,8 +60,11 @@ As the result, use `Pancake!` in platforms like `Linux` may have some unexpected
 In current period, `Pancake!` uses json over websocket to communicate with the runtime.  
 A switch to gRPC is planned in the future.
 
-1. Download the server package in **release page**.   
-For non-provided platforms, try to compile according to the target platform. You can also just run `task pancake` to complete this step.
+1. Download the server package on the **release page**.   
+For non-provided platforms, try to build it for your target platform. You can also just run `task pancake [-- BUILD_TARGET]` to complete this step.
+    - `task pancake` and `task pancake:release` build the Windows application by default.   
+    You can also specify a target, such as `task pancake -- apk` for Android or `task pancake -- windows` for Windows.
+    - [BUILD_TARGET] can be `aar`, `apk`, `web` or another target supported by Flutter. Run `flutter build` to see the available subcommands.
 2. Run it.
 3. Enter the server address field to monitor or message with the runtime.
 

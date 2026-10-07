@@ -30,7 +30,7 @@ tasks:
     silent: true
     cmds:
       - task: cli:build
-      - cd build/server && ./client{{exeExt}}
+      - cd build/cli && ./client{{exeExt}}
   
   pancake:
     desc: Build Pancake
@@ -38,7 +38,7 @@ tasks:
     silent: true
     cmds:
       - flutter pub get
-      - flutter build {{.CLI_ARGS}}
+      - flutter build {{.CLI_ARGS | default "windows"}}
   
   pancake:release:
     desc: Build Pancake (Release)
@@ -46,4 +46,4 @@ tasks:
     silent: true
     cmds:
       - flutter pub get
-      - flutter build {{.CLI_ARGS}} --release
+      - flutter build {{.CLI_ARGS | default "windows"}} --release
