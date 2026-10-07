@@ -90,9 +90,11 @@ class PancakeSession {
     }
 
     identity.changeID(id);
-    
-    if(!isUuid(id)){
-      _pushSessionEvent(SessionSelfErrorMessage("Entered ClientID is not a valid uuid."));
+
+    if (!isUuid(id)) {
+      _pushSessionEvent(
+        SessionSelfErrorMessage("Entered ClientID is not a valid uuid."),
+      );
     }
   }
 
@@ -151,6 +153,9 @@ class PancakeSession {
             identity.refreshID();
             _register();
           default:
+            _pushSessionEvent(
+              SessionErrorMessage("register_error", data.errorType),
+            );
             throw Exception(
               "Registered but failed with unsupported errortype: ${data.errorType}",
             );
