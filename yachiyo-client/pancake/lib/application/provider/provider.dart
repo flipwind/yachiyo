@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pancake/application/session/session.dart';
 import 'package:pancake/core/model/message.dart';
 import 'package:pancake/core/network/connection.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 sealed class ProviderEvent {}
 
@@ -18,12 +19,12 @@ class PancakeProvider extends ChangeNotifier {
 
   ConnectionStatus _status = ConnectionStatus.disconnected;
   ConnectionStatus get status => _status;
-  final ProviderData _data = ProviderData();
+  final ProviderData _data;
   ProviderData get data => _data;
   final _eventController = StreamController<ProviderEvent>.broadcast();
   Stream<ProviderEvent> get events => _eventController.stream;
 
-  PancakeProvider(this._session) {
+  PancakeProvider(this._session, this._data) {
     _session.events.listen((event) {
       switch (event) {
         case SessionConnected():
@@ -60,7 +61,7 @@ class PancakeProvider extends ChangeNotifier {
   }
 
   static Future<PancakeProvider> create() async {
-    return PancakeProvider(await PancakeSession.create());
+    return PancakeProvider(await PancakeSession.create(), await ProviderData.create());
   }
 
   void sendMessage(String message) {
@@ -82,6 +83,7 @@ class PancakeProvider extends ChangeNotifier {
   void changeServerAddr(String address) {
     _data.serverAddr = address;
     _session.start(address);
+    _data.setServerAddr(address);
 
     notifyListeners();
   }
@@ -100,9 +102,26 @@ class ProviderData {
     this.runtimeName = "",
     this.runtimeVersion = "",
     this.runtimeState = "",
-    this.serverAddr = "127.0.0.1:16899",
+    required this.serverAddr,
     this.registered = false,
   });
+
+  static Future<ProviderData> create() async {
+    final pref = await SharedPreferences.getInstance();
+    var addr = pref.getString("server_addr");
+
+    if (addr == null) {
+      addr = "127.0.0.1:16899";
+      await pref.setString("server_addr", addr);
+    }
+
+    return ProviderData(serverAddr: addr);
+  }
+
+  Future<void> setServerAddr(String addr) async {
+    final pref = await SharedPreferences.getInstance();
+    await pref.setString("server_addr", addr);
+  }
 
   void clear() {
     messages.clear();
