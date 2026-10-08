@@ -127,9 +127,16 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 
 		if c.ID != "" && c.ID != clientID {
 			// The same client, different ID
+			ylog.Info("Re-register client, former (%s), now (%s).", c.ID, clientID)
 			if cur, ok := s.clients[c.ID]; ok && cur == c {
 				delete(s.clients, c.ID)
 			}
+		}
+
+		if old == c && c.ID != "" && c.ID == clientID {
+			ylog.Warn("Duplicate register of [%s @%s](%s).", c.Type, c.Name, c.ID)
+			s.mutex.Unlock()
+			return
 		}
 
 		c.Type = data.ClientType
