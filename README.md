@@ -51,7 +51,7 @@ Clients can be categorized into lots of kinds. Currently, there are only onebot,
 
 #### For flutter client (Recommend):
 
-`Pancake!`, the flutter client, is designed to be a  cross-platform application.  
+`Pancake!`, the flutter client, is designed to be a cross-platform application.  
 Most flutter-supported platforms, except `Android` and `Windows`, lack necessary tests and verifications, please notice.  
 As the result, use `Pancake!` in platforms like `Linux` may have some unexpected problems.
 
@@ -60,7 +60,7 @@ As the result, use `Pancake!` in platforms like `Linux` may have some unexpected
 In current period, `Pancake!` uses json over websocket to communicate with the runtime.  
 A switch to gRPC is planned in the future.
 
-1. Download the server package on the **release page**.   
+1. Download the `Pancake!` package on the **release page**.   
 For non-provided platforms, try to build it for your target platform. You can also just run `task pancake [-- BUILD_TARGET]` to complete this step.
     - `task pancake` and `task pancake:release` build the Windows application by default.   
     You can also specify a target, such as `task pancake -- apk` for Android or `task pancake -- windows` for Windows.
