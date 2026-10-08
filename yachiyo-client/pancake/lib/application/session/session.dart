@@ -99,6 +99,10 @@ class PancakeSession {
     }
   }
 
+  void randomClientID() async {
+    identity.refreshID();
+  }
+
   Future<void> start(String address) async {
     await _connection.connect(address);
     _register();
@@ -151,7 +155,7 @@ class PancakeSession {
       case RegisterError():
         switch (data.errorType) {
           case "client_conflict":
-            identity.refreshID();
+            randomClientID();
             _register();
           default:
             _pushSessionEvent(

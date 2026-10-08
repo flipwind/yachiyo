@@ -110,6 +110,12 @@ class PancakeProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  void randomClientID() {
+    _session.randomClientID();
+
+    notifyListeners();
+  }
 }
 
 class ProviderData {

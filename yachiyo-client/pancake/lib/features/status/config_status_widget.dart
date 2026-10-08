@@ -111,6 +111,11 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
     provider.changeClientID(_textEditingController.text);
   }
 
+  Future<void> onClientIDRandom() async {
+    final provider = context.read<PancakeProvider>();
+    provider.randomClientID();
+  }
+
   @override
   Widget build(BuildContext context) {
     final identity = context.watch<PancakeProvider>().identity;
@@ -143,6 +148,9 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
                 ),
               ),
             ),
+            IconButton(onPressed: () {
+              onClientIDRandom();
+            }, icon: Icon(Icons.shuffle_rounded)),
             IconButton(
               onPressed: () {
                 onClientIDChanged();
