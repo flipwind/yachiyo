@@ -90,6 +90,7 @@ class PancakeSession {
     }
 
     identity.changeID(id);
+    _register();
 
     if (!isUuid(id)) {
       _pushSessionEvent(
@@ -155,9 +156,6 @@ class PancakeSession {
           default:
             _pushSessionEvent(
               SessionErrorMessage("register_error", data.errorType),
-            );
-            throw Exception(
-              "Registered but failed with unsupported errortype: ${data.errorType}",
             );
         }
     }
