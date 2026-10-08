@@ -120,6 +120,18 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			old = oldClient
 		}
 
+		if old != nil && old != c {
+			// The same clientID has two client now
+			old.conn.Close(websocket.StatusNormalClosure, "")
+		}
+
+		if c.ID != "" && c.ID != clientID {
+			// The same client, different ID
+			if cur, ok := s.clients[c.ID]; ok && cur == c {
+				delete(s.clients, c.ID)
+			}
+		}
+
 		c.Type = data.ClientType
 		c.Name = data.ClientName
 		c.ID = clientID
@@ -127,9 +139,6 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		s.clients[clientID] = c
 		s.mutex.Unlock()
 
-		if old != nil {
-			old.conn.Close(websocket.StatusNormalClosure, "")
-		}
 		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
 
 		ctx := s.mutableContext()
