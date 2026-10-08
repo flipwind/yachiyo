@@ -59,11 +59,15 @@ class PancakeProvider extends ChangeNotifier {
         case SessionErrorMessage():
           _eventController.add(EventErrorMessage(event.code, event.message));
         case SessionSelfErrorMessage():
-          _eventController.add(EventErrorMessage("pancake_error", event.message));
+          _pushSelfError(event.message);
       }
 
       notifyListeners();
     });
+  }
+
+  void _pushSelfError(String message) {
+    _eventController.add(EventErrorMessage("pancake_error", message));
   }
 
   static Future<PancakeProvider> create() async {
@@ -72,10 +76,15 @@ class PancakeProvider extends ChangeNotifier {
     return PancakeProvider(session, data, session.identity);
   }
 
-  void sendMessage(String message) {
-    _session.sendMessage(message);
+  bool sendMessage(String message) {
+    if (data.registered != true || status != ConnectionStatus.connected) {
+      _pushSelfError("Client not connected");
+      return false;
+    }
 
+    _session.sendMessage(message);
     notifyListeners();
+    return true;
   }
 
   void clearMessages() {

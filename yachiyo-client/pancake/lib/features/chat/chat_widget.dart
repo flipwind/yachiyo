@@ -25,10 +25,13 @@ class _ChatWidgetState extends State<ChatWidget> {
     final provider = context.read<PancakeProvider>();
     final message = textEditingController.text;
 
-    provider.sendMessage(message);
-    setState(() {
-      textEditingController.text = "";
-    });
+    bool sended = provider.sendMessage(message);
+
+    if (sended) {
+      setState(() {
+        textEditingController.text = "";
+      });
+    }
   }
 
   void clearMessages() {
