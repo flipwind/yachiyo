@@ -1,6 +1,6 @@
-<p style="font-size:60px" align="center">🥞</p>
 
 <div align="center">
+<img src="assets/picture/yachiyo_circle_icon.png" width="256" />
 
 # Project Yachiyo
 _✨ For the pancake. ✨_
@@ -147,3 +147,12 @@ Also, if you are a user, you can also join these groups to communicate with othe
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
+
+## Acknowledgements
+
+- **Yachiyo Runami** — Yachiyo Runami, a character from the 2026 anime film *[超かぐや姫！(Cosmic Princess Kaguya!)](https://www.cho-kaguyahime.com/)*, released on Netflix, inspired the creation of Project Yachiyo.   
+    - The default system prompt is adapted from the character's  original story and persona.  
+    - The default profile image and the project icon were created with the assistance of ChatGPT, based on the character's original design and inspired by the visual style of Grok Bot's avatar.
+    
+    **I sincerely thank the creators of *超かぐや姫！* for creating the character who inspired this project.**
+- **Pancake Icon** — The icon [`pancake_icon.png`](/assets/picture/pancake.png) is from [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji), which is licensed under the MIT License.
