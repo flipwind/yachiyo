@@ -8,10 +8,10 @@ prompt:
 
 gateway:
   onebot:
-    enabled: True
+    enabled: False
     port: 16801
   client:
-    enabled: True
+    enabled: False
     port: 16802
   jsonclient:
     enabled: True
