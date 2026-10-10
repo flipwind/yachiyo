@@ -76,6 +76,14 @@ func (s *JsonClientService) handleReceive(c *Client, data []byte) {
 		return
 	}
 
+	registered := (c.ID != "")
+
+	// unregister client
+	if !registered && !(message.Category == "connection" && message.Type == "register") {
+		c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_unknown"})
+		return
+	}
+
 	switch message.Category {
 	case "connection":
 		s.handleConnection(c, message)
@@ -89,6 +97,11 @@ func (s *JsonClientService) handleReceive(c *Client, data []byte) {
 func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "register":
+		if c.ID != "" {
+			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_already_registered"})
+			return
+		}
+
 		var data model.Register
 		if err := json.Unmarshal(message.Data, &data); err != nil {
 			ylog.Error("JSON unmarshal error: %v", err)
@@ -100,18 +113,19 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 			return
 		}
 
-		clientUuid, err := uuid.Parse(data.ClientID)
+		clientUUID, err := uuid.Parse(data.ClientID)
 		if err != nil {
 			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_id_invalid"})
 			return
 		}
 
-		var clientID = clientUuid.String()
+		var clientID = clientUUID.String()
 
 		var old *Client
 
 		s.mutex.Lock()
 		if oldClient, ok := s.clients[clientID]; ok == true {
+			// oldClient exists; register.
 			if oldClient.Type != data.ClientType {
 				c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_conflict"})
 				s.mutex.Unlock()
@@ -123,25 +137,13 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 		if old != nil && old != c {
 			// The same clientID has two client now
 			old.conn.Close(websocket.StatusNormalClosure, "")
-		}
-
-		if c.ID != "" && c.ID != clientID {
-			// The same client, different ID
-			ylog.Info("Re-register client, former (%s), now (%s).", c.ID, clientID)
-			if cur, ok := s.clients[c.ID]; ok && cur == c {
-				delete(s.clients, c.ID)
-			}
-		}
-
-		if old == c && c.ID != "" && c.ID == clientID {
-			ylog.Warn("Duplicate register of [%s @%s](%s).", c.Type, c.Name, c.ID)
-			s.mutex.Unlock()
-			return
+			delete(s.clients, old.ID)
 		}
 
 		c.Type = data.ClientType
 		c.Name = data.ClientName
 		c.ID = clientID
+		c.LastHeartbeatTime = time.Now()
 
 		s.clients[clientID] = c
 		s.mutex.Unlock()
@@ -229,12 +231,8 @@ func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 	}
 }
 
+// Check client if former client is not the same as the current one.
 func (s *JsonClientService) checkClient(c *Client) bool {
-	if c.ID == "" {
-		c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_unknown"})
-		return false
-	}
-
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	client, ok := s.clients[c.ID]
