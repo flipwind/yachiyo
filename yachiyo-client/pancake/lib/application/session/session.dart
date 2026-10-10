@@ -8,6 +8,7 @@ import 'package:pancake/core/protocol/connection.dart';
 import 'package:pancake/core/protocol/envelope.dart';
 import 'package:pancake/core/protocol/interaction.dart';
 import 'package:pancake/core/protocol/state.dart';
+import 'package:uuid/uuid.dart';
 
 sealed class SessionEvent {}
 
@@ -69,9 +70,7 @@ class PancakeSession {
         case ConnectionStatus.connecting:
           _pushSessionEvent(SessionConnecting());
         case ConnectionStatus.disconnected:
-          _pushSessionEvent(SessionDisconnected());
-          _stopHeartbeat();
-          _stopChangeState();
+          _sessionDisconnected();
       }
     });
   }
@@ -82,25 +81,32 @@ class PancakeSession {
     return PancakeSession(identity: identity);
   }
 
-  void changeClientID(String id) async {
-    bool isUuid(String value) {
+  Future<void> changeClientID(String id) async {
+    bool isUUID(String value) {
       return RegExp(
         r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
       ).hasMatch(value);
     }
 
-    identity.changeID(id);
-    _register();
-
-    if (!isUuid(id)) {
+    if (!isUUID(id)) {
       _pushSessionEvent(
         SessionSelfErrorMessage("Entered ClientID is not a valid uuid."),
       );
+      return;
     }
+
+    await identity.changeID(id);
+    _register();
   }
 
-  void randomClientID() async {
-    identity.refreshID();
+  Future<void> randomClientID() async {
+    await changeClientID(Uuid().v4());
+  }
+
+  void _sessionDisconnected() {
+    _pushSessionEvent(SessionDisconnected());
+    _stopHeartbeat();
+    _stopChangeState();
   }
 
   Future<void> start(String address) async {
@@ -156,11 +162,11 @@ class PancakeSession {
         switch (data.errorType) {
           case "client_conflict":
             randomClientID();
-            _register();
           default:
             _pushSessionEvent(
               SessionErrorMessage("register_error", data.errorType),
             );
+            _sessionDisconnected();
         }
     }
   }

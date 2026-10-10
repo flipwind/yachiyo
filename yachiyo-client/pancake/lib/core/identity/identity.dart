@@ -20,12 +20,6 @@ class Identity {
     return Identity(clientID);
   }
 
-  Future<void> refreshID() async {
-    final pref = await SharedPreferences.getInstance();
-    clientID = Uuid().v4();
-    await pref.setString("client_id", clientID);
-  }
-
   Future<void> changeID(String id) async {
     clientID = id;
     final pref = await SharedPreferences.getInstance();

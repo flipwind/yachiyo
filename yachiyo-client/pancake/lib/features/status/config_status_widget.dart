@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logger/web.dart';
 import 'package:pancake/application/provider/provider.dart';
+import 'package:pancake/core/network/connection.dart';
 import 'package:provider/provider.dart';
 
 class ServerStatusWidget extends StatefulWidget {
@@ -23,6 +24,8 @@ class _ServerStatusWidgetState extends State<ServerStatusWidget> {
   final FocusNode _focusNode = FocusNode();
 
   Future<void> onServerAddrChange() async {
+    final status = context.read<PancakeProvider>().status;
+    if (status == ConnectionStatus.connecting) return;
     setState(() {
       loading = true;
     });
@@ -106,23 +109,45 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
   final TextEditingController _textEditingController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  String? _errorText;
+
+  void setErrorText(String? text) {
+    setState(() {
+      _errorText = text;
+    });
+  }
+
   Future<void> onClientIDChanged() async {
+    setErrorText(null);
     final provider = context.read<PancakeProvider>();
+    bool isUUID(String value) {
+      return RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(value);
+    }
+
+    if (isUUID(_textEditingController.text) == false){
+      setErrorText("Client ID should be a UUID.");
+      return;
+    }
     provider.changeClientID(_textEditingController.text);
   }
 
   Future<void> onClientIDRandom() async {
     final provider = context.read<PancakeProvider>();
-    provider.randomClientID();
+    await provider.randomClientID();
+    _textEditingController.text = provider.identity.clientID;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final identity = context.read<PancakeProvider>().identity;
+    _textEditingController.text = identity.clientID;
   }
 
   @override
   Widget build(BuildContext context) {
-    final identity = context.watch<PancakeProvider>().identity;
-    if (_focusNode.hasFocus == false) {
-      _textEditingController.text = identity.clientID;
-    }
-
     return Card.filled(
       margin: EdgeInsets.symmetric(horizontal: 8.0),
       child: Padding(
@@ -143,6 +168,7 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
                   onClientIDChanged();
                 },
                 decoration: InputDecoration(
+                  errorText: _errorText,
                   border: OutlineInputBorder(),
                   labelText: "Client ID",
                 ),

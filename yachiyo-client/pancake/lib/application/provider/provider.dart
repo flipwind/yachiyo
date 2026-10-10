@@ -111,8 +111,8 @@ class PancakeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void randomClientID() {
-    _session.randomClientID();
+  Future<void> randomClientID() async {
+    await _session.randomClientID();
 
     notifyListeners();
   }

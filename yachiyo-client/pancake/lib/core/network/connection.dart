@@ -30,7 +30,8 @@ class PancakeConnection {
   }
 
   Future<void> connect(String address) async {
-    _channel?.sink.close();
+    await _channel?.sink.close();
+    _setStatus(ConnectionStatus.disconnected);
     _setStatus(ConnectionStatus.connecting);
 
     try {
@@ -42,17 +43,23 @@ class PancakeConnection {
         _setStatus(ConnectionStatus.connected);
 
         logger.i("Client Connected.");
+
         channel.stream.listen(
           (message) {
+            if (_channel != channel) return;
             _messageController.add(message);
           },
 
           onDone: () {
+            if (_channel != channel) return;
+            _channel = null;
             _setStatus(ConnectionStatus.disconnected);
           },
 
           onError: (err) {
+            if (_channel != channel) return;
             logger.e("Connection error: ${err.toString()}");
+            _channel = null;
             _setStatus(ConnectionStatus.disconnected);
           },
         );
