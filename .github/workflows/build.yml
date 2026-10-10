@@ -79,7 +79,36 @@ jobs:
       with: 
         channel: stable
         cache: true
-    
+
+    - name: Restore Android Signing Key
+      if: matrix.platform == 'android'
+      working-directory: yachiyo-client/pancake
+      env:
+        KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        test -n "$KEYSTORE_BASE64"
+        test -n "$STORE_PASSWORD"
+        test -n "$KEY_PASSWORD"
+        test -n "$KEY_ALIAS"
+
+        printf '%s' "$KEYSTORE_BASE64" \
+          | base64 --decode > android/pancake-release.jks
+
+        test -s android/pancake-release.jks
+
+        {
+          printf 'storePassword=%s\n' "$STORE_PASSWORD"
+          printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          printf 'keyAlias=%s\n' "$KEY_ALIAS"
+          printf 'storeFile=pancake-release.jks\n'
+        } > android/key.properties
+
     - name: Install Dependencies
       working-directory: yachiyo-client/pancake
       run: flutter pub get
@@ -93,6 +122,20 @@ jobs:
       working-directory: yachiyo-client/pancake
       shell: powershell
       run: Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "${{matrix.archive}}" -Force
+    
+    - name: Verify Android APK Signature
+      if: matrix.platform == 'android'
+      working-directory: yachiyo-client/pancake
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        APK="build/app/outputs/flutter-apk/app-release.apk"
+        APKSIGNER="$(find "$ANDROID_HOME/build-tools" \
+          -type f -name apksigner | sort -V | tail -n 1)"
+
+        test -n "$APKSIGNER"
+        "$APKSIGNER" verify --verbose "$APK"
 
     - name: Archive Android
       if: matrix.platform == 'android'
@@ -106,6 +149,14 @@ jobs:
        name: pancake-${{matrix.platform}}
        if-no-files-found: error
        path: yachiyo-client/pancake/${{matrix.archive}}
+    
+    - name: Clean Android Signing Key
+      if: always() && matrix.platform == 'android'
+      working-directory: yachiyo-client/pancake
+      shell: bash
+      run: |
+        rm -f android/key.properties
+        rm -f android/pancake-release.jks
   
   release:
     name: Create Release
