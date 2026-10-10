@@ -6,6 +6,7 @@
 
 ## Register
 
+`Register` 消息被发出，**当且仅当**一条链接刚刚被建立。  
 在与 runtime 交互的生命周期起始，必须要进行注册，以便 runtime 标识和分发其他内容。  
 在**注册**后 client 才可以向 runtime 进行交互信息，否则会抛出错误。
 
@@ -59,7 +60,8 @@ data {
 根据错误类型的不同，`error_type` 的值会在以下类型中产生：
 - `client_info_error`: `client_type` 不在其字段限定中。建议检查字段内容的大小写和拼写。
 - `client_conflict`: 注册设备冲突，表现为 `client_id` 存在重复但 `client_type` 不同。建议更换 `client_id`。
-- `client_unknown`: 未知的设备。即，我们没有看到你的 `client_id`。遇到此问题时，建议重新注册。
+- `client_unknown`: 未知的设备。即，我们认为你还没有注册，或者已注册的与你同 `client_id` 的连接与你不同。总之，遇到此问题时，建议重新注册。
+- `client_already_registered`: 设备已经注册过了，不能重新注册。
 - `client_id_invalid`: `client_id` 不是合法的 uuid 字段。
 
 ## Heartbeat
