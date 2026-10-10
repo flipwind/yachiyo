@@ -4,8 +4,11 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
     title: "Project Yachiyo (开发文档)",
     description: "to build a life runtime",
+    head: [['link', { rel: 'icon', href: '/assets/favicon.png' }]],
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
+        siteTitle: 'Yachiyo (开发文档)',
+        logo: '/assets/yachiyo_circle_icon.png',
         nav: [
             { text: "主页", link: "/" },
         ],

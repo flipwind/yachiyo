@@ -5,6 +5,8 @@ hero:
   name: "Project Yachiyo"
   text: "to build a life runtime"
   tagline: ~currently a development documentation site~
+  image:
+    src: /assets/yachiyo_circle_icon.png
   actions:
     - theme: brand
       text: 不妨看看
