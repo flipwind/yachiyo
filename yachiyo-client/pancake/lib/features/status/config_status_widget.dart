@@ -126,7 +126,7 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
       ).hasMatch(value);
     }
 
-    if (isUUID(_textEditingController.text) == false){
+    if (isUUID(_textEditingController.text) == false) {
       setErrorText("Client ID should be a UUID.");
       return;
     }
@@ -152,37 +152,46 @@ class _ClientIDWidgetState extends State<ClientIDWidget> {
       margin: EdgeInsets.symmetric(horizontal: 8.0),
       child: Padding(
         padding: EdgeInsetsGeometry.all(8.0),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
-              child: Icon(Icons.fingerprint_rounded),
-            ),
-            Expanded(
-              child: TextField(
-                keyboardType: TextInputType.text,
-                controller: _textEditingController,
-                focusNode: _focusNode,
-                autocorrect: false,
-                onSubmitted: (value) {
-                  onClientIDChanged();
-                },
-                decoration: InputDecoration(
-                  errorText: _errorText,
-                  border: OutlineInputBorder(),
-                  labelText: "Client ID",
+            Row(
+              children: [
+                Padding(
+                  padding: EdgeInsetsGeometry.symmetric(horizontal: 8.0),
+                  child: Icon(Icons.fingerprint_rounded),
                 ),
-              ),
+                Expanded(
+                  child: TextField(
+                    keyboardType: TextInputType.text,
+                    controller: _textEditingController,
+                    focusNode: _focusNode,
+                    autocorrect: false,
+                    onSubmitted: (value) {
+                      onClientIDChanged();
+                    },
+                    decoration: InputDecoration(
+                      errorText: _errorText,
+                      border: OutlineInputBorder(),
+                      labelText: "Client ID",
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    onClientIDRandom();
+                  },
+                  icon: Icon(Icons.shuffle_rounded),
+                ),
+                IconButton(
+                  onPressed: () {
+                    onClientIDChanged();
+                  },
+                  icon: Icon(Icons.check_rounded),
+                ),
+              ],
             ),
-            IconButton(onPressed: () {
-              onClientIDRandom();
-            }, icon: Icon(Icons.shuffle_rounded)),
-            IconButton(
-              onPressed: () {
-                onClientIDChanged();
-              },
-              icon: Icon(Icons.check_rounded),
-            ),
+            Text("You may need to reconnect to apply client ID change."),
           ],
         ),
       ),

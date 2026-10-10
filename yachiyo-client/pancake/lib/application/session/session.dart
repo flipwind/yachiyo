@@ -96,7 +96,6 @@ class PancakeSession {
     }
 
     await identity.changeID(id);
-    _register();
   }
 
   Future<void> randomClientID() async {
