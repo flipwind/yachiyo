@@ -11,7 +11,6 @@ class _ChatPaneState extends State<ChatPane> {
   @override
   Widget build(BuildContext context) {
     final texts = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
     return SafeArea(
       child: Column(
         children: [
@@ -56,31 +55,7 @@ class _ChatPaneState extends State<ChatPane> {
           Expanded(
             child: Column(
               children: [
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          margin: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colors.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsetsGeometry.all(16),
-                            child: Icon(Icons.forum_outlined),
-                          ),
-                        ),
-                        Text("Chat", style: texts.titleMedium),
-                        Text(
-                          "Some experience, or just say Hello.",
-                          style: texts.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                Expanded(child: _EmptyMessagePlaceholder()),
                 Card.outlined(
                   margin: EdgeInsetsGeometry.symmetric(
                     horizontal: 12,
@@ -121,6 +96,35 @@ class _ChatPaneState extends State<ChatPane> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyMessagePlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final texts = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.tertiaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: EdgeInsetsGeometry.all(16),
+              child: Icon(Icons.forum_outlined),
+            ),
+          ),
+          Text("Chat", style: texts.titleMedium),
+          Text("Some experience, or just say Hello.", style: texts.bodyMedium),
         ],
       ),
     );

@@ -24,7 +24,6 @@ class _ConnectPaneState extends State<ConnectPane> {
   @override
   Widget build(BuildContext context) {
     final texts = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsetsGeometry.symmetric(vertical: 12, horizontal: 20),
@@ -112,44 +111,50 @@ class _ConnectPaneState extends State<ConnectPane> {
               ),
             ],
           ),
-          Card.filled(
-            color: colors.secondaryContainer,
-            child: Padding(
-              padding: EdgeInsetsGeometry.symmetric(
-                horizontal: 24,
-                vertical: 16,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 4,
+          _RuntimeIdentityWidget(),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuntimeIdentityWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final texts = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+    return Card.filled(
+      color: colors.secondaryContainer,
+      child: Padding(
+        padding: EdgeInsetsGeometry.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 4,
+          children: [
+            Image.asset("assets/pancake.png", height: 64, width: 64),
+            Text("Now heartbeating.", style: texts.titleMedium),
+            SizedBox(height: 12),
+            for (var item in [
+              ("Runtime", "Yachiyo"),
+              ("Version", "v0.1.0"),
+              ("Last Update", "23:55"),
+            ])
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset("assets/pancake.png", height: 64, width: 64),
-                  Text("Now heartbeating.", style: texts.titleMedium),
-                  SizedBox(height: 12),
-                  for (var item in [
-                    ("Runtime", "Yachiyo"),
-                    ("Version", "v0.1.0"),
-                    ("Last Update", "23:55"),
-                  ])
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.$1,
-                            style: texts.bodyMedium!.copyWith(
-                              color: colors.onSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                        Expanded(child: Text(item.$2)),
-                      ],
+                  Expanded(
+                    child: Text(
+                      item.$1,
+                      style: texts.bodyMedium!.copyWith(
+                        color: colors.onSecondaryContainer,
+                      ),
                     ),
+                  ),
+                  Expanded(child: Text(item.$2)),
                 ],
               ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
