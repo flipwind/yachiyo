@@ -7,7 +7,7 @@ import 'package:pancake/app/app.dart';
 import 'package:pancake/application/provider/provider.dart';
 import 'package:provider/provider.dart';
 
-Future<void> main() async{
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final provider = await PancakeProvider.create();
@@ -22,7 +22,7 @@ Future<void> main() async{
       ),
     );
   }
-  
+
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider.value(value: provider)],

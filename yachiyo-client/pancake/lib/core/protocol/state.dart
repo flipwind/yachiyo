@@ -21,18 +21,13 @@ class RuntimeStateRequest implements DataPack {
   }
 }
 
-
 class RuntimeState implements DataPack {
   final String state;
 
-  const RuntimeState({
-    required this.state,
-  });
+  const RuntimeState({required this.state});
 
   factory RuntimeState.fromJson(Map<String, dynamic> json) {
-    return RuntimeState(
-      state: json["state"] as String,
-    );
+    return RuntimeState(state: json["state"] as String);
   }
 
   @override
@@ -40,8 +35,6 @@ class RuntimeState implements DataPack {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      "state": state,
-    };
+    return {"state": state};
   }
 }

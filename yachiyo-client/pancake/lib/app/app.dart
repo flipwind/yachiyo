@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pancake/features/home/home_page.dart';
+import 'package:pancake/features/scaffold/pancake_scaffold.dart';
 
 class PancakeApp extends StatelessWidget {
   const PancakeApp({super.key});
@@ -20,7 +20,7 @@ class PancakeApp extends StatelessWidget {
       theme: createTheme(Brightness.light),
       darkTheme: createTheme(Brightness.dark),
       themeMode: ThemeMode.system,
-      home: PancakeHomePage(),
+      home: PancakeScaffold(),
     );
   }
 }

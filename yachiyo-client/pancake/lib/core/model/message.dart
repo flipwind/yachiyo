@@ -2,17 +2,11 @@ abstract class Message {
   String content;
   DateTime time;
 
-  Message({
-    required this.content,
-    required this.time,
-  });
+  Message({required this.content, required this.time});
 }
 
 class UserMessage extends Message {
-  UserMessage({
-    required super.content,
-    required super.time
-  });
+  UserMessage({required super.content, required super.time});
 }
 
 class AssistantMessage extends Message {

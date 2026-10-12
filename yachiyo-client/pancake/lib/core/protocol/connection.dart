@@ -62,24 +62,17 @@ class RegisterSuccess implements DataPack {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      "runtime_name": runtimeName,
-      "runtime_version": runtimeVersion,
-    };
+    return {"runtime_name": runtimeName, "runtime_version": runtimeVersion};
   }
 }
 
 class RegisterError implements DataPack {
   final String errorType;
 
-  const RegisterError({
-    required this.errorType,
-  });
+  const RegisterError({required this.errorType});
 
   factory RegisterError.fromJson(Map<String, dynamic> json) {
-    return RegisterError(
-      errorType: json["error_type"] as String,
-    );
+    return RegisterError(errorType: json["error_type"] as String);
   }
 
   @override
@@ -87,9 +80,7 @@ class RegisterError implements DataPack {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      "error_type": errorType,
-    };
+    return {"error_type": errorType};
   }
 }
 

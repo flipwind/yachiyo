@@ -23,6 +23,6 @@ class Identity {
   Future<void> changeID(String id) async {
     clientID = id;
     final pref = await SharedPreferences.getInstance();
-    await pref.setString("client_id", id); 
+    await pref.setString("client_id", id);
   }
 }
