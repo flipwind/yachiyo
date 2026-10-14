@@ -54,184 +54,179 @@ class _ChatPaneState extends State<ChatPane> {
     final provider = context.watch<PancakeProvider>();
     registered = provider.data.registered;
 
-    return SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(24, 8, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Row(
-                  spacing: 16.0,
-                  children: [
-                    Image.asset(
-                      "assets/yachiyo_circle_icon.png",
-                      height: 40,
-                      width: 40,
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Yachiyo",
-                          style: texts.titleLarge!.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(24, 8, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Row(
+                spacing: 16.0,
+                children: [
+                  Image.asset(
+                    "assets/yachiyo_circle_icon.png",
+                    height: 40,
+                    width: 40,
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Yachiyo",
+                        style: texts.titleLarge!.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          "iriririrooooooooha",
-                          style: texts.titleSmall!.copyWith(
-                            fontWeight: FontWeight.w300,
-                          ),
+                      ),
+                      Text(
+                        "iriririrooooooooha",
+                        style: texts.titleSmall!.copyWith(
+                          fontWeight: FontWeight.w300,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: registered ? () => widget.pageChange(1) : null,
-                      icon: Icon(Icons.multiline_chart),
-                    ),
-                    IconButton(
-                      onPressed: registered
-                          ? () => refreshMessageFromRuntime()
-                          : null,
-                      icon: Icon(Icons.history),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: registered ? () => widget.pageChange(1) : null,
+                    icon: Icon(Icons.multiline_chart),
+                  ),
+                  IconButton(
+                    onPressed: registered
+                        ? () => refreshMessageFromRuntime()
+                        : null,
+                    icon: Icon(Icons.history),
+                  ),
+                ],
+              ),
+            ],
           ),
-          Divider(thickness: 0.3),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Consumer<PancakeProvider>(
-                    builder: (context, provider, child) {
-                      final messageCount = provider.data.messages.length;
+        ),
+        Divider(thickness: 0.3),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: Consumer<PancakeProvider>(
+                  builder: (context, provider, child) {
+                    final messageCount = provider.data.messages.length;
 
-                      if (messageCount > previousMessageCount) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (listViewController.hasClients) {
-                            listViewController.animateTo(
-                              listViewController.position.maxScrollExtent,
-                              duration: Duration(milliseconds: 400),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        });
-                      }
+                    if (messageCount > previousMessageCount) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (listViewController.hasClients) {
+                          listViewController.animateTo(
+                            listViewController.position.maxScrollExtent,
+                            duration: Duration(milliseconds: 400),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      });
+                    }
 
-                      previousMessageCount = messageCount;
+                    previousMessageCount = messageCount;
 
-                      final messages = provider.data.messages;
-                      if (messages.isEmpty) {
-                        return _EmptyMessagePlaceholder();
-                      }
-                      return ListView.builder(
-                        controller: listViewController,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          return _MessageContainerWidget(message: message);
-                        },
-                        itemCount: messages.length,
-                      );
-                    },
-                  ),
+                    final messages = provider.data.messages;
+                    if (messages.isEmpty) {
+                      return _EmptyMessagePlaceholder();
+                    }
+                    return ListView.builder(
+                      controller: listViewController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        return _MessageContainerWidget(message: message);
+                      },
+                      itemCount: messages.length,
+                    );
+                  },
                 ),
-                Card.outlined(
-                  margin: EdgeInsetsGeometry.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsetsGeometry.fromLTRB(16, 4, 8, 4),
-                    child: Row(
-                      spacing: 8,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Focus(
-                            focusNode: focusNode,
-                            onKeyEvent: (node, event) {
-                              if (event is KeyDownEvent &&
-                                  event.logicalKey ==
-                                      LogicalKeyboardKey.enter) {
-                                final isNewLine =
-                                    HardwareKeyboard
-                                        .instance
-                                        .isControlPressed ||
-                                    HardwareKeyboard.instance.isShiftPressed;
+              ),
+              Card.outlined(
+                margin: EdgeInsetsGeometry.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Padding(
+                  padding: EdgeInsetsGeometry.fromLTRB(16, 4, 8, 4),
+                  child: Row(
+                    spacing: 8,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Focus(
+                          focusNode: focusNode,
+                          onKeyEvent: (node, event) {
+                            if (event is KeyDownEvent &&
+                                event.logicalKey == LogicalKeyboardKey.enter) {
+                              final isNewLine =
+                                  HardwareKeyboard.instance.isControlPressed ||
+                                  HardwareKeyboard.instance.isShiftPressed;
 
-                                if (isNewLine) {
-                                  // ctrl + enter
-                                  // shift + enter
-                                  final value = textEditingController.value;
-                                  textEditingController.value = value.copyWith(
-                                    text: value.text.replaceRange(
-                                      value.selection.start,
-                                      value.selection.end,
-                                      "\n",
-                                    ),
-                                    selection: TextSelection.collapsed(
-                                      offset: value.selection.start + 1,
-                                    ),
-                                  );
-                                } else {
-                                  // enter
-                                  sendMessage();
-                                }
-
-                                return KeyEventResult.handled;
+                              if (isNewLine) {
+                                // ctrl + enter
+                                // shift + enter
+                                final value = textEditingController.value;
+                                textEditingController.value = value.copyWith(
+                                  text: value.text.replaceRange(
+                                    value.selection.start,
+                                    value.selection.end,
+                                    "\n",
+                                  ),
+                                  selection: TextSelection.collapsed(
+                                    offset: value.selection.start + 1,
+                                  ),
+                                );
+                              } else {
+                                // enter
+                                sendMessage();
                               }
 
-                              return KeyEventResult.ignored;
-                            },
-                            child: TextField(
-                              controller: textEditingController,
-                              minLines: 1,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                hintText: "How about your day...",
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (value) => checkSend(),
+                              return KeyEventResult.handled;
+                            }
+
+                            return KeyEventResult.ignored;
+                          },
+                          child: TextField(
+                            controller: textEditingController,
+                            minLines: 1,
+                            maxLines: 4,
+                            decoration: InputDecoration(
+                              hintText: "How about your day...",
+                              border: InputBorder.none,
                             ),
+                            onChanged: (value) => checkSend(),
                           ),
                         ),
-                        Padding(
-                          padding: EdgeInsetsGeometry.only(bottom: 4),
-                          child: IconButton.filled(
-                            onPressed: canSend && registered
-                                ? () => sendMessage()
-                                : null,
-                            style: IconButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                      ),
+                      Padding(
+                        padding: EdgeInsetsGeometry.only(bottom: 4),
+                        child: IconButton.filled(
+                          onPressed: canSend && registered
+                              ? () => sendMessage()
+                              : null,
+                          style: IconButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            icon: Icon(Icons.arrow_outward),
                           ),
+                          icon: Icon(Icons.arrow_outward),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
