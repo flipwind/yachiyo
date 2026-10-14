@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pancake/application/provider/provider.dart';
+import 'package:provider/provider.dart';
 
 class ObservePane extends StatefulWidget {
-  const ObservePane({super.key, required this.state});
-  final String state;
+  const ObservePane({super.key});
 
   @override
   State<StatefulWidget> createState() => _ObservePaneState();
@@ -38,7 +39,9 @@ class _ObservePaneState extends State<ObservePane> {
               ],
             ),
             Divider(thickness: 0.1),
-            Text(widget.state),
+            Consumer<PancakeProvider>(builder: (context, provider, child) {
+              return Text(provider.data.runtimeState);
+            },)
           ],
         ),
       ),

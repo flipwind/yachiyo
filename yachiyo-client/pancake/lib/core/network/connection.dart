@@ -20,6 +20,9 @@ class PancakeConnection {
   ConnectionStatus _status = ConnectionStatus.disconnected;
   ConnectionStatus get currentStatus => _status;
 
+  final StreamController<String> _errorMessage = StreamController<String>.broadcast();
+  Stream<String> get errors => _errorMessage.stream;
+
   void _setStatus(ConnectionStatus status) {
     _status = status;
     _statusController.add(status);
@@ -29,13 +32,22 @@ class PancakeConnection {
     _channel?.sink.add(data);
   }
 
-  Future<void> connect(String address) async {
+  void _pushError(String message) {
+    _errorMessage.add(message);
+  }
+
+  Future<void> disconnect() async {
     await _channel?.sink.close();
-    _setStatus(ConnectionStatus.disconnected);
+    if (_channel != null) _setStatus(ConnectionStatus.disconnected);
+    _channel = null;
+  }
+
+  Future<void> connect(String address) async {
+    await disconnect();
     _setStatus(ConnectionStatus.connecting);
 
     try {
-      final channel = WebSocketChannel.connect(Uri.parse("ws://$address/ws/"));
+      final channel = WebSocketChannel.connect(Uri.parse(address));
 
       try {
         await channel.ready;
@@ -59,19 +71,20 @@ class PancakeConnection {
           onError: (err) {
             if (_channel != channel) return;
             logger.e("Connection error: ${err.toString()}");
+            _pushError("Connection error: ${err.toString()}");
             _channel = null;
             _setStatus(ConnectionStatus.disconnected);
           },
         );
       } catch (e) {
         logger.e("Client connection failed: ${e.toString()}");
+        _pushError("Client connection failed: ${e.toString()}");
         _setStatus(ConnectionStatus.disconnected);
-        rethrow;
       }
     } catch (e) {
       logger.e("Client connection failed: ${e.toString()}");
+      _pushError("Client connection failed: ${e.toString()}");
       _setStatus(ConnectionStatus.disconnected);
-      rethrow;
     }
   }
 

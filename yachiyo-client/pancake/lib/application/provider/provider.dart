@@ -9,10 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 sealed class ProviderEvent {}
 
-class EventErrorMessage extends ProviderEvent {
-  final String code;
+class EventSnackbarMessage extends ProviderEvent {
   final String message;
-  EventErrorMessage(this.code, this.message);
+  EventSnackbarMessage(this.message);
 }
 
 class PancakeProvider extends ChangeNotifier {
@@ -40,11 +39,14 @@ class PancakeProvider extends ChangeNotifier {
 
         case SessionConnecting():
           _status = ConnectionStatus.connecting;
+          data.phase = RuntimePhase.connecting;
 
         case SessionRegistered():
           _data.runtimeName = event.runtimeName;
           _data.runtimeVersion = event.runtimeVersion;
           _data.registered = true;
+          data.phase = RuntimePhase.online;
+          data.registerTime = DateTime.now();
           _session.reloadMessagesFromRuntime();
 
         case SessionStateReceived():
@@ -57,7 +59,7 @@ class PancakeProvider extends ChangeNotifier {
           _data.messages = event.messages;
 
         case SessionErrorMessage():
-          _eventController.add(EventErrorMessage(event.code, event.message));
+          _eventController.add(EventSnackbarMessage(event.message));
         case SessionSelfErrorMessage():
           _pushSelfError(event.message);
       }
@@ -67,13 +69,21 @@ class PancakeProvider extends ChangeNotifier {
   }
 
   void _pushSelfError(String message) {
-    _eventController.add(EventErrorMessage("pancake_error", message));
+    _eventController.add(EventSnackbarMessage("pancake_error: $message"));
+  }
+
+  void pushSnackbarMessage(String message) {
+    _eventController.add(EventSnackbarMessage(message));
   }
 
   static Future<PancakeProvider> create() async {
     final session = await PancakeSession.create();
     final data = await ProviderData.create();
     return PancakeProvider(session, data, session.identity);
+  }
+
+  Future<void> disconnect() async {
+    await _session.disconnect();
   }
 
   bool sendMessage(String message) {
@@ -97,16 +107,22 @@ class PancakeProvider extends ChangeNotifier {
     _session.reloadMessagesFromRuntime();
   }
 
-  void changeServerAddr(String address) {
+  Future<void> changeServerAddr(String address) async {
     _data.serverAddr = address;
-    _session.start(address);
-    _data.setServerAddr(address);
+    await _session.start(address);
+    await _data.setServerAddr(address);
 
     notifyListeners();
   }
 
   void changeClientID(String clientID) {
     _session.changeClientID(clientID);
+
+    notifyListeners();
+  }
+
+  void changeClientName(String name) {
+    _session.changeClientName(name);
 
     notifyListeners();
   }
@@ -118,6 +134,8 @@ class PancakeProvider extends ChangeNotifier {
   }
 }
 
+enum RuntimePhase { offline, connecting, online}
+
 class ProviderData {
   List<Message> messages = [];
   String runtimeName;
@@ -126,13 +144,18 @@ class ProviderData {
   String serverAddr;
 
   bool registered;
+  DateTime? registerTime;
+  RuntimePhase phase;
+
+  static const _defaultState = "There's no state here for not connecting. How about your day?";
 
   ProviderData({
     this.runtimeName = "",
     this.runtimeVersion = "",
-    this.runtimeState = "",
+    this.runtimeState = _defaultState,
     required this.serverAddr,
     this.registered = false,
+    this.phase = RuntimePhase.offline
   });
 
   static Future<ProviderData> create() async {
@@ -156,7 +179,9 @@ class ProviderData {
     messages.clear();
     runtimeName = "";
     runtimeVersion = "";
-    runtimeState = "";
+    runtimeState = _defaultState;
     registered = false;
+    registerTime = null;
+    phase = RuntimePhase.offline;
   }
 }

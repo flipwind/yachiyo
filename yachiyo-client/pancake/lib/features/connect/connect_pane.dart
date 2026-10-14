@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:pancake/application/provider/provider.dart';
+import 'package:pancake/core/network/connection.dart';
+import 'package:provider/provider.dart';
 
 class ConnectPane extends StatefulWidget {
   const ConnectPane({super.key});
@@ -13,10 +18,60 @@ class _ConnectPaneState extends State<ConnectPane> {
   final TextEditingController _nameEditingController = TextEditingController();
   final TextEditingController _idEditingController = TextEditingController();
 
+  bool loading = false;
+  String? _errorText;
+
+  Future<void> onServerAddrChange() async {
+    final status = context.read<PancakeProvider>().status;
+    if (status == ConnectionStatus.connecting) return;
+    setState(() {
+      loading = true;
+    });
+
+    final provider = context.read<PancakeProvider>();
+    final addr = _addressEditingController.text;
+    await provider.changeServerAddr(addr);
+
+    setState(() {
+      loading = false;
+    });
+  }
+
+  void setErrorText(String? text) {
+    setState(() {
+      _errorText = text;
+    });
+  }
+
+  Future<void> onIdentityChanged() async {
+    setErrorText(null);
+    final provider = context.read<PancakeProvider>();
+    bool isUUID(String value) {
+      return RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(value);
+    }
+
+    if (isUUID(_idEditingController.text) == false) {
+      setErrorText("Client ID should be a UUID.");
+      return;
+    }
+
+    provider.changeClientName(_nameEditingController.text);
+    provider.changeClientID(_idEditingController.text);
+    provider.pushSnackbarMessage("Successfully changed identity.");
+  }
+
+  Future<void> onClientIDRandom() async {
+    final provider = context.read<PancakeProvider>();
+    await provider.randomClientID();
+    _idEditingController.text = provider.identity.clientID;
+  }
+
   @override
   void initState() {
     super.initState();
-    _addressEditingController.text = "ws://127.0.0.1/ws/";
+    _addressEditingController.text = "ws://127.0.0.1:16899/ws/";
     _nameEditingController.text = "Pancake!";
     _idEditingController.text = "c17439a5-b121-48b2-b933-de9787becc30";
   }
@@ -24,6 +79,7 @@ class _ConnectPaneState extends State<ConnectPane> {
   @override
   Widget build(BuildContext context) {
     final texts = Theme.of(context).textTheme;
+    final registered = context.watch<PancakeProvider>().data.registered;
 
     return Padding(
       padding: EdgeInsetsGeometry.symmetric(vertical: 12, horizontal: 20),
@@ -47,18 +103,43 @@ class _ConnectPaneState extends State<ConnectPane> {
               labelText: "Runtime Address",
             ),
             controller: _addressEditingController,
+            onSubmitted: (value) => onServerAddrChange(),
           ),
           Row(
             spacing: 8,
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: Icon(Icons.north_east),
-                  label: Text("Connect"),
+                  onPressed: loading || registered
+                      ? null
+                      : () => onServerAddrChange(),
+                  icon: loading
+                      ? SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        )
+                      : Icon(registered ? Icons.done : Icons.north_east),
+                  label: Text(registered ? "Connected" : "Connect"),
                 ),
               ),
-              OutlinedButton(onPressed: () {}, child: Text("break")),
+              Consumer<PancakeProvider>(
+                builder: (context, provider, child) {
+                  return AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: SizedBox(
+                      width: registered ? null : 0,
+                      child: registered
+                          ? OutlinedButton(
+                              onPressed: () => provider.disconnect(),
+                              child: Text("Break"),
+                            )
+                          : SizedBox.shrink(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
           Divider(thickness: 0.5),
@@ -73,6 +154,7 @@ class _ConnectPaneState extends State<ConnectPane> {
                 spacing: 12,
                 children: [
                   TextField(
+                    enabled: !registered,
                     controller: _nameEditingController,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
@@ -82,9 +164,10 @@ class _ConnectPaneState extends State<ConnectPane> {
                     ),
                   ),
                   TextField(
-                    style: texts.bodySmall,
+                    enabled: !registered,
                     controller: _idEditingController,
                     decoration: InputDecoration(
+                      errorText: _errorText,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -95,16 +178,27 @@ class _ConnectPaneState extends State<ConnectPane> {
                     "The same Client ID refers to the same buddy for the runtime.",
                     style: texts.bodySmall,
                   ),
+
                   Row(
                     spacing: 8,
                     children: [
-                      FilledButton(onPressed: () {}, child: Text("Save")),
-                      TextButton(onPressed: () {}, child: Text("Random ID")),
+                      FilledButton(
+                        onPressed: registered ? null : () => onIdentityChanged(),
+                        child: Text("Save"),
+                      ),
+                      TextButton(
+                        onPressed: registered ? null : () => onClientIDRandom(),
+                        child: Text("Random ID"),
+                      ),
                       IconButton(
-                        onPressed: () {},
+                        onPressed: registered ? null : () async {
+                          await Clipboard.setData(ClipboardData(text: _idEditingController.text));
+                        },
                         icon: Icon(Icons.copy),
                         iconSize: 16,
                       ),
+                      if (registered)
+                        Text("*Disconnect to change.", style: texts.labelSmall),
                     ],
                   ),
                 ],
@@ -123,6 +217,8 @@ class _RuntimeIdentityWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final texts = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final data = context.watch<PancakeProvider>().data;
+
     return Card.filled(
       color: colors.secondaryContainer,
       child: Padding(
@@ -135,9 +231,9 @@ class _RuntimeIdentityWidget extends StatelessWidget {
             Text("Now heartbeating.", style: texts.titleMedium),
             SizedBox(height: 12),
             for (var item in [
-              ("Runtime", "Yachiyo"),
-              ("Version", "v0.1.0"),
-              ("Last Update", "23:55"),
+              ("Runtime", data.runtimeName == "" ? "Maybe Yachiyo?": data.runtimeName),
+              ("Version", data.runtimeVersion == "" ? "Mystery!": data.runtimeVersion),
+              ("Last Update", data.registerTime == null? "Later" : DateFormat("HH:mm").format(data.registerTime!)),
             ])
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

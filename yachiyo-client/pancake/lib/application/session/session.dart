@@ -40,9 +40,8 @@ class SessionMessageReload extends SessionEvent {
 }
 
 class SessionErrorMessage extends SessionEvent {
-  final String code;
   final String message;
-  SessionErrorMessage(this.code, this.message);
+  SessionErrorMessage(this.message);
 }
 
 class SessionSelfErrorMessage extends SessionEvent {
@@ -73,12 +72,20 @@ class PancakeSession {
           _sessionDisconnected();
       }
     });
+
+    _connection.errors.listen((errorMessage){
+      _pushSessionEvent(SessionErrorMessage(errorMessage));
+    });
   }
 
   static Future<PancakeSession> create() async {
     final Identity identity = await Identity.create();
 
     return PancakeSession(identity: identity);
+  }
+
+  Future<void> disconnect() async {
+    await _connection.disconnect();
   }
 
   Future<void> changeClientID(String id) async {
@@ -96,6 +103,10 @@ class PancakeSession {
     }
 
     await identity.changeID(id);
+  }
+
+  Future<void> changeClientName(String name) async {
+    await identity.changeName(name);
   }
 
   Future<void> randomClientID() async {
@@ -163,7 +174,7 @@ class PancakeSession {
             randomClientID();
           default:
             _pushSessionEvent(
-              SessionErrorMessage("register_error", data.errorType),
+              SessionErrorMessage("register_error: ${data.errorType}"),
             );
             _sessionDisconnected();
         }
@@ -213,7 +224,7 @@ class PancakeSession {
           ),
         );
       case ErrorMessage():
-        _pushSessionEvent(SessionErrorMessage(data.code, data.message));
+        _pushSessionEvent(SessionErrorMessage("${data.code}: ${data.message}"));
     }
   }
 

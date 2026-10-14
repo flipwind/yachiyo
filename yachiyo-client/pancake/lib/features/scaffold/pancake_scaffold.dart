@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pancake/application/provider/provider.dart';
 import 'package:pancake/features/chat/chat_pane.dart';
 import 'package:pancake/features/connect/connect_pane.dart';
 import 'package:pancake/features/observe/observe_pane.dart';
+import 'package:provider/provider.dart';
 
 class PancakeScaffold extends StatefulWidget {
   const PancakeScaffold({super.key});
@@ -12,8 +14,20 @@ class PancakeScaffold extends StatefulWidget {
 }
 
 class _PancakeScaffoldState extends State<PancakeScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<PancakeProvider>();
+    provider.events.listen((event) {
+      switch (event) {
+        case EventSnackbarMessage():
+          _show(event.message);
+      }
+    });
+  }
+
   int _page = 0;
-  void _select(int page) {
+  void select(int page) {
     setState(() {
       _page = page;
     });
@@ -25,6 +39,22 @@ class _PancakeScaffoldState extends State<PancakeScaffold> {
     });
   }
 
+  void _show(String message) {
+    final colors = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          spacing: 8,
+          children: [
+            Icon(Icons.info_outline, color: colors.onPrimary),
+            Expanded(child: Text(message, softWrap: true)),
+          ],
+        ),
+        behavior: SnackBarBehavior.fixed,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,29 +62,32 @@ class _PancakeScaffoldState extends State<PancakeScaffold> {
         children: [
           _Head(switchConnectPage: _switchConnectPage),
           Divider(thickness: 0.6),
-          Expanded(child: _ContentLayer(page: _page)),
+          Expanded(
+            child: _ContentLayer(page: _page, pageSelect: select),
+          ),
         ],
       ),
-      bottomNavigationBar: _Nav(index: _page, onSelect: _select),
+      bottomNavigationBar: _Nav(index: _page, onSelect: select),
     );
   }
 }
 
 class _ContentLayer extends StatelessWidget {
   final int page;
-  const _ContentLayer({required this.page});
+  final ValueChanged<int> pageSelect;
+  const _ContentLayer({required this.page, required this.pageSelect});
 
   @override
   Widget build(BuildContext context) {
     switch (page) {
       case 1:
-        return ObservePane(state: "hello this is state. How are you today?");
+        return ObservePane();
       case 2:
         return ConnectPane();
 
       // case 0:
       default:
-        return ChatPane();
+        return ChatPane(pageChange: pageSelect);
     }
   }
 }
@@ -66,54 +99,32 @@ class _Head extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
+    final phase = context.watch<PancakeProvider>().data.phase;
 
-    return Padding(
-      padding: EdgeInsetsGeometry.all(12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            spacing: 12.0,
-            children: [
-              Image.asset("assets/pancake.png", width: 32, height: 32),
-              Text(
-                "Pancake!",
-                style: GoogleFonts.kiwiMaru(
-                  fontSize: texts.titleLarge!.fontSize,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.5,
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsetsGeometry.all(12.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              spacing: 12.0,
+              children: [
+                Image.asset("assets/pancake.png", width: 32, height: 32),
+                Text(
+                  "Pancake!",
+                  style: GoogleFonts.kiwiMaru(
+                    fontSize: texts.titleLarge!.fontSize,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Material(
-            color: colors.secondaryContainer,
-            borderRadius: BorderRadius.circular(30),
-            child: InkWell(
-              onTap: switchConnectPage,
-              borderRadius: BorderRadius.circular(30),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  spacing: 8.0,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.grey,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Text("Offline", style: texts.labelMedium),
-                    Icon(Icons.expand_more, size: 16.0),
-                  ],
-                ),
-              ),
+              ],
             ),
-          ),
-        ],
+            _StatusCapsule(onPress: switchConnectPage, phase: phase),
+          ],
+        ),
       ),
     );
   }
@@ -169,6 +180,68 @@ class _Nav extends StatelessWidget {
                     ),
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusCapsule extends StatelessWidget {
+  final VoidCallback onPress;
+  final RuntimePhase phase;
+
+  String _phaseText(RuntimePhase p) {
+    switch (p) {
+      case RuntimePhase.offline:
+        return "Offline";
+      case RuntimePhase.connecting:
+        return "Connecting";
+      case RuntimePhase.online:
+        return "Online";
+    }
+  }
+
+  Color _phaseColor(RuntimePhase p) {
+    switch (p) {
+      case RuntimePhase.offline:
+        return Colors.grey;
+      case RuntimePhase.connecting:
+        return Colors.blue;
+      case RuntimePhase.online:
+        return Colors.lightGreenAccent;
+    }
+  }
+
+  const _StatusCapsule({required this.onPress, required this.phase});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final texts = Theme.of(context).textTheme;
+
+    return Material(
+      color: colors.secondaryContainer,
+      borderRadius: BorderRadius.circular(30),
+      child: InkWell(
+        onTap: onPress,
+        borderRadius: BorderRadius.circular(30),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            spacing: 8.0,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _phaseColor(phase),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Text(_phaseText(phase), style: texts.labelMedium),
+              Icon(Icons.expand_more, size: 16.0),
             ],
           ),
         ),
