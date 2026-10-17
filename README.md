@@ -5,95 +5,104 @@
 # Project Yachiyo
 _✨ For the pancake. ✨_
 
+[English README](README.en.md) · [MIT License](LICENSE)
+
 </div>
 
-## Introduce
+## 简介
 
-Project Yachiyo is a project which **aims to build a life runtime**.  
-Its final goal is to create a digital life, whether it's Yachiyo or any other character.
+**Project Yachiyo** 是一个旨在构建「生命运行时」的项目。  
+它的最终目标在于创建一个「数字生命」；当然，无论她是八千代还是其他的任何一个角色。
 
-Since we have realized that LLMs alone are not the answer, I still believe that we can get infinitely closer to this goal.
+你可能会「ん?」，不过这并不奇怪。  
+项目开发的原因，是因为我们认为仅靠 LLM 的方案不太能实现这个目标 —— 它可能并不是我们的最终答案。不过，我仍然坚信我们能够无限接近这个目标。
 
-Currently, the first version is **on preview**.  
-The branch is still in active development.  
-However, the first version will **inevitably be imperfect** and **may not be distinguished from similar products**. But it's important to take the first step.
+也因此，项目使用了一些**特别的设计**来向这个目标探索：  
+例如提供状态；或者通过一些手段以触发主动消息，等等。其中有一些也可能是过往的经典设计？  
+不过现在，其他未说明的大多数设想**还需要落地和验证**；由于一些个人经验的不足，这个过程可能有点缓慢。
 
-Notice that the first version is **incomplete**.
+> 非常欢迎探讨或者聊天！  
+> 请跳转到 [#交流](#交流) 一节来与我联系 :>
 
-## ✨ Quick Start
+当前，第一个版本仍处于预览期，主要面向开发人员和感兴趣的同学。它并不完美，并且可能无法区别于其他类似项目或 chatbot；但是第一步仍然是很重要的。
 
-As you see, the first version is just **too simple**.  
-As a result, these steps are also very simple.
+我们的项目仍在活跃开发中。请注意，第一个版本实际上并不完善。
+
+## ✨ 快速开始
+
+如你所见，第一个版本实在是太过简单。相应的，这些步骤**也许**也非常简单。（笑）
 
 > [!IMPORTANT]  
-> Before starting, we hope that you have been already aware of **these risks**:  
-> - Local first: We **didn't** do any authentication. As the result, please deploy it in trusted machine. Deploy it in open network is **highly not recommended**. Also, **exposed it directly to the LAN or the public network** are also not recommended.
-> - Unsaved history: We think that our Yachiyo is currently unable to run a long time. So any storage now is in **in-memory**.  
-> - Experimental protocol: Since our json protocol is under explore, it's **not suitable** for you to code or vibe a your own client.
+> 在开始之前，我们得先知道这些风险：（免责声明）  
+> - 本地优先。我们没做任何的认证与防护。因此，请将其部署在你的受信任的机器上。将其暴露于不受信任的局域网同样也是**不太推荐的**。也不太推荐将其**直接暴露于公网**。
+> - 历史未落盘：由于 Yachiyo 目前并不是太适合长期运行，所以当前并没有做落盘。历史记录仅仅存在内存中，重启即丢失。
+> - 实验性的协议：我们的 JSON 协议还在探索中，因此**不太推荐**你来通过编写或者 vibe 一个客户端。~~大量 token 持有者可以忽略这句话。~~
 
+粗略划分的话，Project Yachiyo 包含两大部分。其一，服务端；其二，外部接入的客户端。
 
-Project Yachiyo consists of two parts, the server and the external clients.
+### 服务端
+1. 下载 **Releases** 里的 server 程序。  
+对于未提供相应平台的（真的会有吗），可以尝试本地编译看看。你也可以直接使用 `task server:build` 来完成这一步，构建的输出在 `/build` 里。
+2. 使用你的配置，编辑相应的 `config.example.yaml`，并将其**重命名**为 `config.yaml`。
+3. ✨ 尝试使用。
 
-### Server
+### 客户端
 
-1. Download the server package in **release page**.   
-For non-provided platforms, try to compile according to the target platform. You can also just run `task server:build` to complete this step.
-2. Edit `config.example.yaml` with your information, and **rename** it to `config.yaml`.
-3. Run it.
-
-### Client
-
-Clients can be categorized into lots of kinds. Currently, there are only onebot, CLI and flutter clients which are built in.
+客户端们可以被分为许多种。当前内置的，只有 Onebot，CLI 以及 Flutter 客户端。
 
 > [!Note]  
-> Currently, `Pancake!`, the flutter client is the only recommended client, for it has the most completed features.  
-> The other clients in this monorepo, like onebot and CLI is too simple to be suitable for use.  
+> 目前，Flutter 客户端 `Pancake!` 因着其最为完善的特性，是**唯一一个推荐的客户端**。  
+> 在这个混合仓库的其他客户端，例如 Onebot 和 CLI，过于简陋，因此不太适合使用。
 
-#### For flutter client (Recommend):
+以下是内置客户端的简单说明。
 
-`Pancake!`, the flutter client, is designed to be a cross-platform application.  
-Most flutter-supported platforms, except `Android` and `Windows`, lack necessary tests and verifications, please notice.  
-As the result, use `Pancake!` in platforms like `Linux` may have some unexpected problems.
+#### 对于 Flutter 客户端（推荐）：
 
-`Pancake!` allows changing the connection address, monitoring runtime state and messaging with the runtime.  
+Flutter 客户端 `Pancake!` 被设计为跨平台应用，所以这也是使用 Flutter 的原因。  
+**注意**！对于除了 `Android` 和 `Windows` 的其他 Flutter 支持平台，都缺少一些必要的测试与实机验证。  
+也因此，在 `Linux` 之类的平台使用 `Pancake!` 可能会有些意想不到的问题。
 
-In current period, `Pancake!` uses json over websocket to communicate with the runtime.  
-A switch to gRPC is planned in the future.
+`Pancake!` 允许您更改连接地址，监控 Runtime 的 State 属性，以及与 Runtime 进行交流。
 
-1. Download the `Pancake!` package on the **release page**.   
-For non-provided platforms, try to build it for your target platform. You can also just run `task pancake [-- BUILD_TARGET]` to complete this step.
-    - `task pancake` and `task pancake:release` build the Windows application by default.   
-    You can also specify a target, such as `task pancake -- apk` for Android or `task pancake -- windows` for Windows.
-    - [BUILD_TARGET] can be `aar`, `apk`, `web` or another target supported by Flutter. Run `flutter build` to see the available subcommands.
-2. Run it.
-3. Enter the server address field to monitor or message with the runtime.
+当前阶段，`Pancake!` 使用基于 Websocket 的 JSON 协议进行双端通信。  
+我们计划未来会使用 gRPC 之类的技术。
 
-#### For CLI client:
+1. 在 Releases 里下载对应版本的 `Pancake!` 应用。  
+对于未被提供的平台，你可以尝试着为你的平台自行编译。  
+你也可以通过运行 `task pancake [-- BUILD_TARGET]` 来完成这一步。
+    - `task pancake` 与 `task pancake:release` 默认编译 Windows 版本。  
+    当然你也可以指定特定平台，比如对于 Android 可以用 `task pancake -- apk`，对于 Windows 则用 `task pancake -- windows`。
+    - `[BUILD_TARGET]` 可以是 `aar`, `apk`, `web` 或其他 Flutter 支持平台的任何一种。运行 `flutter build` 来查阅其他支持的平台（这当然是对的，因为 task 任务肯定会使用 Flutter 的相关命令）。
+2. 运行它。
+3. 记得在应用内配置服务端地址。
 
-1. Compile according to the target platform.   
-Or run `task cli:build` to compile it.
-2. Run it. 
+#### 对于 CLI 平台：
 
-#### For onebot client:
+1. 根据对应平台编译，或使用 `task cli:build`。
+2. 运行。
 
-This part is crude, and you may not hope it can work well.  
+#### 对于 Onebot 平台：
 
-It don't need a specific client.   
-The server serves as a Websocket Server, and the server have a gateway for translation.    
-Use your onebot realization as a client, and use URL `ws://<host>:<port>/ws/onebot` to connect the server.
+这部分太粗糙，并且你不能指望它很舒服地运行。
 
-### About Prompt
+这并不是个特别的客户端。  
+服务端作为一个 Websocket 服务，并且在连接过程中使用内置的 Gateway 进行协议翻译。  
+在你的 Onebot 实现（例如 Napcat）中，将它们作为一个 Client；使用 `ws://<host>:<port>/ws/onebot` 以连接服务端。`port` 的内容取决于你的配置。
 
-Prompt for public is **a simplified version** of the origin.  
-For some reason, the original prompt is private temporarily.
+### 关于提示词的撰写
 
-If you hope, you can provide your own system prompt.  
+开源的 Prompt 是初版的简化版。  
+由于这些那些的原因及顾虑，初版 Prompt 现在暂时是 private 的。  
 
-Any way, a **valid** prompt should have the following parts:
+如果你愿意，你当然可以撰写一份属于你自己的 system prompt。
 
-#### 1. Constrain the model's output.  
-It may helps a lot by reading the code.  
-Following is the **must** output json format.
+但无论如何，一个可用的 prompt 需要含有以下的部分：
+
+#### 1. 限制模型的输出
+
+啃一下代码可能会有用。（我没说谁来啃.jpg）  
+下面是模型输出必须遵循的 JSON 格式的**示意**，可以直接喂进去。
+
 ```json
 {
     "reply": bool,
@@ -116,43 +125,40 @@ Following is the **must** output json format.
 }
 ```
 
-> `Urgency` is a custom unit. And you can give its prompt to LLMs like this:
+> `Urgency` 是一个预设的单位。你可以这么告诉模型：
 ```md
-Urgency is a custom unit that measures the level of importance.   
-From lowest to highest, the six types are: Trivial, Low, Medium, High, Urgent, and Extreme.   
-These terms will be given strictly according to this rule.   
-If someone ask you to assign an Urgency, make sure to choose the appropriate type.
+Urgency 是一个预设的单位，用于测量重要程度。
+六个子项从最弱到最强分别是 Trivial，Low，Medium，High，Urgent 和 Extreme。
+这些术语需要严格按照规定输出；如果被需要输出一个 Urgency 单位，请选取合适的类型。
 ```
 
-#### 2. Character's setup
-As you wish.
+#### 2. 角色的设置。
 
-## Documentation
+请你自助。
 
-The documents are stored in `yachiyo-docs`.
+## 文档
 
-A simple development documentation site is available at [Project Yachiyo Docs](https://yachiyo.zako.ink).
+文档被存储在 `yachiyo-docs` 目录下。
 
-> [!IMPORTANT] 
-> Currently, Chinese is the only available documentation language.
+可以访问一个简单的开发文档的站点 [Project Yachiyo Docs](https://yachiyo.zako.ink)。
 
-## Contact
+## 交流
 
-If you are interested in this project, discussions are welcome.  
-You can contact me at `me[at]zako.ink` :>
+如果你对这个项目感兴趣，非常欢迎共同讨论！( •̀ ω •́ )✧  
+你可以通过邮件 `me[at]zako.ink` 来联系我。
 
-Also, if you are a user, you can also join these groups to communicate with others. You are welcome to discuss your thoughts with us:  
-- Telegram Group: [@project_yachiyo](https://t.me/project_yachiyo)
-- QQ Group: [1126376305](https://qm.qq.com/q/u7w1xQ3a2k)
+另外，如果你是一个使用者，你也可以加入我们的群组来交流讨论，无论是吹水还是你自己的想法：
+- Telegram 群组：[@project_yachiyo](https://t.me/project_yachiyo)
+- QQ 群组：[1126376305](https://qm.qq.com/q/u7w1xQ3a2k)
 
-## License
-This project is licensed under the [MIT License](LICENSE).
+## 协议
+Project Yachiyo 以 [MIT License](LICENSE) 的形式开源。
 
-## Acknowledgements
+## 致谢
 
-- **Yachiyo Runami** — Yachiyo Runami, a character from the 2026 anime film *[超かぐや姫！(Cosmic Princess Kaguya!)](https://www.cho-kaguyahime.com/)*, released on Netflix, inspired the creation of Project Yachiyo.   
-    - The default system prompt is adapted from the character's  original story and persona.  
-    - The default profile image and the project icon were created with the assistance of ChatGPT, based on the character's original design and inspired by the visual style of Grok Bot's avatar.
-    
-    **I sincerely thank the creators of *超かぐや姫！* for creating the character who inspired this project.**
-- **Pancake Icon** — The icon [`pancake_icon.png`](/assets/picture/pancake.png) is from [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji), which is licensed under the MIT License.
+- **月见八千代** - 从 *[超かぐや姫！(Cosmic Princess Kaguya!)](https://www.cho-kaguyahime.com/)* 中姗姗走来的角色，是开发 Project Yachiyo 的楔子。
+    - 默认的 system prompt 改编于其背景故事及其人格。
+    - 默认的头像与项目图标，是在 ChatGPT 的协助下完成的 —— 基于角色原本的设计，并借鉴了 Grok Bot 的艺术风格。
+
+    **我由衷感谢 *超かぐや姫！* 的创作者们，创作了一个激发该项目开发的角色。太伟大了。**
+- **松饼图标** - 图标 [`pancake_icon.png`](/assets/picture/pancake.png) 取自以 MIT License 方式开源的 [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji)。
