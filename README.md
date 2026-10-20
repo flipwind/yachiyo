@@ -105,23 +105,27 @@ Flutter 客户端 `Pancake!` 被设计为跨平台应用，所以这也是使用
 
 ```json
 {
-    "reply": bool,
-    "answer": string,
-    "change": {
-        "emotion": {
-            "emotion": "happy" | "excited" | "sad" |... ,
-            "result": Urgency
+  "reply": bool,
+  "answer": string,
+  "change": {
+    "state_delta": {
+      "SocialDesire": -1 | 0 | 1,
+      "Interest": -1 | 0 | 1
+    },
+    "affect_press": [
+        {
+            "emotion": string,
+            "intensity": string,
+            "value": double,
         },
-        "state_delta": {
-            "SocialDesire": -1 | 0 | 1,
-            "Interest": -1 | 0 | 1
-        }
-    },
-    "determination": {
-        "should_open_a_new_session": bool,
-        "should_wait_for_reply": bool
-    },
-    "note": string
+        ...
+    ]
+  },
+  "determination": {
+    "should_open_a_new_session": bool,
+    "should_wait_for_reply": bool
+  },
+  "note": string
 }
 ```
 
@@ -131,6 +135,9 @@ Urgency 是一个预设的单位，用于测量重要程度。
 六个子项从最弱到最强分别是 Trivial，Low，Medium，High，Urgent 和 Extreme。
 这些术语需要严格按照规定输出；如果被需要输出一个 Urgency 单位，请选取合适的类型。
 ```
+
+> [!IMPORTANT]  
+> 关于上述 JSON 输出的字段，均有**一定的限制**，你可以在我们给出的 [示例 Prompt](/assets/prompt/system.md) 中查看。
 
 #### 2. 角色的设置。
 

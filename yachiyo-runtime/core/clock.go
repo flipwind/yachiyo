@@ -20,6 +20,9 @@ func (c *Core) processTimetick() {
 		s.Drive.Press((1.4 * 5) / (3600 * 1))
 	}
 
+	// Affect Engine
+	c.Affect.Simulate(1)
+
 	// Initiative
 	timeNow := time.Now()
 

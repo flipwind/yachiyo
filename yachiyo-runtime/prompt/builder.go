@@ -17,17 +17,19 @@ type Context struct {
 func statementPrompt(snap history.Snapshot, note string) string {
 	return fmt.Sprintf(`<Yachiyo Runtime>
 In this round of conversation, you must consider these statements and follow them.
-Emotion: %s
 State: %s
 Last Active Time: %s
 Session Context: %s
 ---
+<Current Affect Engine>
+%s
+---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
-		snap.Emotion.String(),
 		snap.State.Prompt(),
 		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
 		note,
+		snap.Affect.String(),
 	)
 }
 
@@ -96,6 +98,7 @@ func UserPromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	statementPrompt := PassivePrompt(snap, c.Note)
 	prompts = append(prompts, statementPrompt)
 
+	ylog.Debug("Generated prompt list: %v", prompts)
 	return prompts
 }
 
@@ -117,5 +120,6 @@ func InitiativePromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	statementPrompt := InitiativePrompt(snap, c.Note)
 	prompts = append(prompts, statementPrompt)
 
+	ylog.Debug("Generated prompt list: %v", prompts)
 	return prompts
 }

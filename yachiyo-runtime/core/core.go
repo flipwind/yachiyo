@@ -21,11 +21,11 @@ var ylog = logger.New("Yachiyo.Core")
 type Core struct {
 	History       history.HistoryStorage
 	State         state.State
-	Emotion       state.Emotion
 	LLM           llm.LLM
 	Config        config.Config
 	Determination state.Determination
 	Factors       initiative.Factors
+	Affect        state.Engine
 
 	Note           string
 	Pipe           *Pipeline
@@ -57,18 +57,27 @@ func New() (*Core, error) {
 		initiativeConfig.Factors.Daytime,
 	)
 
+	affect := state.NewEngine(state.BigFive{
+		Openness:          config.Core.BigFive.Openness,
+		Conscientiousness: config.Core.BigFive.Conscientiousness,
+		Extraversion:      config.Core.BigFive.Extraversion,
+		Agreeableness:     config.Core.BigFive.Agreeableness,
+		Neuroticism:       config.Core.BigFive.Neuroticism,
+	})
+
 	if err != nil {
 		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
 	}
 
 	core := &Core{
-		History:        basic.New(),
-		State:          state.NewState(),
-		Emotion:        state.NewEmotion(),
-		LLM:            llm,
-		Config:         config,
-		Determination:  state.NewDetermination(),
-		Factors:        factors,
+		History:       basic.New(),
+		State:         state.NewState(),
+		LLM:           llm,
+		Config:        config,
+		Determination: state.NewDetermination(),
+		Factors:       factors,
+		Affect:        affect,
+
 		Note:           "",
 		LastActiveTime: time.Now(),
 	}
@@ -125,7 +134,7 @@ func (c *Core) AppendHistory(hist history.History) {
 
 type Snapshot struct {
 	State          state.State
-	Emotion        state.Emotion
+	Affect         state.Engine
 	Determination  state.Determination
 	Factors        initiative.Factors
 	JSONConstraint bool
@@ -139,7 +148,7 @@ func (c *Core) snapshot() Snapshot {
 
 	snap := Snapshot{
 		State:          c.State,
-		Emotion:        c.Emotion,
+		Affect:         c.Affect,
 		Determination:  c.Determination,
 		Factors:        c.Factors,
 		Note:           c.Note,

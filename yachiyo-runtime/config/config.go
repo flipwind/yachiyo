@@ -15,6 +15,14 @@ import (
 
 var ylog = logger.New("Yachiyo.Config")
 
+type BigFive struct {
+	Openness          float64 `yaml:"openness"`
+	Conscientiousness float64 `yaml:"conscientiousness"`
+	Extraversion      float64 `yaml:"extraversion"`
+	Agreeableness     float64 `yaml:"agreeableness"`
+	Neuroticism       float64 `yaml:"neuroticism"`
+}
+
 type LLMProvider struct {
 	Enabled *bool   `yaml:"enabled"`
 	Name    *string `yaml:"name"`
@@ -40,6 +48,9 @@ type Config struct {
 	Log      struct {
 		Level *string `yaml:"level"`
 	} `yaml:"log"`
+	Core struct {
+		BigFive *BigFive `yaml:"bigfive"`
+	} `yaml:"core"`
 	Prompt struct {
 		SystemPromptPath *string `yaml:"system"`
 		SystemPrompt     string
@@ -127,6 +138,35 @@ func (c *Config) Check() ([]ywarning.Warning, []error) {
 		default:
 			warns = append(warns, ywarning.FieldIncorrect("log.level", "info"))
 			logger.SetLogLevel(logger.Info)
+		}
+	}
+
+	// core.bigfive
+	if c.Core.BigFive == nil {
+		warns = append(warns, ywarning.FieldMissing("core.bigfive", "openness: 0.92, conscientiousness: 0.65, extraversion: 0.88, agreeableness: 0.82, neuroticism: 0.42"))
+		c.Core.BigFive = &BigFive{
+			Openness:          0.92,
+			Conscientiousness: 0.65,
+			Extraversion:      0.88,
+			Agreeableness:     0.82,
+			Neuroticism:       0.42,
+		}
+	} else {
+		bigfive := c.Core.BigFive
+		if bigfive.Openness > 1 || bigfive.Openness < 0 {
+			errs = append(errs, fmt.Errorf("core.bigfive.openness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
+		}
+		if bigfive.Conscientiousness > 1 || bigfive.Conscientiousness < 0 {
+			errs = append(errs, fmt.Errorf("core.bigfive.conscientiousness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
+		}
+		if bigfive.Extraversion > 1 || bigfive.Extraversion < 0 {
+			errs = append(errs, fmt.Errorf("core.bigfive.extraversion should be in [0, 1]: %w", yerror.ErrFieldInvalid))
+		}
+		if bigfive.Agreeableness > 1 || bigfive.Agreeableness < 0 {
+			errs = append(errs, fmt.Errorf("core.bigfive.agreeableness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
+		}
+		if bigfive.Neuroticism > 1 || bigfive.Neuroticism < 0 {
+			errs = append(errs, fmt.Errorf("core.bigfive.neuroticism should be in [0, 1]: %w", yerror.ErrFieldInvalid))
 		}
 	}
 

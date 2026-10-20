@@ -20,7 +20,7 @@ type History interface {
 
 type Snapshot struct {
 	Time           time.Time // The time when snapshot was taken
-	Emotion        state.Emotion
+	Affect         state.Engine
 	State          state.State
 	Factors        initiative.Factors
 	LastActiveTime time.Time

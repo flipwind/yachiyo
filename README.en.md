@@ -98,23 +98,27 @@ It may helps a lot by reading the code.
 Following is the **must** output json format.
 ```json
 {
-    "reply": bool,
-    "answer": string,
-    "change": {
-        "emotion": {
-            "emotion": "happy" | "excited" | "sad" |... ,
-            "result": Urgency
+  "reply": bool,
+  "answer": string,
+  "change": {
+    "state_delta": {
+      "SocialDesire": -1 | 0 | 1,
+      "Interest": -1 | 0 | 1
+    },
+    "affect_press": [
+        {
+            "emotion": string,
+            "intensity": string,
+            "value": double,
         },
-        "state_delta": {
-            "SocialDesire": -1 | 0 | 1,
-            "Interest": -1 | 0 | 1
-        }
-    },
-    "determination": {
-        "should_open_a_new_session": bool,
-        "should_wait_for_reply": bool
-    },
-    "note": string
+        ...
+    ]
+  },
+  "determination": {
+    "should_open_a_new_session": bool,
+    "should_wait_for_reply": bool
+  },
+  "note": string
 }
 ```
 
@@ -125,6 +129,9 @@ From lowest to highest, the six types are: Trivial, Low, Medium, High, Urgent, a
 These terms will be given strictly according to this rule.   
 If someone ask you to assign an Urgency, make sure to choose the appropriate type.
 ```
+
+> [!IMPORTANT]  
+> For the JSON output, there are some **restrictions**. For more details, see the [example prompt](/assets/prompt/system.md). :>
 
 #### 2. Character's setup
 As you wish.

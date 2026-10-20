@@ -3,6 +3,14 @@ nickname: Yachiyo
 log:
   level: debug
 
+core:
+  bigfive:
+    openness: 0.92
+    conscientiousness:  0.65
+    extraversion: 0.88
+    agreeableness: 0.82
+    neuroticism: 0.42
+
 prompt:
   system: ./prompt/system.md
 

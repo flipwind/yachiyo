@@ -109,6 +109,7 @@ func (p PAD) String() string {
 // OCC emotions in PAD space, using types in the papper.
 type OCCEmotionType struct {
 	ymath.Vector3
+	Name string
 }
 
 type OCCEmotion struct {
@@ -117,31 +118,58 @@ type OCCEmotion struct {
 }
 
 var (
-	Admiration     = OCCEmotionType{ymath.Vector3{X: 0.5, Y: 0.3, Z: -0.2}}
-	Anger          = OCCEmotionType{ymath.Vector3{X: -0.51, Y: 0.59, Z: 0.25}}
-	Disliking      = OCCEmotionType{ymath.Vector3{X: -0.4, Y: 0.2, Z: 0.1}}
-	Disappointment = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.4}}
-	Distress       = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}}
-	Fear           = OCCEmotionType{ymath.Vector3{X: -0.64, Y: 0.60, Z: -0.43}}
-	FearsConfirmed = OCCEmotionType{ymath.Vector3{X: -0.5, Y: -0.3, Z: -0.7}}
-	Gloating       = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.3, Z: -0.1}}
-	Gratification  = OCCEmotionType{ymath.Vector3{X: 0.6, Y: 0.5, Z: 0.4}}
-	Gratitude      = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: -0.3}}
-	HappyFor       = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.2}}
-	Hate           = OCCEmotionType{ymath.Vector3{X: -0.6, Y: 0.6, Z: 0.3}}
-	Hope           = OCCEmotionType{ymath.Vector3{X: 0.2, Y: 0.2, Z: -0.1}}
-	Joy            = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.1}}
-	Liking         = OCCEmotionType{ymath.Vector3{X: 0.40, Y: 0.16, Z: -0.24}}
-	Love           = OCCEmotionType{ymath.Vector3{X: 0.3, Y: 0.1, Z: 0.2}}
-	Pity           = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}}
-	Pride          = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.3, Z: 0.3}}
-	Relief         = OCCEmotionType{ymath.Vector3{X: 0.2, Y: -0.3, Z: 0.4}}
-	Remorse        = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}}
-	Reproach       = OCCEmotionType{ymath.Vector3{X: -0.3, Y: -0.1, Z: 0.4}}
-	Resentment     = OCCEmotionType{ymath.Vector3{X: -0.2, Y: -0.3, Z: -0.2}}
-	Satisfaction   = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.2, Z: 0.4}}
-	Shame          = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}}
+	Admiration     = OCCEmotionType{ymath.Vector3{X: 0.5, Y: 0.3, Z: -0.2}, "Admiration"}
+	Anger          = OCCEmotionType{ymath.Vector3{X: -0.51, Y: 0.59, Z: 0.25}, "Anger"}
+	Disliking      = OCCEmotionType{ymath.Vector3{X: -0.4, Y: 0.2, Z: 0.1}, "Disliking"}
+	Disappointment = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.4}, "Disappointment"}
+	Distress       = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}, "Distress"}
+	Fear           = OCCEmotionType{ymath.Vector3{X: -0.64, Y: 0.60, Z: -0.43}, "Fear"}
+	FearsConfirmed = OCCEmotionType{ymath.Vector3{X: -0.5, Y: -0.3, Z: -0.7}, "FearsConfirmed"}
+	Gloating       = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.3, Z: -0.1}, "Gloating"}
+	Gratification  = OCCEmotionType{ymath.Vector3{X: 0.6, Y: 0.5, Z: 0.4}, "Gratification"}
+	Gratitude      = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: -0.3}, "Gratitude"}
+	HappyFor       = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.2}, "HappyFor"}
+	Hate           = OCCEmotionType{ymath.Vector3{X: -0.6, Y: 0.6, Z: 0.3}, "Hate"}
+	Hope           = OCCEmotionType{ymath.Vector3{X: 0.2, Y: 0.2, Z: -0.1}, "Hope"}
+	Joy            = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.1}, "Joy"}
+	Liking         = OCCEmotionType{ymath.Vector3{X: 0.40, Y: 0.16, Z: -0.24}, "Liking"}
+	Love           = OCCEmotionType{ymath.Vector3{X: 0.3, Y: 0.1, Z: 0.2}, "Love"}
+	Pity           = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}, "Pity"}
+	Pride          = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.3, Z: 0.3}, "Pride"}
+	Relief         = OCCEmotionType{ymath.Vector3{X: 0.2, Y: -0.3, Z: 0.4}, "Relief"}
+	Remorse        = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}, "Remorse"}
+	Reproach       = OCCEmotionType{ymath.Vector3{X: -0.3, Y: -0.1, Z: 0.4}, "Reproach"}
+	Resentment     = OCCEmotionType{ymath.Vector3{X: -0.2, Y: -0.3, Z: -0.2}, "Resentment"}
+	Satisfaction   = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.2, Z: 0.4}, "Satisfaction"}
+	Shame          = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}, "Shame"}
 )
+
+var OCCEmotionMap = map[string]OCCEmotionType{
+	"Admiration":     Admiration,
+	"Anger":          Anger,
+	"Disliking":      Disliking,
+	"Disappointment": Disappointment,
+	"Distress":       Distress,
+	"Fear":           Fear,
+	"FearsConfirmed": FearsConfirmed,
+	"Gloating":       Gloating,
+	"Gratification":  Gratification,
+	"Gratitude":      Gratitude,
+	"HappyFor":       HappyFor,
+	"Hate":           Hate,
+	"Hope":           Hope,
+	"Joy":            Joy,
+	"Liking":         Liking,
+	"Love":           Love,
+	"Pity":           Pity,
+	"Pride":          Pride,
+	"Relief":         Relief,
+	"Remorse":        Remorse,
+	"Reproach":       Reproach,
+	"Resentment":     Resentment,
+	"Satisfaction":   Satisfaction,
+	"Shame":          Shame,
+}
 
 // The Big Five personality traits.
 // Every value should be in [0, 1]
@@ -157,16 +185,16 @@ type BigFive struct {
 
 // Describe a point floating in the space.
 type Point struct {
-	Position ymath.Vector3 // (x, y, z)
+	Position PAD // (x, y, z)
 }
 
 func (p *Point) Move(step ymath.Vector3) {
 	result := p.Position.Add(step)
-	p.Position = ymath.Vector3{
+	p.Position = PAD{Vector3: ymath.Vector3{
 		X: Clamp(result.X, -1, 1),
 		Y: Clamp(result.Y, -1, 1),
 		Z: Clamp(result.Z, -1, 1),
-	}
+	}}
 }
 
 func Clamp(n, a, b float64) float64 {
@@ -188,6 +216,22 @@ type Engine struct {
 	Emotions []OCCEmotion // Current OCCEmotion
 }
 
+func (e Engine) String() string {
+	moods := ""
+	for _, mood := range e.Emotions {
+		moods += fmt.Sprintf("	- %s: %f\n", mood.Type.Name, mood.Intensity)
+	}
+
+	if moods == "" {
+		moods = "	- Normal"
+	}
+
+	return fmt.Sprintf(`Mood Octants: %s
+PAD Space: %s
+Active Moods:
+%s`, e.Current.Position.Category(), e.Current.Position.String(), moods)
+}
+
 // Recommend to use only when BigFive values significantly changed.
 func NewEngine(b BigFive) Engine {
 	defaultMood := ymath.Vector3{
@@ -201,7 +245,7 @@ func NewEngine(b BigFive) Engine {
 			Vector3: defaultMood,
 		},
 		Current: Point{
-			Position: defaultMood,
+			Position: PAD{defaultMood},
 		},
 	}
 }
@@ -247,7 +291,7 @@ func (e *Engine) Simulate(seconds float64) {
 	if len(e.Emotions) == 0 {
 		// returns to default
 		center = e.Default.Vector3
-		direction := center.Sub(e.Current.Position)
+		direction := center.Sub(e.Current.Position.Vector3)
 		length := direction.Length()
 		distance := math.Min(returnspeed*seconds, length)
 
@@ -257,7 +301,7 @@ func (e *Engine) Simulate(seconds float64) {
 		}
 	} else {
 		// returns to virtual mood center
-		direction := center.Sub(e.Current.Position)
+		direction := center.Sub(e.Current.Position.Vector3)
 		length := direction.Length()
 		distance := math.Min(movespeed*seconds, length)
 

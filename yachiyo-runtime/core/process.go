@@ -55,18 +55,21 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	}
 }
 
+type EmotionPress struct {
+	Emotion   string  `json:"emotion"`
+	Intensity string  `json:"intensity"`
+	Value     float64 `json:"value"`
+}
+
 type LLMOutput struct {
 	Reply  bool   `json:"reply"`
 	Answer string `json:"answer"`
 	Change struct {
-		Emotion struct {
-			Change string `json:"emotion"`
-			Result string `json:"result"`
-		} `json:"emotion"`
 		State struct {
 			SocialDesire int64 `json:"SocialDesire"`
 			Interest     int64 `json:"Interest"`
 		} `json:"state_delta"`
+		AffectPress []EmotionPress `json:"affect_press"`
 	} `json:"change"`
 	Determination state.Determination `json:"determination"`
 	Note          string              `json:"note"`
@@ -78,13 +81,34 @@ func (c *Core) apply(schema string) (string, bool, error) {
 		return "", false, fmt.Errorf("Json unmarshal error: %w", err)
 	}
 
+	for _, affect := range output.Change.AffectPress {
+		if _, ok := state.OCCEmotionMap[affect.Emotion]; !ok {
+			return "", false, fmt.Errorf("affect emotion type invalid")
+		}
+
+		val := affect.Value
+		switch affect.Intensity {
+		case "slight":
+			if val < 0 || val > 1.0/3 {
+				return "", false, fmt.Errorf("affect emotion value not match intensity")
+			}
+		case "moderate":
+			if val < 1.0/3 || val > 2.0/3 {
+				return "", false, fmt.Errorf("affect emotion value not match intensity")
+			}
+		case "high":
+			if val < 2.0/3 || val > 1 {
+				return "", false, fmt.Errorf("affect emotion value not match intensity")
+			}
+		default:
+			return "", false, fmt.Errorf("affect emotion intensity invalid")
+		}
+	}
+
 	ylog.Debug("%s", schema)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	c.Emotion.Type = output.Change.Emotion.Change
-	c.Emotion.Urgency = state.UrgencyFromString(output.Change.Emotion.Result)
 
 	switch output.Change.State.SocialDesire {
 	case 1:
@@ -98,6 +122,16 @@ func (c *Core) apply(schema string) (string, bool, error) {
 		c.State.Interest.Increase()
 	case -1:
 		c.State.Interest.Decrease()
+	}
+
+	// affect
+	for _, affect := range output.Change.AffectPress {
+		val := affect.Value
+		emot := state.OCCEmotionMap[affect.Emotion]
+		c.Affect.Emotions = append(c.Affect.Emotions, state.OCCEmotion{
+			Type:      emot,
+			Intensity: val,
+		})
 	}
 
 	c.Determination = output.Determination
@@ -118,14 +152,12 @@ func debugOutput(answer string, c_formal Snapshot, c_later Snapshot) {
 Yachiyo > %s
 * Formal:
 %s
-%s
 * Later:
-%s
 %s
 %+v
 * Session Context: %s`,
-		answer, c_formal.Emotion.String(), c_formal.State.Prompt(),
-		c_later.Emotion.String(), c_later.State.Prompt(), c_later.Determination,
+		answer, c_formal.State.Prompt(),
+		c_later.State.Prompt(), c_later.Determination,
 		c_later.Note)
 }
 
@@ -195,7 +227,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	snap := c.snapshot()
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
-		Emotion:        snap.Emotion,
+		Affect:         snap.Affect,
 		State:          snap.State,
 		Factors:        snap.Factors,
 		LastActiveTime: snap.LastActiveTime,
@@ -229,7 +261,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	snap = c.snapshot()
 	histSnap = history.Snapshot{
 		Time:           time.Now(),
-		Emotion:        snap.Emotion,
+		Affect:         snap.Affect,
 		State:          snap.State,
 		Factors:        snap.Factors,
 		LastActiveTime: snap.LastActiveTime,
@@ -275,7 +307,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
-		Emotion:        snap.Emotion,
+		Affect:         snap.Affect,
 		State:          snap.State,
 		Factors:        snap.Factors,
 		LastActiveTime: snap.LastActiveTime,
@@ -301,7 +333,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	snap = c.snapshot()
 	histSnap = history.Snapshot{
 		Time:           time.Now(),
-		Emotion:        snap.Emotion,
+		Affect:         snap.Affect,
 		State:          snap.State,
 		Factors:        snap.Factors,
 		LastActiveTime: snap.LastActiveTime,
@@ -331,17 +363,30 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 }
 
 func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
-	DebugMessage := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
+	timetick := fmt.Sprintf("Received timetick %s", time.Now().Format("15:04:05"))
 
+	var states, factors, affect string
 	c.mu.Lock()
 	for _, s := range c.State.Drives() {
-		DebugMessage += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
+		states += fmt.Sprintf("  - %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
-	DebugMessage += fmt.Sprintf("factors: %v\n", c.Factors.String())
+	factors = c.Factors.String()
+	affect = c.Affect.String()
 	c.mu.Unlock()
 
+	debugMessage := fmt.Sprintf(`%s
+---
+<States>
+%s
+---
+<Factors>
+%s
+---
+<Affect Engine>
+%s`, timetick, states, factors, affect)
+
 	return &action.RuntimeState{
-		Content: DebugMessage,
+		Content: debugMessage,
 		Address: t.Address,
 	}
 }
