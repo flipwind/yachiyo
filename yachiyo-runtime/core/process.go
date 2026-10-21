@@ -63,7 +63,7 @@ type EmotionPress struct {
 
 type LLMOutput struct {
 	Reply  bool   `json:"reply"`
-	Answer string `json:"answer"`
+	Answer []string `json:"answer"`
 	Change struct {
 		State struct {
 			SocialDesire int64 `json:"SocialDesire"`
@@ -75,33 +75,43 @@ type LLMOutput struct {
 	Note          string              `json:"note"`
 }
 
-func (c *Core) apply(schema string) (string, bool, error) {
+var emptyAnswers []string = make([]string, 0)
+
+func (c *Core) apply(schema string) ([]string, bool, error) {
 	var output LLMOutput
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
-		return "", false, fmt.Errorf("Json unmarshal error: %w", err)
+		return emptyAnswers, false, fmt.Errorf("Json unmarshal error: %w", err)
+	}
+
+	if len(output.Answer) == 0 {
+		return emptyAnswers, false, fmt.Errorf("LLM returns invaild answer: answer has no items")
+	}
+
+	if output.Reply == false && len(output.Answer) != 1 {
+		return emptyAnswers, false, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
 	}
 
 	for _, affect := range output.Change.AffectPress {
 		if _, ok := state.OCCEmotionMap[affect.Emotion]; !ok {
-			return "", false, fmt.Errorf("affect emotion type invalid")
+			return emptyAnswers, false, fmt.Errorf("affect emotion type invalid")
 		}
 
 		val := affect.Value
 		switch affect.Intensity {
 		case "slight":
 			if val < 0 || val > 1.0/3 {
-				return "", false, fmt.Errorf("affect emotion value not match intensity")
+				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
 			}
 		case "moderate":
 			if val < 1.0/3 || val > 2.0/3 {
-				return "", false, fmt.Errorf("affect emotion value not match intensity")
+				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
 			}
 		case "high":
 			if val < 2.0/3 || val > 1 {
-				return "", false, fmt.Errorf("affect emotion value not match intensity")
+				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
 			}
 		default:
-			return "", false, fmt.Errorf("affect emotion intensity invalid")
+			return emptyAnswers, false, fmt.Errorf("affect emotion intensity invalid")
 		}
 	}
 
@@ -140,16 +150,24 @@ func (c *Core) apply(schema string) (string, bool, error) {
 		c.Note = output.Note
 	}
 
-	if output.Reply == false || strings.TrimSpace(output.Answer) == "" {
+	allempty := true
+	for _, ans := range output.Answer {
+		if strings.TrimSpace(ans) != "" {
+			allempty = false
+			break
+		}
+	}
+
+	if output.Reply == false || allempty {
 		return output.Answer, false, nil
 	}
 	return output.Answer, true, nil
 }
 
 // utils
-func debugOutput(answer string, c_formal Snapshot, c_later Snapshot) {
+func debugOutput(answer []string, c_formal Snapshot, c_later Snapshot) {
 	ylog.Debug(`== DEBUG MESSAGE ==
-Yachiyo > %s
+Yachiyo > %v
 * Formal:
 %s
 * Later:
@@ -185,7 +203,7 @@ func processError(err error, addr address.Address) action.Action {
 	}
 }
 
-func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
+func (c *Core) processLLM(rawPrompts []prompt.Prompts) ([]string, bool, error) {
 	var prompts = rawPrompts
 	var jsonConstraint = false
 	var lastErr error
@@ -217,7 +235,7 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) (string, bool, error) {
 		return answer, reply, nil
 	}
 
-	return "", false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+	return emptyAnswers, false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
 }
 
 // Trigger process part
@@ -279,7 +297,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Reply:      isReply,
 	})
 
-	ylog.Success("Generated passive output [%v]", answer)
+	ylog.Success("Generated passive output %#v", answer)
 	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),
@@ -351,7 +369,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Reply:      isReply,
 	})
 
-	ylog.Success("Generated active output [%v]", answer)
+	ylog.Success("Generated active output %#v", answer)
 	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),

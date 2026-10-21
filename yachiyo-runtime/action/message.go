@@ -22,7 +22,7 @@ func (m *UserMessage) GetAddress() address.Address {
 func (*UserMessage) Message() {}
 
 type AssistantMessage struct {
-	Content    string
+	Content    []string
 	Time       int64
 	Initiative bool
 	Reply      bool

@@ -45,7 +45,7 @@ func (m UserMessage) Render() string {
 
 type AssistantMessage struct {
 	Snapshot Snapshot
-	Content  string
+	Content  []string
 
 	Time      time.Time
 	ToAddress address.Address
@@ -60,7 +60,9 @@ func (m AssistantMessage) Render() string {
 	// e.g. <Message initiative: False><Reply: True>(2030.07.21 16:16:09) Iroha! Suki~
 	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Time.Format("2006.01.02 15:04:05"))
 	if m.Reply {
-		msg += m.Content
+		for _, message := range m.Content {
+			msg += fmt.Sprintf("`%s` ", message)
+		}
 	} else {
 		msg += fmt.Sprintf("<Reason: %s>", m.Content)
 	}

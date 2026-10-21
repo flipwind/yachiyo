@@ -11,7 +11,7 @@ func (_ *RuntimeMessage) DataPack() {}
 
 type RuntimeMessage struct {
 	Reply        bool   `json:"reply"`
-	Message      string `json:"message"`
+	Message      []string `json:"message"`
 	IsInitiative bool   `json:"is_initiative"`
 	Time         int64  `json:"time"`
 }

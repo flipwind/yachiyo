@@ -35,9 +35,11 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			case msg := <-channel.ToClient:
 				switch t := msg.(type) {
 				case *action.AssistantMessage:
-					if err := c.Write(ctx, websocket.MessageText, []byte(t.Content)); err != nil {
-						ylog.Error("Websocket writing error: %v", err)
-						return
+					for _, message := range t.Content {
+						if err := c.Write(ctx, websocket.MessageText, []byte(message)); err != nil {
+							ylog.Error("Websocket writing error: %v", err)
+							return
+						}
 					}
 				}
 			}
