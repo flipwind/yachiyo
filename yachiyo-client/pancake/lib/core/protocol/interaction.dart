@@ -35,7 +35,7 @@ class ClientMessage implements MessageDataPack {
 
 class RuntimeMessage implements MessageDataPack {
   final bool reply;
-  final String message;
+  final List<String> message;
   final bool isInitiative;
   final int time;
 
@@ -47,9 +47,10 @@ class RuntimeMessage implements MessageDataPack {
   });
 
   factory RuntimeMessage.fromJson(Map<String, dynamic> json) {
+    final messageList = json["message"] as List<dynamic>;
     return RuntimeMessage(
       reply: json["reply"] as bool,
-      message: json["message"] as String,
+      message: List<String>.from(messageList.whereType<String>()),
       isInitiative: json["is_initiative"] as bool,
       time: json["time"] as int,
     );

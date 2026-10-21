@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:logger/logger.dart';
 import 'package:pancake/core/identity/identity.dart';
 import 'package:pancake/core/model/message.dart';
 import 'package:pancake/core/network/connection.dart';
@@ -73,7 +74,7 @@ class PancakeSession {
       }
     });
 
-    _connection.errors.listen((errorMessage){
+    _connection.errors.listen((errorMessage) {
       _pushSessionEvent(SessionErrorMessage(errorMessage));
     });
   }
@@ -144,6 +145,9 @@ class PancakeSession {
 
   // Message Handler
   void _handleMessage(String rawMessage) {
+    final logger = Logger();
+    logger.d("Processing json: $rawMessage");
+
     final Map<String, dynamic> parsedJson = jsonDecode(rawMessage);
     final envelope = Envelope.fromJson(parsedJson);
     _handleEnvelope(envelope);
@@ -181,48 +185,67 @@ class PancakeSession {
     }
   }
 
-  void _processInteraction(DataPack data) {
+  void _processInteraction(DataPack data) async {
+    int clamp(int min, max, n) {
+      if (n < min) return min;
+      if (n > max) return max;
+      return n;
+    }
+
     switch (data) {
       case RuntimeMessage():
-        _pushSessionEvent(
-          SessionMessageAppend(
-            AssistantMessage(
-              content: data.message,
-              time: DateTime.fromMillisecondsSinceEpoch(data.time * 1000),
-              reply: data.reply,
-              initiative: data.isInitiative,
+        for (var i = 0; i < data.message.length; i++) {
+          final msg = data.message[i];
+
+          if (i != 0) {
+            await Future.delayed(
+              Duration(milliseconds: clamp(300, 5000, 200 + 100 * msg.length)),
+            );
+          }
+          _pushSessionEvent(
+            SessionMessageAppend(
+              AssistantMessage(
+                content: msg,
+                time: DateTime.fromMillisecondsSinceEpoch(data.time * 1000),
+                reply: data.reply,
+                initiative: data.isInitiative,
+              ),
             ),
-          ),
-        );
+          );
+        }
       case RelativeMessageHistory():
-        _pushSessionEvent(
-          SessionMessageReload(
-            data.messages.map((message) {
-              switch (message) {
-                case RuntimeMessage():
-                  return AssistantMessage(
-                    content: message.message,
+        List<Message> history = [];
+        for (final messageDataPack in data.messages) {
+          switch (messageDataPack) {
+            case RuntimeMessage():
+              for (final datapack in messageDataPack.message) {
+                history.add(
+                  AssistantMessage(
+                    content: datapack,
                     time: DateTime.fromMillisecondsSinceEpoch(
-                      message.time * 1000,
+                      messageDataPack.time * 1000,
                     ),
-                    reply: message.reply,
-                    initiative: message.isInitiative,
-                  );
-                case ClientMessage():
-                  return UserMessage(
-                    content: message.message,
-                    time: DateTime.fromMillisecondsSinceEpoch(
-                      message.time * 1000,
-                    ),
-                  );
-                default:
-                  throw FormatException(
-                    "Unknown message type: ${message.type}",
-                  );
+                    reply: messageDataPack.reply,
+                    initiative: messageDataPack.isInitiative,
+                  ),
+                );
               }
-            }).toList(),
-          ),
-        );
+            case ClientMessage():
+              history.add(
+                UserMessage(
+                  content: messageDataPack.message,
+                  time: DateTime.fromMillisecondsSinceEpoch(
+                    messageDataPack.time * 1000,
+                  ),
+                ),
+              );
+            default:
+              throw FormatException(
+                "Unknown message type: ${messageDataPack.type}",
+              );
+          }
+        }
+        _pushSessionEvent(SessionMessageReload(history));
       case ErrorMessage():
         _pushSessionEvent(SessionErrorMessage("${data.code}: ${data.message}"));
     }
