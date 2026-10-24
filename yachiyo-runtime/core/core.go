@@ -24,7 +24,7 @@ type Core struct {
 	LLM           llm.LLM
 	Config        config.Config
 	Determination state.Determination
-	Factors       initiative.Factors
+	Energy        initiative.Energy
 	Affect        state.Engine
 
 	Note           string
@@ -48,14 +48,7 @@ func New() (*Core, error) {
 
 	initiativeConfig := config.Initiative
 
-	factors, err := initiative.NewFactors(
-		// TODO: reflect
-		*initiativeConfig.Threshold,
-
-		initiativeConfig.Factors.Sociability,
-		initiativeConfig.Factors.AloneTime,
-		initiativeConfig.Factors.Daytime,
-	)
+	energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve)
 
 	affect := state.NewEngine(state.BigFive{
 		Openness:          config.Core.BigFive.Openness,
@@ -75,7 +68,7 @@ func New() (*Core, error) {
 		LLM:           llm,
 		Config:        config,
 		Determination: state.NewDetermination(),
-		Factors:       factors,
+		Energy:        energy,
 		Affect:        affect,
 
 		Note:           "",
@@ -118,7 +111,7 @@ func (c *Core) InternalState() string {
 	for _, s := range c.State.Drives() {
 		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
-	msg += fmt.Sprintf("factors: %v\n", c.Factors.String())
+	msg += fmt.Sprintf("Energy: %v\n", c.Energy.Value)
 
 	return msg
 }
@@ -136,7 +129,7 @@ type Snapshot struct {
 	State          state.State
 	Affect         state.Engine
 	Determination  state.Determination
-	Factors        initiative.Factors
+	Energy         initiative.Energy
 	JSONConstraint bool
 	Note           string
 	LastActiveTime time.Time
@@ -150,7 +143,7 @@ func (c *Core) snapshot() Snapshot {
 		State:          c.State,
 		Affect:         c.Affect,
 		Determination:  c.Determination,
-		Factors:        c.Factors,
+		Energy:         c.Energy,
 		Note:           c.Note,
 		LastActiveTime: c.LastActiveTime,
 	}

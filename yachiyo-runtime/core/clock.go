@@ -26,11 +26,8 @@ func (c *Core) processTimetick() {
 	// Initiative
 	timeNow := time.Now()
 
-	alonetime := time.Since(c.LastActiveTime)
-	daytime := timeNow.Sub(time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location()))
-
-	c.Factors.Update(alonetime.Minutes(), daytime.Hours())
-	isTriggerInitiative := c.Factors.InitiativeAdvice()
+	c.Energy.Update(float64(float64(timeNow.Hour()) + float64(timeNow.Minute())/60.0))
+	isTriggerInitiative := false // TODO: implement new initiative system
 
 	if isTriggerInitiative {
 		ylog.Info("Initiative active.")

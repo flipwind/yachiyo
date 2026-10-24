@@ -26,6 +26,8 @@ gateway:
     port: 16899
 
 initiative:
+  energy: 
+    curve: (1+cos(π/12*(x-14)))/2
   threshold: 0.9
   factors:
     sociability: 

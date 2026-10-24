@@ -24,20 +24,17 @@ Session Context: %s
 <Current Affect Engine>
 %s
 ---
+<Energy>
+This value is in [0, 1], which the more the value, the more energetic.
+%v
+---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 		snap.State.Prompt(),
 		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
 		note,
 		snap.Affect.String(),
-	)
-}
-
-func factorsPrompt(snap history.Snapshot) string {
-	return fmt.Sprintf(`<Runtime Factors>
-Following are some percentage of factors. These percentage is accumulated with the time normally.
-%s`,
-		snap.Factors.String(),
+		snap.Energy.Value,
 	)
 }
 
@@ -54,10 +51,8 @@ func PassivePrompt(snap history.Snapshot, note string) SystemPrompt {
 
 func InitiativePrompt(snap history.Snapshot, note string) SystemPrompt {
 	content := fmt.Sprintf(`<Triggered by [InitiativeMessage]>
-%s
 %s`,
 		statementPrompt(snap, note),
-		factorsPrompt(snap),
 	)
 
 	return SystemPrompt{

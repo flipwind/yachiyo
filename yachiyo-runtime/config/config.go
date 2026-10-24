@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 	"yachiyo/yachiyo-util/ywarning"
@@ -36,13 +37,6 @@ type GatewayConfig struct {
 	Port    *int64 `yaml:"port"`
 }
 
-type FactorConfig struct {
-	Curve        *string  `yaml:"curve"`
-	DefaultValue *float64 `yaml:"value"`
-	Max          *float64 `yaml:"max"`
-	Weight       *float64 `yaml:"weight"`
-}
-
 type Config struct {
 	Nickname *string `yaml:"nickname"`
 	Log      struct {
@@ -62,12 +56,10 @@ type Config struct {
 	} `yaml:"gateway"`
 	Initiative struct {
 		Threshold *float64 `yaml:"threshold"`
-		Factors   struct {
-			Sociability FactorConfig `yaml:"sociability"`
-			AloneTime   FactorConfig `yaml:"alonetime"`
-			Daytime     FactorConfig `yaml:"daytime"`
-		} `yaml:"factors"`
-	}
+		Energy    struct {
+			Curve *string `yaml:"curve"`
+		} `yaml:"energy"`
+	} `yaml:"initiative"`
 	LLM struct {
 		DefaultProvider     LLMProvider
 		DefaultProviderName *string       `yaml:"default"`
@@ -201,20 +193,19 @@ func (c *Config) Check() ([]ywarning.Warning, []error) {
 		c.Initiative.Threshold = &value
 	}
 
-	factorConfigs := map[string]*FactorConfig{
-		"sociability": &c.Initiative.Factors.Sociability,
-		"alonetime":   &c.Initiative.Factors.AloneTime,
-		"daytime":     &c.Initiative.Factors.Daytime,
+	if c.Initiative.Threshold == nil {
+		warns = append(warns, ywarning.FieldMissing("initiative.threshold", "0.9"))
+		value := 0.9
+		c.Initiative.Threshold = &value
 	}
 
-	for name, factorConfig := range factorConfigs {
-		err := factorConfig.Check(name)
-		if err != nil {
-			errs = append(errs, err)
+	if c.Initiative.Energy.Curve == nil {
+		errs = append(errs, fmt.Errorf("initiative.energy: %w", yerror.ErrFieldRequired))
+	} else {
+		if err := initiative.EnergyVerify(*c.Initiative.Energy.Curve); err != nil {
+			errs = append(errs, fmt.Errorf("initiative.energy: %w", yerror.ErrFieldInvalid))
 		}
 	}
-
-	// TODO: factor curve verify
 
 	// llm
 	if c.LLM.DefaultProviderName == nil {
@@ -251,16 +242,4 @@ func (c *Config) Check() ([]ywarning.Warning, []error) {
 	}
 
 	return warns, errs
-}
-
-func (f *FactorConfig) Check(name string) error {
-	if f.Curve == nil || f.DefaultValue == nil || f.Max == nil || f.Weight == nil {
-		return fmt.Errorf("initiative.factors.%s: %w", name, yerror.ErrFieldIncomplete)
-	} else {
-		if *f.DefaultValue > *f.Max {
-			return fmt.Errorf("initiative.factors.%s: %w, DefaultValue should be less than Max", name, yerror.ErrFieldInvalid)
-		}
-	}
-
-	return nil
 }

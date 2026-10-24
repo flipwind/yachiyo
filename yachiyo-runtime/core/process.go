@@ -62,7 +62,7 @@ type EmotionPress struct {
 }
 
 type LLMOutput struct {
-	Reply  bool   `json:"reply"`
+	Reply  bool     `json:"reply"`
 	Answer []string `json:"answer"`
 	Change struct {
 		State struct {
@@ -247,7 +247,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Factors:        snap.Factors,
+		Energy:         snap.Energy,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
@@ -281,7 +281,7 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Factors:        snap.Factors,
+		Energy:         snap.Energy,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
@@ -327,7 +327,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Factors:        snap.Factors,
+		Energy:         snap.Energy,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
@@ -353,7 +353,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Factors:        snap.Factors,
+		Energy:         snap.Energy,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
@@ -383,12 +383,12 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
 	timetick := fmt.Sprintf("Received timetick %s", time.Now().Format("15:04:05"))
 
-	var states, factors, affect string
+	var states, energy, affect string
 	c.mu.Lock()
 	for _, s := range c.State.Drives() {
 		states += fmt.Sprintf("  - %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
-	factors = c.Factors.String()
+	energy = fmt.Sprintf("%v", c.Energy.Value)
 	affect = c.Affect.String()
 	c.mu.Unlock()
 
@@ -397,11 +397,11 @@ func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action
 <States>
 %s
 ---
-<Factors>
+<Energy>
 %s
 ---
 <Affect Engine>
-%s`, timetick, states, factors, affect)
+%s`, timetick, states, energy, affect)
 
 	return &action.RuntimeState{
 		Content: debugMessage,

@@ -22,7 +22,7 @@ type Snapshot struct {
 	Time           time.Time // The time when snapshot was taken
 	Affect         state.Engine
 	State          state.State
-	Factors        initiative.Factors
+	Energy         initiative.Energy
 	LastActiveTime time.Time
 }
 
