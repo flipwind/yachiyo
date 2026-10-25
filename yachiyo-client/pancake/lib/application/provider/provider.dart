@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pancake/application/session/session.dart';
 import 'package:pancake/core/identity/identity.dart';
 import 'package:pancake/core/model/message.dart';
+import 'package:pancake/core/model/state.dart';
 import 'package:pancake/core/network/connection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -134,28 +135,25 @@ class PancakeProvider extends ChangeNotifier {
   }
 }
 
-enum RuntimePhase { offline, connecting, online}
+enum RuntimePhase { offline, connecting, online }
 
 class ProviderData {
   List<Message> messages = [];
   String runtimeName;
   String runtimeVersion;
-  String runtimeState;
+  RuntimeState? runtimeState;
   String serverAddr;
 
   bool registered;
   DateTime? registerTime;
   RuntimePhase phase;
 
-  static const _defaultState = "There's no state here for not connecting. How about your day?";
-
   ProviderData({
     this.runtimeName = "",
     this.runtimeVersion = "",
-    this.runtimeState = _defaultState,
     required this.serverAddr,
     this.registered = false,
-    this.phase = RuntimePhase.offline
+    this.phase = RuntimePhase.offline,
   });
 
   static Future<ProviderData> create() async {
@@ -179,7 +177,7 @@ class ProviderData {
     messages.clear();
     runtimeName = "";
     runtimeVersion = "";
-    runtimeState = _defaultState;
+    runtimeState = null;
     registered = false;
     registerTime = null;
     phase = RuntimePhase.offline;

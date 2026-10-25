@@ -21,13 +21,23 @@ class RuntimeStateRequest implements DataPack {
   }
 }
 
-class RuntimeState implements DataPack {
-  final String state;
+class RuntimeStateData implements DataPack {
+  final int timetick;
+  final double energy;
+  final RuntimeAffectData affect;
 
-  const RuntimeState({required this.state});
+  RuntimeStateData({
+    required this.timetick,
+    required this.energy,
+    required this.affect,
+  });
 
-  factory RuntimeState.fromJson(Map<String, dynamic> json) {
-    return RuntimeState(state: json["state"] as String);
+  factory RuntimeStateData.fromJson(Map<String, dynamic> json) {
+    return RuntimeStateData(
+      timetick: json["timetick"] as int,
+      energy: (json["energy"] as num).toDouble(),
+      affect: RuntimeAffectData.fromJson(json["affect"] as Map<String, dynamic>),
+    );
   }
 
   @override
@@ -35,6 +45,68 @@ class RuntimeState implements DataPack {
 
   @override
   Map<String, dynamic> toJson() {
-    return {"state": state};
+    return {
+      "timetick": timetick,
+      "energy": energy,
+      "affect": affect.toJson(),
+    };
+  }
+}
+
+class RuntimeAffectData {
+  final String octants;
+  final double pleasure;
+  final double arousal;
+  final double dominance;
+  final List<OCCEmotionData> actives;
+
+  RuntimeAffectData({
+    required this.octants,
+    required this.pleasure,
+    required this.arousal,
+    required this.dominance,
+    required this.actives,
+  });
+
+  factory RuntimeAffectData.fromJson(Map<String, dynamic> json) {
+    return RuntimeAffectData(
+      octants: json["octants"] as String,
+      pleasure: (json["pleasure"] as num).toDouble(),
+      arousal: (json["arousal"] as num).toDouble(),
+      dominance: (json["dominance"] as num).toDouble(),
+      actives: (json["actives"] as List<dynamic>)
+          .map(
+            (emotion) => OCCEmotionData.fromJson(emotion as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "octants": octants,
+      "pleasure": pleasure,
+      "arousal": arousal,
+      "dominance": dominance,
+      "actives": actives.map((item) => item.toJson()).toList(),
+    };
+  }
+}
+
+class OCCEmotionData {
+  final String type;
+  final double intensity;
+
+  OCCEmotionData({required this.type, required this.intensity});
+
+  factory OCCEmotionData.fromJson(Map<String, dynamic> json) {
+    return OCCEmotionData(
+      type: json["type"] as String,
+      intensity: (json["intensity"] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {"type": type, "intensity": intensity};
   }
 }

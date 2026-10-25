@@ -22,7 +22,7 @@ class DataPackParser {
     Interaction.errorMessage: ErrorMessage.fromJson,
 
     State.runtimeStateRequest: RuntimeStateRequest.fromJson,
-    State.runtimeState: RuntimeState.fromJson,
+    State.runtimeState: RuntimeStateData.fromJson,
   };
 
   static DataPack decode(String type, Map<String, dynamic> json) {

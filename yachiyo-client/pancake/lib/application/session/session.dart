@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:logger/logger.dart';
 import 'package:pancake/core/identity/identity.dart';
 import 'package:pancake/core/model/message.dart';
+import 'package:pancake/core/model/state.dart';
 import 'package:pancake/core/network/connection.dart';
 import 'package:pancake/core/protocol/connection.dart';
 import 'package:pancake/core/protocol/envelope.dart';
@@ -26,7 +27,7 @@ class SessionRegistered extends SessionEvent {
 }
 
 class SessionStateReceived extends SessionEvent {
-  final String state;
+  final RuntimeState state;
   SessionStateReceived(this.state);
 }
 
@@ -253,8 +254,30 @@ class PancakeSession {
 
   void _processState(DataPack data) {
     switch (data) {
-      case RuntimeState():
-        _pushSessionEvent(SessionStateReceived(data.state));
+      case final RuntimeStateData state:
+        final RuntimeAffectData affect = state.affect;
+        _pushSessionEvent(
+          SessionStateReceived(
+            RuntimeState(
+              timetick: DateTime.fromMillisecondsSinceEpoch(state.timetick * 1000),
+              energy: state.energy,
+              affect: RuntimeAffect(
+                octants: affect.octants,
+                pleasure: affect.pleasure,
+                arousal: affect.arousal,
+                dominance: affect.dominance,
+                actives: affect.actives
+                    .map(
+                      (item) => OCCEmotion(
+                        type: item.type,
+                        intensity: item.intensity,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        );
     }
   }
 
