@@ -22,7 +22,6 @@ func (p PAD) Dominance() float64 { return p.Z }
 // Return a readable string of PAD, using types in the papper.
 func (p PAD) Category() string {
 	var strength string
-	var types string
 
 	length := p.Length()
 	sqrt3 := math.Sqrt(3)
@@ -36,6 +35,11 @@ func (p PAD) Category() string {
 		strength = "highly"
 	}
 
+	return fmt.Sprintf("<%s %s>", strength, p.Octants())
+}
+
+func (p PAD) Octants() string {
+	var types string
 	switch {
 	case p.X > 0 && p.Y > 0 && p.Z > 0:
 		types = "Exuberant"
@@ -56,8 +60,7 @@ func (p PAD) Category() string {
 	default:
 		types = "Undefined"
 	}
-
-	return fmt.Sprintf("<%s %s>", strength, types)
+	return types
 }
 
 func (p PAD) String() string {
@@ -187,6 +190,12 @@ type BigFive struct {
 type Point struct {
 	Position PAD // (x, y, z)
 }
+
+func (p Point) Octants() string    { return p.Position.Octants() }
+func (p Point) Category() string   { return p.Position.Category() }
+func (p Point) Pleasure() float64  { return p.Position.Pleasure() }
+func (p Point) Arousal() float64   { return p.Position.Arousal() }
+func (p Point) Dominance() float64 { return p.Position.Dominance() }
 
 func (p *Point) Move(step ymath.Vector3) {
 	result := p.Position.Add(step)

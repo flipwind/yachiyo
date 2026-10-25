@@ -274,7 +274,31 @@ func (s *JsonClientService) ListenSend() {
 				continue
 			}
 
-			c.send("state", "runtime_state", &model.RuntimeState{State: t.Content})
+			actives := make([]model.OCCEmotion, 0)
+			for _, emo := range t.Affect.Actives {
+				actives = append(actives, model.OCCEmotion{
+					Type:      emo.Type,
+					Intensity: emo.Intensity,
+				})
+			}
+
+			c.send("state", "runtime_state", &model.RuntimeState{
+				Timetick: t.Timetick,
+				Energy:   t.Energy,
+				Affect: struct {
+					Octants   string             `json:"octants"`
+					Pleasure  float64            `json:"pleasure"`
+					Arousal   float64            `json:"arousal"`
+					Dominance float64            `json:"dominance"`
+					Actives   []model.OCCEmotion `json:"actives"`
+				}{
+					Octants:   t.Affect.Octants,
+					Pleasure:  t.Affect.Pleasure,
+					Arousal:   t.Affect.Arousal,
+					Dominance: t.Affect.Dominance,
+					Actives:   actives,
+				},
+			})
 		case *action.MessageHistory:
 			c, err := s.getClient(t)
 			if err != nil {

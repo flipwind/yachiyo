@@ -381,30 +381,32 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 }
 
 func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
-	timetick := fmt.Sprintf("Received timetick %s", time.Now().Format("15:04:05"))
-
-	var states, energy, affect string
+	actives := make([]action.OCCEmotion, 0)
 	c.mu.Lock()
-	for _, s := range c.State.Drives() {
-		states += fmt.Sprintf("  - %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
+	defer c.mu.Unlock()
+	for _, emo := range c.Affect.Emotions {
+		actives = append(actives, action.OCCEmotion{
+			Type:      emo.Type.Name,
+			Intensity: emo.Intensity,
+		})
 	}
-	energy = fmt.Sprintf("%v", c.Energy.Value)
-	affect = c.Affect.String()
-	c.mu.Unlock()
-
-	debugMessage := fmt.Sprintf(`%s
----
-<States>
-%s
----
-<Energy>
-%s
----
-<Affect Engine>
-%s`, timetick, states, energy, affect)
 
 	return &action.RuntimeState{
-		Content: debugMessage,
+		Timetick: time.Now().Unix(),
+		Energy:   c.Energy.Value,
+		Affect: struct {
+			Octants   string
+			Pleasure  float64
+			Arousal   float64
+			Dominance float64
+			Actives   []action.OCCEmotion
+		}{
+			Octants:   c.Affect.Current.Octants(),
+			Pleasure:  c.Affect.Current.Pleasure(),
+			Arousal:   c.Affect.Current.Arousal(),
+			Dominance: c.Affect.Current.Dominance(),
+			Actives:   actives,
+		},
 		Address: t.Address,
 	}
 }
