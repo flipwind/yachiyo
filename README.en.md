@@ -99,7 +99,10 @@ Following is the **must** output json format.
 ```json
 {
   "reply": bool,
-  "answer": string,
+  "answer": [
+    string,
+    ...
+  ],
   "change": {
     "state_delta": {
       "SocialDesire": -1 | 0 | 1,

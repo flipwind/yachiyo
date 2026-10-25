@@ -106,7 +106,10 @@ Flutter 客户端 `Pancake!` 被设计为跨平台应用，所以这也是使用
 ```json
 {
   "reply": bool,
-  "answer": string,
+  "answer": [
+    string,
+    ...
+  ],
   "change": {
     "state_delta": {
       "SocialDesire": -1 | 0 | 1,
