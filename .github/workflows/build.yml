@@ -1,6 +1,7 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -24,6 +25,9 @@ jobs:
           
     name: Runtime Build (${{matrix.os}})
     runs-on: ${{matrix.os}}
+    env:
+        CGO_ENABLED: "1"
+        CC: gcc
     steps:
     - uses: actions/checkout@v6
 
@@ -32,6 +36,12 @@ jobs:
       with:
         go-version-file: "go.mod"
         cache: true
+    
+    - name: Check C Toolchain
+      shell: bash
+      run: |
+        gcc --version
+        go env GOOS GOARCH CGO_ENABLED CC
 
     - name: Prepare Assets
       shell: bash
