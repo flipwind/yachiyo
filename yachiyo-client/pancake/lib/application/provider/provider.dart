@@ -148,12 +148,15 @@ class ProviderData {
   DateTime? registerTime;
   RuntimePhase phase;
 
+  String draftText;
+
   ProviderData({
     this.runtimeName = "",
     this.runtimeVersion = "",
     required this.serverAddr,
     this.registered = false,
     this.phase = RuntimePhase.offline,
+    this.draftText = ""
   });
 
   static Future<ProviderData> create() async {
@@ -171,6 +174,10 @@ class ProviderData {
   Future<void> setServerAddr(String addr) async {
     final pref = await SharedPreferences.getInstance();
     await pref.setString("server_addr", addr);
+  }
+
+  void changeDraftText(String value) {
+    draftText = value;
   }
 
   void clear() {

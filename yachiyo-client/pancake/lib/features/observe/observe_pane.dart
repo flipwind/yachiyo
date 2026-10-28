@@ -258,7 +258,7 @@ class _ObservePaneState extends State<ObservePane> {
                                 child: Text(
                                   state.energy.toStringAsFixed(2),
                                   style: texts.labelMedium?.copyWith(
-                                    color: colors.secondaryContainer,
+                                    color: colors.onSecondaryContainer,
                                   ),
                                 ),
                               ),

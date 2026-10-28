@@ -6,39 +6,58 @@ import 'package:pancake/core/model/message.dart';
 import 'package:provider/provider.dart';
 
 class ChatPane extends StatefulWidget {
-  const ChatPane({super.key, required this.pageChange});
-  final ValueChanged<int> pageChange;
+  const ChatPane({super.key, required this.switchObservePage});
+  final VoidCallback switchObservePage;
 
   @override
   State<StatefulWidget> createState() => _ChatPaneState();
 }
 
 class _ChatPaneState extends State<ChatPane> {
-  final TextEditingController textEditingController = TextEditingController();
+  late final ProviderData _data;
+  late final TextEditingController textEditingController;
   final ScrollController listViewController = ScrollController();
   final FocusNode focusNode = FocusNode();
 
   int previousMessageCount = 0;
   bool registered = false;
 
-  bool canSend = false;
+  bool get canSend => textEditingController.text.trim().isNotEmpty;
 
-  void checkSend() {
+  @override
+  void initState() {
+    super.initState();
+
+    _data = context.read<PancakeProvider>().data;
+    textEditingController = TextEditingController(text: _data.draftText);
+
+    textEditingController.addListener(syncText);
+  }
+
+  void syncText() {
+    final text = textEditingController.text;
+    if (text == _data.draftText) return;
+
+    _data.changeDraftText(text);
+    setState(() {});
+  }
+
+  void onTextChanged(String value) {
+    final provider = context.read<PancakeProvider>();
     setState(() {
-      canSend = textEditingController.text.trim() != "";
+      provider.data.changeDraftText(value);
     });
   }
 
   void sendMessage() {
+    if (!canSend) return;
     final provider = context.read<PancakeProvider>();
     final message = textEditingController.text;
 
     bool sended = provider.sendMessage(message);
 
     if (sended) {
-      setState(() {
-        textEditingController.text = "";
-      });
+      textEditingController.clear();
     }
   }
 
@@ -92,7 +111,7 @@ class _ChatPaneState extends State<ChatPane> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: registered ? () => widget.pageChange(1) : null,
+                    onPressed: registered ? widget.switchObservePage : null,
                     icon: Icon(Icons.multiline_chart),
                   ),
                   IconButton(
@@ -201,7 +220,6 @@ class _ChatPaneState extends State<ChatPane> {
                               hintText: "How about your day...",
                               border: InputBorder.none,
                             ),
-                            onChanged: (value) => checkSend(),
                           ),
                         ),
                       ),
