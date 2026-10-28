@@ -196,6 +196,14 @@ func processError(err error, addr address.Address) action.Action {
 		}
 	}
 
+	if errors.Is(err, yerror.ErrMessageStore) {
+		return &action.Error{
+			Code:    action.ErrMessageStore,
+			Message: err.Error(),
+			Address: addr,
+		}
+	}
+
 	return &action.Error{
 		Code:    action.ErrMessageProcess,
 		Message: err.Error(),
@@ -247,11 +255,11 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Energy:         snap.Energy,
+		Energy:         snap.Energy.Value,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
-	c.AppendHistory(history.UserMessage{
+	if err := c.AppendHistory(history.UserMessage{
 		Snapshot: histSnap,
 		Content:  m.Content,
 
@@ -259,7 +267,10 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Platform: m.Platform,
 		Time:     time.Now(),
 		Address:  m.Address,
-	})
+	}); err != nil {
+		ylog.Error("UserMessage history appended error: %s", err)
+		return processError(yerror.ErrMessageStore, m.Address)
+	}
 
 	prompts := prompt.UserPromptBuilder(prompt.Context{
 		SystemPrompt: c.getSystemPrompt(),
@@ -281,11 +292,11 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Energy:         snap.Energy,
+		Energy:         snap.Energy.Value,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
-	c.AppendHistory(history.AssistantMessage{
+	if err := c.AppendHistory(history.AssistantMessage{
 		Snapshot: histSnap,
 		Content:  answer,
 
@@ -295,7 +306,10 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 
 		Initiative: false,
 		Reply:      isReply,
-	})
+	}); err != nil {
+		ylog.Error("Passive InitiativeMessage history appended error: %s", err)
+		return processError(yerror.ErrMessageStore, m.Address)
+	}
 
 	ylog.Success("Generated passive output %#v", answer)
 	return &action.AssistantMessage{
@@ -327,7 +341,7 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Energy:         snap.Energy,
+		Energy:         snap.Energy.Value,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
@@ -353,11 +367,11 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 		Time:           time.Now(),
 		Affect:         snap.Affect,
 		State:          snap.State,
-		Energy:         snap.Energy,
+		Energy:         snap.Energy.Value,
 		LastActiveTime: snap.LastActiveTime,
 	}
 
-	c.AppendHistory(history.AssistantMessage{
+	if err := c.AppendHistory(history.AssistantMessage{
 		Snapshot: histSnap,
 		Content:  answer,
 
@@ -367,7 +381,10 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 
 		Initiative: true,
 		Reply:      isReply,
-	})
+	}); err != nil {
+		ylog.Error("Active InitiativeMessage history appended error: %s", err)
+		return processError(yerror.ErrMessageStore, addr)
+	}
 
 	ylog.Success("Generated active output %#v", answer)
 	return &action.AssistantMessage{

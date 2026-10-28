@@ -9,6 +9,7 @@ var (
 	ErrFieldInvalid    = errors.New("field invalid")
 	ErrFieldIncomplete = errors.New("field incomplete")
 
-	ErrLLMChoice   = errors.New("LLM didn't give a choice")
-	ErrLLMGenerate = errors.New("LLM generating failed")
+	ErrLLMChoice    = errors.New("LLM didn't give a choice")
+	ErrLLMGenerate  = errors.New("LLM generating failed")
+	ErrMessageStore = errors.New("message store failed")
 )

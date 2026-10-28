@@ -34,7 +34,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
 		note,
 		snap.Affect.String(),
-		snap.Energy.Value,
+		snap.Energy,
 	)
 }
 

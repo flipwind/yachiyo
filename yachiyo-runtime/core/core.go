@@ -7,7 +7,7 @@ import (
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/history"
-	"yachiyo/yachiyo-runtime/history/basic"
+	"yachiyo/yachiyo-runtime/history/sqlite3"
 	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
@@ -62,8 +62,13 @@ func New() (*Core, error) {
 		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
 	}
 
+	storage, err := sqlite3.New()
+	if err != nil {
+		return nil, fmt.Errorf("Storage created error: %w", err)
+	}
+
 	core := &Core{
-		History:       basic.New(),
+		History:       storage,
 		State:         state.NewState(),
 		LLM:           llm,
 		Config:        config,
@@ -85,6 +90,10 @@ func (c *Core) Run() {
 	go c.Pipe.DecisionListen()
 	go c.Pipe.DistributionListen()
 	go c.Clock()
+}
+
+func (c *Core) Close() {
+	c.History.Close()
 }
 
 func (c *Core) Dispatch(t trigger.Trigger) {
@@ -116,11 +125,15 @@ func (c *Core) InternalState() string {
 	return msg
 }
 
-func (c *Core) AppendHistory(hist history.History) {
+func (c *Core) AppendHistory(hist history.History) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.History.Append(hist)
+	if err := c.History.Append(hist); err != nil {
+		ylog.Error("Append history error: %v", err)
+		return err
+	}
+	return nil
 }
 
 // Core snapshot

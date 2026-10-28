@@ -58,6 +58,7 @@ func run() error {
 
 	<-ctx.Done()
 
+	ycore.Close()
 	ylog.Info("Shutting down...")
 	return nil
 }

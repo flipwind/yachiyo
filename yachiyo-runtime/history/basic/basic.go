@@ -14,10 +14,15 @@ func New() *BasicStorage {
 	}
 }
 
-func (b *BasicStorage) Append(m history.History) {
+func (b *BasicStorage) Append(m history.History) error {
 	b.Histories = append(b.Histories, m)
+	return nil
 }
 
 func (b *BasicStorage) ListAll() []history.History {
 	return b.Histories
+}
+
+func (b *BasicStorage) Close() error {
+	return nil
 }

@@ -5,13 +5,13 @@ import (
 	"slices"
 	"time"
 	"yachiyo/yachiyo-runtime/address"
-	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/state"
 )
 
 type HistoryStorage interface {
-	Append(memory History)
+	Append(memory History) error
 	ListAll() []History
+	Close() error
 }
 
 type History interface {
@@ -22,7 +22,7 @@ type Snapshot struct {
 	Time           time.Time // The time when snapshot was taken
 	Affect         state.Engine
 	State          state.State
-	Energy         initiative.Energy
+	Energy         float64
 	LastActiveTime time.Time
 }
 
