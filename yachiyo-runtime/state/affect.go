@@ -242,11 +242,22 @@ Active Moods:
 }
 
 // Recommend to use only when BigFive values significantly changed.
-func NewEngine(b BigFive) Engine {
+func NewEngine(b BigFive, p *PAD, e *[]OCCEmotion) Engine {
 	defaultMood := ymath.Vector3{
 		X: 0.21*b.Extraversion + 0.59*b.Agreeableness + 0.19*b.Neuroticism,
 		Y: 0.15*b.Openness + 0.30*b.Agreeableness - 0.57*b.Neuroticism,
 		Z: 0.25*b.Openness + 0.17*b.Conscientiousness + 0.60*b.Extraversion - 0.32*b.Agreeableness,
+	}
+
+	var emotions []OCCEmotion = make([]OCCEmotion, 0)
+	var position PAD = PAD{defaultMood}
+
+	if p != nil {
+		position = *p
+	}
+
+	if e != nil {
+		emotions = *e
 	}
 
 	return Engine{
@@ -254,8 +265,9 @@ func NewEngine(b BigFive) Engine {
 			Vector3: defaultMood,
 		},
 		Current: Point{
-			Position: PAD{defaultMood},
+			Position: position,
 		},
+		Emotions: emotions,
 	}
 }
 

@@ -23,6 +23,5 @@ func (b *BasicStorage) ListAll() []history.History {
 	return b.Histories
 }
 
-func (b *BasicStorage) Close() error {
-	return nil
-}
+func (b *BasicStorage) Close() error                              { return nil }
+func (b *BasicStorage) SaveCheckpoint(point history.Checkpoint) error { return nil }

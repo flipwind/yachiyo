@@ -5,6 +5,7 @@ import (
 	"slices"
 	"time"
 	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/state"
 )
 
@@ -12,10 +13,22 @@ type HistoryStorage interface {
 	Append(memory History) error
 	ListAll() []History
 	Close() error
+	SaveCheckpoint(point Checkpoint) error
 }
 
 type History interface {
 	History()
+}
+
+type Checkpoint struct {
+	Exist          bool
+	StateAt        time.Time
+	State          state.State
+	Determination  state.Determination
+	Energy         initiative.Energy
+	Affect         state.Engine
+	Note           string
+	LastActiveTime time.Time
 }
 
 type Snapshot struct {

@@ -10,11 +10,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const current_schema_version = 1
+const history_schema_version = 1
+const checkpoint_schema_version = 1
 
 type Sqlite3Storage struct {
-	Histories []history.History
-	db        *sql.DB
+	Histories  []history.History
+	Checkpoint history.Checkpoint
+	db         *sql.DB
 }
 
 func (b *Sqlite3Storage) saveMessage(m history.History) error {
@@ -37,7 +39,7 @@ func (b *Sqlite3Storage) saveMessage(m history.History) error {
 	INSERT INTO histories
 		(kind, schema_version, create_at, payload)
 		VALUES (?, ?, ?, ?)
-	`, messageType, current_schema_version, time.Now().Unix(), string(payload))
+	`, messageType, history_schema_version, time.Now().Unix(), string(payload))
 
 	if err != nil {
 		return err
@@ -47,6 +49,7 @@ func (b *Sqlite3Storage) saveMessage(m history.History) error {
 }
 
 func (b *Sqlite3Storage) restore() error {
+	// 1. histories restore
 	rows, err := b.db.Query(`
 		SELECT kind, schema_version, payload
 		FROM histories
@@ -54,7 +57,7 @@ func (b *Sqlite3Storage) restore() error {
 	`)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Query histories error: %w", err)
 	}
 
 	defer rows.Close()
@@ -67,10 +70,10 @@ func (b *Sqlite3Storage) restore() error {
 		var payload string
 
 		if err := rows.Scan(&kind, &version, &payload); err != nil {
-			return err
+			return fmt.Errorf("Scaning histories error: %w", err)
 		}
 
-		if version != current_schema_version {
+		if version != history_schema_version {
 			return fmt.Errorf("Unsupported history version: %d", version)
 		}
 
@@ -95,6 +98,49 @@ func (b *Sqlite3Storage) restore() error {
 		return err
 	}
 	b.Histories = histories
+
+	// 2. checkpoint restore
+	rows, err = b.db.Query(`
+		SELECT id, state_at, schema_version, payload
+		FROM checkpoint
+		ORDER BY id DESC
+	`)
+
+	if err != nil {
+		return fmt.Errorf("Query checkpoint error: %w", err)
+	}
+
+	defer rows.Close()
+
+	var checkpoint history.Checkpoint
+
+	for rows.Next() {
+		var id int
+		var state_at int
+		var version int
+		var payload string
+		if err := rows.Scan(&id, &state_at, &version, &payload); err != nil {
+			return fmt.Errorf("Scanning state error: %w", err)
+		}
+		
+		if version != checkpoint_schema_version {
+			return fmt.Errorf("Unsupported history version: %d", version)
+		}
+
+		if err := json.Unmarshal([]byte(payload), &checkpoint); err != nil {
+			return fmt.Errorf("Decoding checkpoint error: %w", err)
+		}
+
+		if id == 1 {
+			checkpoint.Exist = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	b.Checkpoint = checkpoint
+
 	return nil
 }
 
@@ -109,7 +155,7 @@ func New() (*Sqlite3Storage, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`
+	if _, err = db.Exec(`
 	CREATE TABLE IF NOT EXISTS histories(
 		id INTEGER PRIMARY KEY,
 		kind TEXT NOT NULL,
@@ -117,11 +163,21 @@ func New() (*Sqlite3Storage, error) {
 		create_at INTEGER NOT NULL,
 		payload TEXT NOT NULL
 	);
-	`)
-
-	if err != nil {
+	`); err != nil {
 		db.Close()
-		return nil, err
+		return nil, fmt.Errorf("Processing storage of `histories` error: %w", err)
+	}
+
+	if _, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS checkpoint(
+		id INTEGER PRIMARY KEY,
+		state_at INTEGER NOT NULL,
+		schema_version INTEGER NOT NULL,
+		payload TEXT NOT NULL
+	);
+	`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("Processing storage of `checkpoint` error: %w", err)
 	}
 
 	storage := &Sqlite3Storage{
@@ -131,7 +187,7 @@ func New() (*Sqlite3Storage, error) {
 
 	if err := storage.restore(); err != nil {
 		db.Close()
-		return nil, err
+		return nil, fmt.Errorf("Restoring histories and state error: %w", err)
 	}
 
 	return storage, nil
@@ -152,4 +208,26 @@ func (b *Sqlite3Storage) ListAll() []history.History {
 
 func (b *Sqlite3Storage) Close() error {
 	return b.db.Close()
+}
+
+func (b *Sqlite3Storage) SaveCheckpoint(point history.Checkpoint) error {
+	payload, err := json.Marshal(point)
+	if err != nil {
+		return fmt.Errorf("json marshal error: %w", err)
+	}
+
+	_, err = b.db.Exec(`
+    INSERT INTO checkpoint (id, schema_version, state_at, payload)
+    VALUES (1, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+        schema_version = excluded.schema_version,
+        state_at = excluded.state_at,
+        payload = excluded.payload
+	`, checkpoint_schema_version, point.StateAt.UnixMilli(), string(payload))
+
+	if err != nil {
+		return fmt.Errorf("store checkpoint error: %w", err)
+	}
+
+	return nil
 }

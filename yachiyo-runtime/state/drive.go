@@ -72,7 +72,7 @@ func UrgencyDrive(u Urgency) Drive {
 // operation
 func (d *Drive) round() {
 	number := d.Value
-	d.Value = math.Round(number*1000) / 1000
+	d.Value = math.Round(number*1e8) / 1e8
 }
 
 // State change

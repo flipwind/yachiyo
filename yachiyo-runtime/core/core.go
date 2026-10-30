@@ -48,37 +48,76 @@ func New() (*Core, error) {
 
 	initiativeConfig := config.Initiative
 
-	energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve)
-
-	affect := state.NewEngine(state.BigFive{
-		Openness:          config.Core.BigFive.Openness,
-		Conscientiousness: config.Core.BigFive.Conscientiousness,
-		Extraversion:      config.Core.BigFive.Extraversion,
-		Agreeableness:     config.Core.BigFive.Agreeableness,
-		Neuroticism:       config.Core.BigFive.Neuroticism,
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
-	}
-
 	storage, err := sqlite3.New()
 	if err != nil {
 		return nil, fmt.Errorf("Storage created error: %w", err)
 	}
 
-	core := &Core{
-		History:       storage,
-		State:         state.NewState(),
-		LLM:           llm,
-		Config:        config,
-		Determination: state.NewDetermination(),
-		Energy:        energy,
-		Affect:        affect,
+	// Restore state
+	checkpoint := storage.Checkpoint
+	checkpointExist := checkpoint.Exist
 
-		Note:           "",
-		LastActiveTime: time.Now(),
+	var core *Core
+
+	if checkpointExist {
+		affect := state.NewEngine(state.BigFive{
+			Openness:          config.Core.BigFive.Openness,
+			Conscientiousness: config.Core.BigFive.Conscientiousness,
+			Extraversion:      config.Core.BigFive.Extraversion,
+			Agreeableness:     config.Core.BigFive.Agreeableness,
+			Neuroticism:       config.Core.BigFive.Neuroticism,
+		}, &checkpoint.Affect.Current.Position, &checkpoint.Affect.Emotions)
+
+		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, &checkpoint.Energy.Value)
+
+		if err != nil {
+			return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
+		}
+
+		core = &Core{
+			History:       storage,
+			State:         checkpoint.State,
+			LLM:           llm,
+			Config:        config,
+			Determination: checkpoint.Determination,
+			Energy:        energy,
+			Affect:        affect,
+
+			Note:           checkpoint.Note,
+			LastActiveTime: checkpoint.LastActiveTime,
+		}
+
+		core.processTimetick(time.Since(checkpoint.StateAt))
+	} else {
+		affect := state.NewEngine(state.BigFive{
+			Openness:          config.Core.BigFive.Openness,
+			Conscientiousness: config.Core.BigFive.Conscientiousness,
+			Extraversion:      config.Core.BigFive.Extraversion,
+			Agreeableness:     config.Core.BigFive.Agreeableness,
+			Neuroticism:       config.Core.BigFive.Neuroticism,
+		}, nil, nil)
+
+		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, nil)
+
+		if err != nil {
+			return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
+		}
+
+		core = &Core{
+			History:       storage,
+			State:         state.NewState(),
+			LLM:           llm,
+			Config:        config,
+			Determination: state.NewDetermination(),
+			Energy:        energy,
+			Affect:        affect,
+
+			Note:           "",
+			LastActiveTime: time.Now(),
+		}
 	}
+
+	ylog.Success("Successfully restored/created checkpoint and histories.")
 
 	core.Pipe = NewPipeline(core.Process)
 

@@ -14,15 +14,22 @@ type Energy struct {
 	Value float64
 }
 
-func NewEnergy(expression string) (Energy, error) {
+func NewEnergy(expression string, value *float64) (Energy, error) {
 	curve, err := ymath.New(expression, 0)
 	if err != nil {
 		return Energy{}, fmt.Errorf("Curve error: %w", err)
 	}
 
+	if value == nil {
+		return Energy{
+			Curve: curve,
+			Value: 0,
+		}, nil
+	}
+
 	return Energy{
 		Curve: curve,
-		Value: 0,
+		Value: *value,
 	}, nil
 }
 
