@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pancake/application/provider/provider.dart';
+import 'package:pancake/application/settings/settings_controller.dart';
 import 'package:pancake/features/chat/chat_pane.dart';
 import 'package:pancake/features/connect/connect_pane.dart';
 import 'package:pancake/features/observe/observe_pane.dart';
@@ -36,6 +37,17 @@ class _PancakeLayout extends State<PancakeScaffold> {
     setState(() {
       _page = page;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<PancakeProvider>();
+    final settings = context.read<SettingsController>();  // This only read once.
+
+    if (settings.settings.enableReconnectOnStart == true) {
+      provider.connect();
+    }
   }
 
   @override

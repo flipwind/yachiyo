@@ -109,11 +109,13 @@ class PancakeProvider extends ChangeNotifier {
   }
 
   Future<void> changeServerAddr(String address) async {
-    _data.serverAddr = address;
-    await _session.start(address);
     await _data.setServerAddr(address);
-
     notifyListeners();
+  }
+
+  Future<void> connect() async {
+    final address = data.serverAddr;
+    await _session.start(address);
   }
 
   void changeClientID(String clientID) {
@@ -138,6 +140,7 @@ class PancakeProvider extends ChangeNotifier {
 enum RuntimePhase { offline, connecting, online }
 
 class ProviderData {
+  final SharedPreferencesAsync _pref = SharedPreferencesAsync();
   List<Message> messages = [];
   String runtimeName;
   String runtimeVersion;
@@ -160,8 +163,8 @@ class ProviderData {
   });
 
   static Future<ProviderData> create() async {
-    final pref = await SharedPreferences.getInstance();
-    var addr = pref.getString("server_addr");
+    final pref = SharedPreferencesAsync();
+    String? addr = await pref.getString("server_addr");
 
     if (addr == null) {
       addr = "127.0.0.1:16899";
@@ -172,8 +175,8 @@ class ProviderData {
   }
 
   Future<void> setServerAddr(String addr) async {
-    final pref = await SharedPreferences.getInstance();
-    await pref.setString("server_addr", addr);
+    serverAddr = addr;
+    await _pref.setString("server_addr", addr);
   }
 
   void changeDraftText(String value) {
