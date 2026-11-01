@@ -28,11 +28,11 @@ type Core struct {
 	Affect        state.Engine
 
 	Note           string
-	Pipe           *Pipeline
 	LastActiveTime time.Time
 	LLMBusy        bool
 
-	mu sync.Mutex
+	Pipe *Pipeline  //exhaustruct:optional
+	mu   sync.Mutex //exhaustruct:optional
 }
 
 func New() (*Core, error) {
@@ -85,6 +85,7 @@ func New() (*Core, error) {
 
 			Note:           checkpoint.Note,
 			LastActiveTime: checkpoint.LastActiveTime,
+			LLMBusy:        false,
 		}
 
 		core.processTimetick(time.Since(checkpoint.StateAt))
@@ -114,6 +115,7 @@ func New() (*Core, error) {
 
 			Note:           "",
 			LastActiveTime: time.Now(),
+			LLMBusy:        false,
 		}
 	}
 
@@ -182,7 +184,6 @@ type Snapshot struct {
 	Affect         state.Engine
 	Determination  state.Determination
 	Energy         initiative.Energy
-	JSONConstraint bool
 	Note           string
 	LastActiveTime time.Time
 }

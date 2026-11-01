@@ -14,7 +14,7 @@ type Pipeline struct {
 	Gateways     map[string]chan action.Action // This should be GatewayChannel.ToClient for distribute
 
 	handler func(trigger.Trigger) action.Action
-	mu      sync.RWMutex
+	mu      sync.RWMutex //exhaustruct:optional
 }
 
 func NewPipeline(handler func(trigger.Trigger) action.Action) *Pipeline {

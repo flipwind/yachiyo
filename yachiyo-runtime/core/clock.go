@@ -41,6 +41,7 @@ func (c *Core) processTimetick(d time.Duration) {
 	}
 
 	if err := c.History.SaveCheckpoint(history.Checkpoint{
+		Exist: true,
 		StateAt: timeNow,
 		State: c.State,
 		Determination: c.Determination,

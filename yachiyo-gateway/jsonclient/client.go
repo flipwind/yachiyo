@@ -10,9 +10,9 @@ import (
 )
 
 type Client struct {
-	Type string
-	Name string
-	ID   string
+	Type string //exhaustruct:optional
+	Name string //exhaustruct:optional
+	ID   string //exhaustruct:optional
 
 	LastHeartbeatTime time.Time
 

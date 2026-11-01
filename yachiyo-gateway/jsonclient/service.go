@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"uuid"
 	"yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-runtime/action"
@@ -15,16 +16,15 @@ import (
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
-	"github.com/google/uuid"
 )
 
 var ylog = logger.New("Yachiyo.Jsonclient")
 
 type JsonClientService struct {
-	channel *gateway.GatewayChannel
+	channel *gateway.GatewayChannel //exhaustruct:optional
 
 	clients map[string]*Client
-	mutex   sync.RWMutex
+	mutex   sync.RWMutex //exhaustruct:optional
 
 	mutableContext func() ycontext.Context
 }

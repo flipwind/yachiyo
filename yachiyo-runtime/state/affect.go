@@ -121,30 +121,30 @@ type OCCEmotion struct {
 }
 
 var (
-	Admiration     = OCCEmotionType{ymath.Vector3{X: 0.5, Y: 0.3, Z: -0.2}, "Admiration"}
-	Anger          = OCCEmotionType{ymath.Vector3{X: -0.51, Y: 0.59, Z: 0.25}, "Anger"}
-	Disliking      = OCCEmotionType{ymath.Vector3{X: -0.4, Y: 0.2, Z: 0.1}, "Disliking"}
-	Disappointment = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.4}, "Disappointment"}
-	Distress       = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}, "Distress"}
-	Fear           = OCCEmotionType{ymath.Vector3{X: -0.64, Y: 0.60, Z: -0.43}, "Fear"}
-	FearsConfirmed = OCCEmotionType{ymath.Vector3{X: -0.5, Y: -0.3, Z: -0.7}, "FearsConfirmed"}
-	Gloating       = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.3, Z: -0.1}, "Gloating"}
-	Gratification  = OCCEmotionType{ymath.Vector3{X: 0.6, Y: 0.5, Z: 0.4}, "Gratification"}
-	Gratitude      = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: -0.3}, "Gratitude"}
-	HappyFor       = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.2}, "HappyFor"}
-	Hate           = OCCEmotionType{ymath.Vector3{X: -0.6, Y: 0.6, Z: 0.3}, "Hate"}
-	Hope           = OCCEmotionType{ymath.Vector3{X: 0.2, Y: 0.2, Z: -0.1}, "Hope"}
-	Joy            = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.2, Z: 0.1}, "Joy"}
-	Liking         = OCCEmotionType{ymath.Vector3{X: 0.40, Y: 0.16, Z: -0.24}, "Liking"}
-	Love           = OCCEmotionType{ymath.Vector3{X: 0.3, Y: 0.1, Z: 0.2}, "Love"}
-	Pity           = OCCEmotionType{ymath.Vector3{X: -0.4, Y: -0.2, Z: -0.5}, "Pity"}
-	Pride          = OCCEmotionType{ymath.Vector3{X: 0.4, Y: 0.3, Z: 0.3}, "Pride"}
-	Relief         = OCCEmotionType{ymath.Vector3{X: 0.2, Y: -0.3, Z: 0.4}, "Relief"}
-	Remorse        = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}, "Remorse"}
-	Reproach       = OCCEmotionType{ymath.Vector3{X: -0.3, Y: -0.1, Z: 0.4}, "Reproach"}
-	Resentment     = OCCEmotionType{ymath.Vector3{X: -0.2, Y: -0.3, Z: -0.2}, "Resentment"}
-	Satisfaction   = OCCEmotionType{ymath.Vector3{X: 0.3, Y: -0.2, Z: 0.4}, "Satisfaction"}
-	Shame          = OCCEmotionType{ymath.Vector3{X: -0.3, Y: 0.1, Z: -0.6}, "Shame"}
+	Admiration     = OCCEmotionType{X: 0.5, Y: 0.3, Z: -0.2, Name: "Admiration"}
+	Anger          = OCCEmotionType{X: -0.51, Y: 0.59, Z: 0.25, Name: "Anger"}
+	Disliking      = OCCEmotionType{X: -0.4, Y: 0.2, Z: 0.1, Name: "Disliking"}
+	Disappointment = OCCEmotionType{X: -0.3, Y: 0.1, Z: -0.4, Name: "Disappointment"}
+	Distress       = OCCEmotionType{X: -0.4, Y: -0.2, Z: -0.5, Name: "Distress"}
+	Fear           = OCCEmotionType{X: -0.64, Y: 0.60, Z: -0.43, Name: "Fear"}
+	FearsConfirmed = OCCEmotionType{X: -0.5, Y: -0.3, Z: -0.7, Name: "FearsConfirmed"}
+	Gloating       = OCCEmotionType{X: 0.3, Y: -0.3, Z: -0.1, Name: "Gloating"}
+	Gratification  = OCCEmotionType{X: 0.6, Y: 0.5, Z: 0.4, Name: "Gratification"}
+	Gratitude      = OCCEmotionType{X: 0.4, Y: 0.2, Z: -0.3, Name: "Gratitude"}
+	HappyFor       = OCCEmotionType{X: 0.4, Y: 0.2, Z: 0.2, Name: "HappyFor"}
+	Hate           = OCCEmotionType{X: -0.6, Y: 0.6, Z: 0.3, Name: "Hate"}
+	Hope           = OCCEmotionType{X: 0.2, Y: 0.2, Z: -0.1, Name: "Hope"}
+	Joy            = OCCEmotionType{X: 0.4, Y: 0.2, Z: 0.1, Name: "Joy"}
+	Liking         = OCCEmotionType{X: 0.40, Y: 0.16, Z: -0.24, Name: "Liking"}
+	Love           = OCCEmotionType{X: 0.3, Y: 0.1, Z: 0.2, Name: "Love"}
+	Pity           = OCCEmotionType{X: -0.4, Y: -0.2, Z: -0.5, Name: "Pity"}
+	Pride          = OCCEmotionType{X: 0.4, Y: 0.3, Z: 0.3, Name: "Pride"}
+	Relief         = OCCEmotionType{X: 0.2, Y: -0.3, Z: 0.4, Name: "Relief"}
+	Remorse        = OCCEmotionType{X: -0.3, Y: 0.1, Z: -0.6, Name: "Remorse"}
+	Reproach       = OCCEmotionType{X: -0.3, Y: -0.1, Z: 0.4, Name: "Reproach"}
+	Resentment     = OCCEmotionType{X: -0.2, Y: -0.3, Z: -0.2, Name: "Resentment"}
+	Satisfaction   = OCCEmotionType{X: 0.3, Y: -0.2, Z: 0.4, Name: "Satisfaction"}
+	Shame          = OCCEmotionType{X: -0.3, Y: 0.1, Z: -0.6, Name: "Shame"}
 )
 
 var OCCEmotionMap = map[string]OCCEmotionType{
@@ -199,11 +199,11 @@ func (p Point) Dominance() float64 { return p.Position.Dominance() }
 
 func (p *Point) Move(step ymath.Vector3) {
 	result := p.Position.Add(step)
-	p.Position = PAD{Vector3: ymath.Vector3{
+	p.Position = PAD{
 		X: Clamp(result.X, -1, 1),
 		Y: Clamp(result.Y, -1, 1),
 		Z: Clamp(result.Z, -1, 1),
-	}}
+	}
 }
 
 func Clamp(n, a, b float64) float64 {
