@@ -2,7 +2,6 @@ package core
 
 import (
 	"time"
-	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/trigger"
 )
 
@@ -40,16 +39,7 @@ func (c *Core) processTimetick(d time.Duration) {
 		}
 	}
 
-	if err := c.History.SaveCheckpoint(history.Checkpoint{
-		Exist: true,
-		StateAt: timeNow,
-		State: c.State,
-		Determination: c.Determination,
-		Energy: c.Energy,
-		Affect: c.Affect,
-		Note: c.Note,
-		LastActiveTime: c.LastActiveTime,
-	}); err != nil {
+	if err := c.checkpoint(); err != nil {
 		ylog.Error("Saving checkpoint error: %v", err)
 	}
 

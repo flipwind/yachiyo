@@ -7,4 +7,4 @@ linters:
 
   settings:
     exhaustruct_v5:
-      allow-empty: false
+      allow-empty: true

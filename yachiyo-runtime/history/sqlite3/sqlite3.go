@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 	"yachiyo/yachiyo-runtime/history"
 
@@ -14,9 +15,19 @@ const history_schema_version = 1
 const checkpoint_schema_version = 1
 
 type Sqlite3Storage struct {
-	Histories  []history.History
-	Checkpoint history.Checkpoint
-	db         *sql.DB
+	Histories   []history.History
+	Checkpoint  history.Checkpoint
+	db          *sql.DB
+	nowSequence atomic.Int64 //exhaustruct:optional
+}
+
+func (b *Sqlite3Storage) getMaxSequence() int64 {
+	var maxSequence int64
+	for _, h := range b.Histories {
+		maxSequence = max(maxSequence, h.GetSequence())
+	}
+
+	return maxSequence
 }
 
 func (b *Sqlite3Storage) saveMessage(m history.History) error {
@@ -122,7 +133,7 @@ func (b *Sqlite3Storage) restore() error {
 		if err := rows.Scan(&id, &state_at, &version, &payload); err != nil {
 			return fmt.Errorf("Scanning state error: %w", err)
 		}
-		
+
 		if version != checkpoint_schema_version {
 			return fmt.Errorf("Unsupported history version: %d", version)
 		}
@@ -130,16 +141,13 @@ func (b *Sqlite3Storage) restore() error {
 		if err := json.Unmarshal([]byte(payload), &checkpoint); err != nil {
 			return fmt.Errorf("Decoding checkpoint error: %w", err)
 		}
-
-		if id == 1 {
-			checkpoint.Exist = true
-		}
 	}
 	if err := rows.Err(); err != nil {
 		return err
 	}
 
 	b.Checkpoint = checkpoint
+	b.nowSequence.Store(max(checkpoint.NowSequence, b.getMaxSequence()))
 
 	return nil
 }
@@ -181,8 +189,9 @@ func New() (*Sqlite3Storage, error) {
 	}
 
 	storage := &Sqlite3Storage{
-		Histories: make([]history.History, 0),
-		db:        db,
+		Histories:  make([]history.History, 0),
+		db:         db,
+		Checkpoint: history.Checkpoint{},
 	}
 
 	if err := storage.restore(); err != nil {
@@ -230,4 +239,12 @@ func (b *Sqlite3Storage) SaveCheckpoint(point history.Checkpoint) error {
 	}
 
 	return nil
+}
+
+func (b *Sqlite3Storage) NextSequence() int64 {
+	return b.nowSequence.Add(1)
+}
+
+func (b *Sqlite3Storage) NowSequence() int64 {
+	return b.nowSequence.Load()
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"time"
+	"uuid"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/state"
@@ -14,10 +15,21 @@ type HistoryStorage interface {
 	ListAll() []History
 	Close() error
 	SaveCheckpoint(point Checkpoint) error
+	NextSequence() int64
+	NowSequence() int64
 }
 
 type History interface {
 	History()
+	GetSequence() int64
+}
+
+type Event struct {
+	ID        uuid.UUID
+	Sequence  int64
+	Timestamp time.Time
+	Snapshot  Snapshot
+	Address   address.Address
 }
 
 type Checkpoint struct {
@@ -29,6 +41,7 @@ type Checkpoint struct {
 	Affect         state.Engine
 	Note           string
 	LastActiveTime time.Time
+	NowSequence    int64
 }
 
 type Snapshot struct {
@@ -40,38 +53,35 @@ type Snapshot struct {
 }
 
 type UserMessage struct {
-	Snapshot Snapshot
+	Event
 	Content  string
-
 	Author   string
 	Platform string
-
-	Time    time.Time
-	Address address.Address
 }
 
 func (UserMessage) History() {}
+
+func (m UserMessage) GetSequence() int64 { return m.Sequence }
 func (m UserMessage) Render() string {
 	// e.g. <Iroha>(2030.07.21 16:16:08/Client) Good evening Yachiyo~
-	return fmt.Sprintf("<%s>(%s/%s) %s", m.Author, m.Time.Format("2006.01.02 15:04:05"), m.Platform, m.Content)
+	return fmt.Sprintf("<%s>(%s/%s) %s", m.Author, m.Timestamp.Format("2006.01.02 15:04:05"), m.Platform, m.Content)
 }
 
+// To AssistantMessage, field `Address` means where the address the message would send to.
 type AssistantMessage struct {
-	Snapshot Snapshot
-	Content  []string
-
-	Time      time.Time
-	ToAddress address.Address
-	Note      string
+	Event
+	Content []string
 
 	Initiative bool
 	Reply      bool
 }
 
 func (AssistantMessage) History() {}
+
+func (m AssistantMessage) GetSequence() int64 { return m.Sequence }
 func (m AssistantMessage) Render() string {
 	// e.g. <Message initiative: False><Reply: True>(2030.07.21 16:16:09) Iroha! Suki~
-	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Time.Format("2006.01.02 15:04:05"))
+	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Timestamp.Format("2006.01.02 15:04:05"))
 	if m.Reply {
 		for _, message := range m.Content {
 			msg += fmt.Sprintf("`%s` ", message)

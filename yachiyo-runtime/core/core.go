@@ -57,6 +57,8 @@ func New() (*Core, error) {
 	checkpoint := storage.Checkpoint
 	checkpointExist := checkpoint.Exist
 
+	ylog.Success("Now history sequence at %v.", checkpoint.NowSequence)
+
 	var core *Core
 
 	if checkpointExist {
@@ -225,4 +227,18 @@ func (c *Core) getNote() string {
 	defer c.mu.Unlock()
 
 	return c.Note
+}
+
+func (c *Core) checkpoint() error {
+	return c.History.SaveCheckpoint(history.Checkpoint{
+		Exist:          true,
+		StateAt:        time.Now(),
+		State:          c.State,
+		Determination:  c.Determination,
+		Energy:         c.Energy,
+		Affect:         c.Affect,
+		Note:           c.Note,
+		LastActiveTime: c.LastActiveTime,
+		NowSequence:    c.History.NowSequence(),
+	})
 }

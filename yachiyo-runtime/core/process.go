@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"uuid"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/history"
@@ -260,13 +261,15 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	}
 
 	if err := c.AppendHistory(history.UserMessage{
+		ID:       uuid.NewV7(),
+		Sequence: c.History.NextSequence(),
 		Snapshot: histSnap,
 		Content:  m.Content,
 
-		Author:   m.Author,
-		Platform: m.Platform,
-		Time:     time.Now(),
-		Address:  m.Address,
+		Author:    m.Author,
+		Platform:  m.Platform,
+		Timestamp: time.Now(),
+		Address:   m.Address,
 	}); err != nil {
 		ylog.Error("UserMessage history appended error: %s", err)
 		return processError(yerror.ErrMessageStore, m.Address)
@@ -297,12 +300,13 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	}
 
 	if err := c.AppendHistory(history.AssistantMessage{
+		ID:       uuid.NewV7(),
+		Sequence: c.History.NextSequence(),
 		Snapshot: histSnap,
 		Content:  answer,
 
-		Time:      time.Now(),
-		ToAddress: m.Address,
-		Note:      c.getNote(),
+		Timestamp: time.Now(),
+		Address:   m.Address,
 
 		Initiative: false,
 		Reply:      isReply,
@@ -372,12 +376,13 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	}
 
 	if err := c.AppendHistory(history.AssistantMessage{
+		ID:       uuid.NewV7(),
+		Sequence: c.History.NextSequence(),
 		Snapshot: histSnap,
 		Content:  answer,
 
-		Time:      time.Now(),
-		ToAddress: addr,
-		Note:      c.getNote(),
+		Timestamp: time.Now(),
+		Address:   addr,
 
 		Initiative: true,
 		Reply:      isReply,
@@ -435,7 +440,7 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 	for _, h := range hist {
 		switch m := h.(type) {
 		case history.AssistantMessage:
-			if m.ToAddress != t.Address {
+			if m.Address != t.Address {
 				break
 			}
 
@@ -445,10 +450,10 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 
 			msgs = append(msgs, &action.AssistantMessage{
 				Content:    m.Content,
-				Time:       m.Time.Unix(),
+				Time:       m.Timestamp.Unix(),
 				Initiative: m.Initiative,
 				Reply:      m.Reply,
-				Address:    m.ToAddress,
+				Address:    m.Address,
 			})
 		case history.UserMessage:
 			if m.Address != t.Address {
@@ -457,7 +462,7 @@ func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) ac
 
 			msgs = append(msgs, &action.UserMessage{
 				Content: m.Content,
-				Time:    m.Time.Unix(),
+				Time:    m.Timestamp.Unix(),
 				Address: m.Address,
 			})
 		}
