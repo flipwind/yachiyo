@@ -89,6 +89,12 @@ jobs:
       with: 
         channel: stable
         cache: true
+    
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '21'
 
     - name: Restore Android Signing Key
       if: matrix.platform == 'android'
