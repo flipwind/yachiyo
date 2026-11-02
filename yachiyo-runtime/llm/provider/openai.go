@@ -32,10 +32,12 @@ func NewOpenAIProvider(baseUrl, apiKey, model string) *OpenAIProvider {
 
 func (p *OpenAIProvider) LLM() {}
 
-func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
+func (p *OpenAIProvider) Gen(prompts []prompt.Prompts, jsonEnabled bool) (answer string, err error, finish_reason string) {
 	var OpenAIMessages []openai.ChatCompletionMessageParamUnion
 	for _, m := range prompts {
 		switch p := m.(type) {
+		case prompt.CompressPrompt:
+			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(p.Content))
 		case prompt.SystemPrompt:
 			OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(p.Content))
 		case prompt.UserPrompt:
@@ -50,21 +52,30 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	var format openai.ChatCompletionNewParamsResponseFormatUnion
+	if jsonEnabled {
+		format = openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
+		}
+	} else {
+		format = openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfText: &shared.ResponseFormatTextParam{},
+		}
+	}
+
 	reply, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: OpenAIMessages,
 		Model:    p.model,
-		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
-			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
-		},
+		ResponseFormat: format,
 	})
 
 	if err != nil {
-		return "", err
+		return "", err, ""
 	}
 
 	if len(reply.Choices) == 0 {
-		return "", fmt.Errorf("reply.choices is empty: %w", yerror.ErrLLMChoice)
+		return "", fmt.Errorf("reply.choices is empty: %w", yerror.ErrLLMChoice), ""
 	}
 
-	return reply.Choices[0].Message.Content, nil
+	return reply.Choices[0].Message.Content, nil, reply.Choices[0].FinishReason
 }

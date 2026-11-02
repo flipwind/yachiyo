@@ -9,9 +9,9 @@ import (
 var ylog = logger.New("Yachiyo.Prompt")
 
 type Context struct {
-	SystemPrompt string
-	History      []history.History
-	Note         string
+	SystemPrompt  string
+	ContextWindow history.ContextWindow
+	Note          string
 }
 
 func statementPrompt(snap history.Snapshot, note string) string {
@@ -60,9 +60,16 @@ func InitiativePrompt(snap history.Snapshot, note string) SystemPrompt {
 	}
 }
 
-func HistoryPrompt(histories []history.History) []Prompts {
+func HistoryPrompt(window history.ContextWindow) []Prompts {
 	var prompts []Prompts
-	for _, h := range histories {
+
+	if window.CurrentNode.Empty == false {
+		prompts = append(prompts, CompressPrompt{
+			Content: window.CurrentNode.Rend(),
+		})
+	}
+	
+	for _, h := range window.CurrentHistories {
 		switch hist := h.(type) {
 		case history.UserMessage:
 			prompts = append(prompts, UserPrompt{
@@ -87,7 +94,7 @@ func UserPromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	prompts = append(prompts, SystemPrompt{Content: c.SystemPrompt})
 
 	// 2. History Prompt (Including new message)
-	prompts = append(prompts, HistoryPrompt(c.History)...)
+	prompts = append(prompts, HistoryPrompt(c.ContextWindow)...)
 
 	// 3. Current Statement
 	statementPrompt := PassivePrompt(snap, c.Note)
@@ -99,7 +106,7 @@ func UserPromptBuilder(c Context, snap history.Snapshot) []Prompts {
 
 func InitiativePromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	// 0. Check if the trigger vaild
-	if len(c.History) == 0 {
+	if c.ContextWindow.IsEmpty() {
 		ylog.Error("History is empty.")
 		return nil
 	}
@@ -109,7 +116,7 @@ func InitiativePromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	prompts = append(prompts, SystemPrompt{Content: c.SystemPrompt})
 
 	// 2. History Prompt (Including new message)
-	prompts = append(prompts, HistoryPrompt(c.History)...)
+	prompts = append(prompts, HistoryPrompt(c.ContextWindow)...)
 
 	// 3. Current Statement & Initiative trigger reason
 	statementPrompt := InitiativePrompt(snap, c.Note)

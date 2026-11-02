@@ -46,8 +46,10 @@ type Config struct {
 		BigFive *BigFive `yaml:"bigfive"`
 	} `yaml:"core"`
 	Prompt struct {
-		SystemPromptPath *string `yaml:"system"`
-		SystemPrompt     string
+		SystemPromptPath   *string `yaml:"system"`
+		SystemPrompt       string
+		CompressPromptPath *string `yaml:"compress"`
+		CompressPrompt     string
 	} `yaml:"prompt"`
 	Gateway struct {
 		Onebot     GatewayConfig `yaml:"onebot"`
@@ -100,6 +102,13 @@ func LoadConfig(configPath string) (Config, error) {
 	}
 
 	config.Prompt.SystemPrompt = string(systemPrompt)
+
+	compressPrompt, err := os.ReadFile(*config.Prompt.CompressPromptPath)
+	if err != nil {
+		return Config{}, fmt.Errorf("Failed to read system prompt: %w", err)
+	}
+
+	config.Prompt.CompressPrompt = string(compressPrompt)
 
 	return config, nil
 }
@@ -165,6 +174,10 @@ func (c *Config) Check() ([]ywarning.Warning, []error) {
 	// prompt
 	if c.Prompt.SystemPromptPath == nil {
 		errs = append(errs, fmt.Errorf("prompt.system: %w", yerror.ErrFieldRequired))
+	}
+
+	if c.Prompt.CompressPromptPath == nil {
+		errs = append(errs, fmt.Errorf("prompt.compress: %w", yerror.ErrFieldRequired))
 	}
 
 	// gateway

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
@@ -20,6 +21,7 @@ var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
 	History       history.HistoryStorage
+	ContextWindow *history.ContextWindow
 	State         state.State
 	LLM           llm.LLM
 	Config        config.Config
@@ -30,6 +32,7 @@ type Core struct {
 	Note           string
 	LastActiveTime time.Time
 	LLMBusy        bool
+	CompressBusy   bool
 
 	Pipe *Pipeline  //exhaustruct:optional
 	mu   sync.Mutex //exhaustruct:optional
@@ -78,6 +81,7 @@ func New() (*Core, error) {
 
 		core = &Core{
 			History:       storage,
+			ContextWindow: &storage.ContextWindow,
 			State:         checkpoint.State,
 			LLM:           llm,
 			Config:        config,
@@ -88,6 +92,7 @@ func New() (*Core, error) {
 			Note:           checkpoint.Note,
 			LastActiveTime: checkpoint.LastActiveTime,
 			LLMBusy:        false,
+			CompressBusy:   false,
 		}
 
 		core.processTimetick(time.Since(checkpoint.StateAt))
@@ -108,6 +113,7 @@ func New() (*Core, error) {
 
 		core = &Core{
 			History:       storage,
+			ContextWindow: &storage.ContextWindow,
 			State:         state.NewState(),
 			LLM:           llm,
 			Config:        config,
@@ -118,6 +124,7 @@ func New() (*Core, error) {
 			Note:           "",
 			LastActiveTime: time.Now(),
 			LLMBusy:        false,
+			CompressBusy:   false,
 		}
 	}
 
@@ -179,6 +186,17 @@ func (c *Core) AppendHistory(hist history.History) error {
 	return nil
 }
 
+func (c *Core) SaveCompressNode(node history.CompressNode) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if err := c.History.SaveCompressNode(node); err != nil {
+		ylog.Error("Append compressnode error: %v", err)
+		return err
+	}
+	return nil
+}
+
 // Core snapshot
 
 type Snapshot struct {
@@ -215,11 +233,25 @@ func (c *Core) getHistory() []history.History {
 	return hist
 }
 
+func (c *Core) getContextWindow() history.ContextWindow {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return *c.ContextWindow
+}
+
 func (c *Core) getSystemPrompt() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.Config.Prompt.SystemPrompt
+}
+
+func (c *Core) getCompressPrompt() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.Config.Prompt.CompressPrompt
 }
 
 func (c *Core) getNote() string {
@@ -241,4 +273,19 @@ func (c *Core) checkpoint() error {
 		LastActiveTime: c.LastActiveTime,
 		NowSequence:    c.History.NowSequence(),
 	})
+}
+
+func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
+	const MAXTOKEN = 500 * 1000
+
+	charnum := 0 + deltaLength
+	charnum += len(c.getSystemPrompt())
+	charnum += len(c.getContextWindow().CurrentNode.Rend())
+	for _, h := range c.getContextWindow().CurrentHistories {
+		charnum += len(h.Render())
+	}
+
+	token := charnum / 3
+
+	return token > int(math.Round(MAXTOKEN*percentage/100))
 }

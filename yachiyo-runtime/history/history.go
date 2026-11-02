@@ -13,8 +13,10 @@ import (
 type HistoryStorage interface {
 	Append(memory History) error
 	ListAll() []History
+	ListAfter(id uuid.UUID) []History	// returns history[indexOfID+1:]
 	Close() error
 	SaveCheckpoint(point Checkpoint) error
+	SaveCompressNode(node CompressNode) error
 	NextSequence() int64
 	NowSequence() int64
 }
@@ -22,6 +24,8 @@ type HistoryStorage interface {
 type History interface {
 	History()
 	GetSequence() int64
+	GetID() uuid.UUID
+	Render() string
 }
 
 type Event struct {
@@ -29,7 +33,6 @@ type Event struct {
 	Sequence  int64
 	Timestamp time.Time
 	Snapshot  Snapshot
-	Address   address.Address
 }
 
 type Checkpoint struct {
@@ -57,11 +60,13 @@ type UserMessage struct {
 	Content  string
 	Author   string
 	Platform string
+	Address  address.Address
 }
 
 func (UserMessage) History() {}
 
 func (m UserMessage) GetSequence() int64 { return m.Sequence }
+func (m UserMessage) GetID() uuid.UUID   { return m.ID }
 func (m UserMessage) Render() string {
 	// e.g. <Iroha>(2030.07.21 16:16:08/Client) Good evening Yachiyo~
 	return fmt.Sprintf("<%s>(%s/%s) %s", m.Author, m.Timestamp.Format("2006.01.02 15:04:05"), m.Platform, m.Content)
@@ -74,11 +79,13 @@ type AssistantMessage struct {
 
 	Initiative bool
 	Reply      bool
+	Address    address.Address
 }
 
 func (AssistantMessage) History() {}
 
 func (m AssistantMessage) GetSequence() int64 { return m.Sequence }
+func (m AssistantMessage) GetID() uuid.UUID   { return m.ID }
 func (m AssistantMessage) Render() string {
 	// e.g. <Message initiative: False><Reply: True>(2030.07.21 16:16:09) Iroha! Suki~
 	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Timestamp.Format("2006.01.02 15:04:05"))

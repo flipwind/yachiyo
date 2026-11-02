@@ -21,3 +21,9 @@ type AssistantPrompt struct {
 }
 
 func (AssistantPrompt) Prompts() {}
+
+type CompressPrompt struct {
+	Content string
+}
+
+func (CompressPrompt) Prompts() {}

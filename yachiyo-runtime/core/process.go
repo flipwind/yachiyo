@@ -224,10 +224,16 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) ([]string, bool, error) {
 			})
 		}
 
-		result, err := c.LLM.Gen(prompts)
+		result, err, finish_reason := c.LLM.Gen(prompts, true)
 
 		if err != nil {
 			lastErr = err
+			ylog.Error("LLM Generating error, retrying: %v", err)
+			continue
+		}
+
+		if finish_reason != "stop" {
+			lastErr = fmt.Errorf("finish_reason of LLM generation is not `stop`.")
 			ylog.Error("LLM Generating error, retrying: %v", err)
 			continue
 		}
@@ -247,10 +253,109 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts) ([]string, bool, error) {
 	return emptyAnswers, false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
 }
 
+func (c *Core) processCompress() error {
+	clearbusy := func (){
+		c.mu.Lock()
+		c.CompressBusy = false
+		c.mu.Unlock()
+	}
+
+	c.mu.Lock()
+	if c.CompressBusy {
+		c.mu.Unlock()
+		return nil
+	}
+	c.CompressBusy = true
+	window := *c.ContextWindow
+	cwindow := c.ContextWindow
+	c.mu.Unlock()
+
+	defer clearbusy()
+
+	if len(window.CurrentHistories) == 0 {
+		return fmt.Errorf("Current history list is empty. Skip compress.")
+	}
+
+	node := history.CompressNode{
+		Empty:               false,
+		ID:                  uuid.NewV7(),
+		CompressTimestamp:   time.Now(),
+		SubCompressNodeID:   window.CurrentNode.ID,
+		CompressEventIDFrom: window.CurrentHistories[0].GetID(),
+		CompressEventIDTo:   window.CurrentHistories[len(window.CurrentHistories)-1].GetID(),
+		Content:             "NO COMPRESS RESULT",
+	}
+
+	var prompts = prompt.HistoryPrompt(window)
+	prompts = append(prompts, prompt.SystemPrompt{
+		Content: c.getCompressPrompt(),
+	})
+	var lastErr error
+	var successflag bool = false
+
+	for range 3 {
+		result, err, finish_reason := c.LLM.Gen(prompts, false)
+
+		if err != nil {
+			lastErr = err
+			ylog.Error("LLM compressing error, retrying: %v", err)
+			continue
+		}
+
+		if finish_reason != "stop" {
+			lastErr = fmt.Errorf("finish_reason of LLM generation is not `stop`.")
+			ylog.Error("LLM compressing error, retrying: %v", err)
+			continue
+		}
+		
+		if strings.TrimSpace(result) == "" && !strings.ContainsAny(result, "#*-~") {
+			lastErr = fmt.Errorf("LLM returns a empty message.")
+			ylog.Error("LLM compressing error, retrying: %v", err)
+			continue
+		}
+
+		// If successfully generated, break.
+		node.Content = result
+		successflag = true
+		break
+	}
+
+	if successflag {
+		c.mu.Lock()
+		delta := c.History.ListAfter(node.CompressEventIDTo)
+		cwindow.CurrentNode = node
+		cwindow.CurrentHistories = delta
+		c.mu.Unlock()
+		if err := c.SaveCompressNode(node); err != nil {
+			saveErr := fmt.Errorf("Compressed but failed to save in storage: %w", err)
+			ylog.Error("Compressed failed: %v", saveErr)
+			return saveErr
+		}
+	}
+
+	if successflag {
+		ylog.Success("Compressed.")
+		return nil
+	}
+
+	err := fmt.Errorf("LLM failed to compress after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+	ylog.Error("Compress failed: %s", err)
+
+	return err
+}
+
 // Trigger process part
 
 func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	ylog.Info("Received user message [%v]", m.String())
+
+	if c.checkTokenThreshold(85, len(m.String())) {
+		ylog.Success("Context too big.(85%%) Compressing, please wait...")
+		if err := c.processCompress(); err != nil {
+			return processError(err, m.Address)
+		}
+	}
+
 	snap := c.snapshot()
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
@@ -276,9 +381,9 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	}
 
 	prompts := prompt.UserPromptBuilder(prompt.Context{
-		SystemPrompt: c.getSystemPrompt(),
-		History:      c.getHistory(),
-		Note:         c.getNote(),
+		SystemPrompt:  c.getSystemPrompt(),
+		ContextWindow: c.getContextWindow(),
+		Note:          c.getNote(),
 	}, histSnap)
 
 	answer, isReply, err := c.processLLM(prompts)
@@ -316,6 +421,12 @@ func (c *Core) processUserMessage(m *trigger.Message) action.Action {
 	}
 
 	ylog.Success("Generated passive output %#v", answer)
+
+	if c.checkTokenThreshold(70, 0) {
+		ylog.Success("Context too big.(70%%) Compressing on background...")
+		go c.processCompress()
+	}
+
 	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),
@@ -341,6 +452,13 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 
 	ylog.Info("Initiative Message triggered.")
 
+	if c.checkTokenThreshold(85, 0) {
+		ylog.Success("Context too big.(85%%) Compressing, please wait...")
+		if err := c.processCompress(); err != nil {
+			return processError(err, addr)
+		}
+	}
+
 	histSnap := history.Snapshot{
 		Time:           time.Now(),
 		Affect:         snap.Affect,
@@ -352,9 +470,9 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	// Build Prompt
 	prompts := prompt.InitiativePromptBuilder(
 		prompt.Context{
-			SystemPrompt: c.getSystemPrompt(),
-			History:      c.getHistory(),
-			Note:         c.getNote(),
+			SystemPrompt:  c.getSystemPrompt(),
+			ContextWindow: c.getContextWindow(),
+			Note:          c.getNote(),
 		}, histSnap)
 
 	answer, isReply, err := c.processLLM(prompts)
@@ -392,6 +510,12 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 	}
 
 	ylog.Success("Generated active output %#v", answer)
+
+	if c.checkTokenThreshold(70, 0) {
+		ylog.Success("Context too big.(70%%) Compressing on background...")
+		go c.processCompress()
+	}
+
 	return &action.AssistantMessage{
 		Content: answer,
 		Time:    time.Now().Unix(),

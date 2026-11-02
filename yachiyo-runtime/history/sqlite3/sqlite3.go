@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
+	"uuid"
 	"yachiyo/yachiyo-runtime/history"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -13,12 +14,14 @@ import (
 
 const history_schema_version = 1
 const checkpoint_schema_version = 1
+const compressnode_schema_version = 1
 
 type Sqlite3Storage struct {
-	Histories   []history.History
-	Checkpoint  history.Checkpoint
-	db          *sql.DB
-	nowSequence atomic.Int64 //exhaustruct:optional
+	Histories     []history.History
+	ContextWindow history.ContextWindow
+	Checkpoint    history.Checkpoint
+	db            *sql.DB
+	nowSequence   atomic.Int64 //exhaustruct:optional
 }
 
 func (b *Sqlite3Storage) getMaxSequence() int64 {
@@ -131,11 +134,11 @@ func (b *Sqlite3Storage) restore() error {
 		var version int
 		var payload string
 		if err := rows.Scan(&id, &state_at, &version, &payload); err != nil {
-			return fmt.Errorf("Scanning state error: %w", err)
+			return fmt.Errorf("Scanning checkpoint error: %w", err)
 		}
 
 		if version != checkpoint_schema_version {
-			return fmt.Errorf("Unsupported history version: %d", version)
+			return fmt.Errorf("Unsupported checkpoint version: %d", version)
 		}
 
 		if err := json.Unmarshal([]byte(payload), &checkpoint); err != nil {
@@ -149,6 +152,51 @@ func (b *Sqlite3Storage) restore() error {
 	b.Checkpoint = checkpoint
 	b.nowSequence.Store(max(checkpoint.NowSequence, b.getMaxSequence()))
 
+	// 3. contextWindow restore
+	rows, err = b.db.Query(`
+		SELECT id, schema_version, node_id, payload
+		FROM contextnode
+		ORDER BY id DESC
+		LIMIT 1;
+	`)
+
+	if err != nil {
+		return fmt.Errorf("Query contextnode error: %w", err)
+	}
+
+	defer rows.Close()
+
+	var contextWindow history.ContextWindow
+	var compressnode history.CompressNode
+	compressnode.Empty = true
+
+	for rows.Next() {
+		var id int
+		var version int
+		var node_id string
+		var payload string
+		if err := rows.Scan(&id, &version, &node_id, &payload); err != nil {
+			return fmt.Errorf("Scanning contextnode error: %w", err)
+		}
+
+		if version != compressnode_schema_version {
+			return fmt.Errorf("Unsupported contextnode version: %d", version)
+		}
+
+		if err := json.Unmarshal([]byte(payload), &compressnode); err != nil {
+			return fmt.Errorf("Decoding contextnode error: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	contextWindow = history.ContextWindow{
+		CurrentNode:      compressnode,
+		CurrentHistories: b.ListAfter(compressnode.CompressEventIDTo),
+	}
+
+	b.ContextWindow = contextWindow
 	return nil
 }
 
@@ -188,10 +236,23 @@ func New() (*Sqlite3Storage, error) {
 		return nil, fmt.Errorf("Processing storage of `checkpoint` error: %w", err)
 	}
 
+	if _, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS contextnode(
+		id INTEGER PRIMARY KEY,
+		schema_version INTEGER NOT NULL,
+		node_id TEXT NOT NULL,
+		payload TEXT NOT NULL
+	);
+	`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("Processing storage of `contextnode` error: %w", err)
+	}
+
 	storage := &Sqlite3Storage{
-		Histories:  make([]history.History, 0),
-		db:         db,
-		Checkpoint: history.Checkpoint{},
+		Histories:     make([]history.History, 0),
+		db:            db,
+		Checkpoint:    history.Checkpoint{},
+		ContextWindow: history.ContextWindow{},
 	}
 
 	if err := storage.restore(); err != nil {
@@ -208,11 +269,31 @@ func (b *Sqlite3Storage) Append(m history.History) error {
 	}
 
 	b.Histories = append(b.Histories, m)
+	b.ContextWindow.CurrentHistories = append(b.ContextWindow.CurrentHistories, m)
 	return nil
 }
 
 func (b *Sqlite3Storage) ListAll() []history.History {
 	return b.Histories
+}
+
+func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []history.History {
+	var history_len = len(b.Histories)
+	var index = history_len - 1
+	var findflag = false
+	for i := index; i >= 0; i-- {
+		if b.Histories[i].GetID() == uuid {
+			index = i
+			findflag = true
+			break
+		}
+	}
+
+	if findflag == false {
+		return b.Histories
+	}
+
+	return b.Histories[index+1:]
 }
 
 func (b *Sqlite3Storage) Close() error {
@@ -236,6 +317,25 @@ func (b *Sqlite3Storage) SaveCheckpoint(point history.Checkpoint) error {
 
 	if err != nil {
 		return fmt.Errorf("store checkpoint error: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Sqlite3Storage) SaveCompressNode(node history.CompressNode) error {
+	payload, err := json.Marshal(node)
+	if err != nil {
+		return fmt.Errorf("json marshal error: %w", err)
+	}
+
+	_, err = b.db.Exec(`
+    INSERT INTO contextnode
+		(schema_version, node_id, payload)
+		VALUES (?, ?, ?)
+	`, compressnode_schema_version, node.ID, string(payload))
+
+	if err != nil {
+		return fmt.Errorf("store contextnode error: %w", err)
 	}
 
 	return nil

@@ -13,6 +13,7 @@ core:
 
 prompt:
   system: ./prompt/system.md
+  compress: ./prompt/compress.md
 
 gateway:
   onebot:
