@@ -74,9 +74,10 @@ class _ConnectPaneState extends State<ConnectPane> {
   @override
   void initState() {
     super.initState();
-    _addressEditingController.text = "ws://127.0.0.1:16899/ws/";
-    _nameEditingController.text = "Pancake!";
-    _idEditingController.text = "c17439a5-b121-48b2-b933-de9787becc30";
+    final provider = context.read<PancakeProvider>();
+    _addressEditingController.text = provider.data.serverAddr;
+    _nameEditingController.text = provider.identity.clientName;
+    _idEditingController.text = provider.identity.clientID;
   }
 
   @override
@@ -86,7 +87,7 @@ class _ConnectPaneState extends State<ConnectPane> {
     final settingsController = context.watch<SettingsController>();
     final settings = settingsController.settings;
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Padding(
         padding: EdgeInsetsGeometry.symmetric(vertical: 12, horizontal: 20),
         child: Column(
@@ -184,6 +185,8 @@ class _ConnectPaneState extends State<ConnectPane> {
                       "The same Client ID refers to the same buddy for the runtime.",
                       style: texts.bodySmall,
                     ),
+                    if (registered)
+                      Text("*Disconnect to change.", style: texts.labelSmall),
 
                     Row(
                       spacing: 8,
@@ -213,11 +216,6 @@ class _ConnectPaneState extends State<ConnectPane> {
                           icon: Icon(Icons.copy),
                           iconSize: 16,
                         ),
-                        if (registered)
-                          Text(
-                            "*Disconnect to change.",
-                            style: texts.labelSmall,
-                          ),
                       ],
                     ),
                   ],
@@ -260,6 +258,22 @@ class _ConnectPaneState extends State<ConnectPane> {
                   title: Text("Auto theme"),
                   subtitle: Text("Follow the system."),
                   trailing: DropdownMenu(
+                    textAlign: TextAlign.center,
+                    width: 100,
+                    selectOnly: true,
+                    showTrailingIcon: false,
+                    inputDecorationTheme: InputDecorationTheme(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    menuStyle: MenuStyle(
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                    ),
                     dropdownMenuEntries: <DropdownMenuEntry>[
                       DropdownMenuEntry(
                         value: ThemeModeType.system,
