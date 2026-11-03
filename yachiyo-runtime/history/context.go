@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"uuid"
+	"yachiyo/yachiyo-runtime/event"
 )
 
 type CompressNode struct {
@@ -26,7 +27,7 @@ type CompressNode struct {
 // It's clear that this is a recursive struct.
 type ContextWindow struct {
 	CurrentNode      CompressNode
-	CurrentHistories []History
+	CurrentHistories []event.History
 }
 
 func (c CompressNode) Rend() string {

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 	"uuid"
+	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -17,11 +18,9 @@ const checkpoint_schema_version = 1
 const compressnode_schema_version = 1
 
 type Sqlite3Storage struct {
-	Histories     []history.History
-	ContextWindow history.ContextWindow
-	Checkpoint    history.Checkpoint
-	db            *sql.DB
-	nowSequence   atomic.Int64 //exhaustruct:optional
+	Histories   []event.History
+	db          *sql.DB
+	nowSequence atomic.Int64 //exhaustruct:optional
 }
 
 func (b *Sqlite3Storage) getMaxSequence() int64 {
@@ -33,12 +32,12 @@ func (b *Sqlite3Storage) getMaxSequence() int64 {
 	return maxSequence
 }
 
-func (b *Sqlite3Storage) saveMessage(m history.History) error {
+func (b *Sqlite3Storage) saveMessage(m event.History) error {
 	var messageType string
 	switch m.(type) {
-	case history.AssistantMessage:
+	case event.AssistantMessage:
 		messageType = "assistant_message"
-	case history.UserMessage:
+	case event.UserMessage:
 		messageType = "user_message"
 	default:
 		return fmt.Errorf("Unknown message type: %T", m)
@@ -62,7 +61,8 @@ func (b *Sqlite3Storage) saveMessage(m history.History) error {
 	return nil
 }
 
-func (b *Sqlite3Storage) restore() error {
+func (b *Sqlite3Storage) restore() (history.RestoreResult, error) {
+	var result history.RestoreResult
 	// 1. histories restore
 	rows, err := b.db.Query(`
 		SELECT kind, schema_version, payload
@@ -71,12 +71,12 @@ func (b *Sqlite3Storage) restore() error {
 	`)
 
 	if err != nil {
-		return fmt.Errorf("Query histories error: %w", err)
+		return result, fmt.Errorf("Query histories error: %w", err)
 	}
 
 	defer rows.Close()
 
-	histories := make([]history.History, 0)
+	histories := make([]event.History, 0)
 
 	for rows.Next() {
 		var kind string
@@ -84,32 +84,32 @@ func (b *Sqlite3Storage) restore() error {
 		var payload string
 
 		if err := rows.Scan(&kind, &version, &payload); err != nil {
-			return fmt.Errorf("Scaning histories error: %w", err)
+			return result, fmt.Errorf("Scaning histories error: %w", err)
 		}
 
 		if version != history_schema_version {
-			return fmt.Errorf("Unsupported history version: %d", version)
+			return result, fmt.Errorf("Unsupported history version: %d", version)
 		}
 
 		switch kind {
 		case "user_message":
-			var message history.UserMessage
+			var message event.UserMessage
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
-				return fmt.Errorf("Decoding user message error: %w", err)
+				return result, fmt.Errorf("Decoding user message error: %w", err)
 			}
 			histories = append(histories, message)
 		case "assistant_message":
-			var message history.AssistantMessage
+			var message event.AssistantMessage
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
-				return fmt.Errorf("Decoding user message error: %w", err)
+				return result, fmt.Errorf("Decoding user message error: %w", err)
 			}
 			histories = append(histories, message)
 		default:
-			return fmt.Errorf("Unknown history kind: %v", kind)
+			return result, fmt.Errorf("Unknown history kind: %v", kind)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return err
+		return result, err
 	}
 	b.Histories = histories
 
@@ -121,7 +121,7 @@ func (b *Sqlite3Storage) restore() error {
 	`)
 
 	if err != nil {
-		return fmt.Errorf("Query checkpoint error: %w", err)
+		return result, fmt.Errorf("Query checkpoint error: %w", err)
 	}
 
 	defer rows.Close()
@@ -134,22 +134,22 @@ func (b *Sqlite3Storage) restore() error {
 		var version int
 		var payload string
 		if err := rows.Scan(&id, &state_at, &version, &payload); err != nil {
-			return fmt.Errorf("Scanning checkpoint error: %w", err)
+			return result, fmt.Errorf("Scanning checkpoint error: %w", err)
 		}
 
 		if version != checkpoint_schema_version {
-			return fmt.Errorf("Unsupported checkpoint version: %d", version)
+			return result, fmt.Errorf("Unsupported checkpoint version: %d", version)
 		}
 
 		if err := json.Unmarshal([]byte(payload), &checkpoint); err != nil {
-			return fmt.Errorf("Decoding checkpoint error: %w", err)
+			return result, fmt.Errorf("Decoding checkpoint error: %w", err)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return err
+		return result, err
 	}
 
-	b.Checkpoint = checkpoint
+	result.Checkpoint = checkpoint
 	b.nowSequence.Store(max(checkpoint.NowSequence, b.getMaxSequence()))
 
 	// 3. contextWindow restore
@@ -161,12 +161,11 @@ func (b *Sqlite3Storage) restore() error {
 	`)
 
 	if err != nil {
-		return fmt.Errorf("Query contextnode error: %w", err)
+		return result, fmt.Errorf("Query contextnode error: %w", err)
 	}
 
 	defer rows.Close()
 
-	var contextWindow history.ContextWindow
 	var compressnode history.CompressNode
 	compressnode.Empty = true
 
@@ -176,39 +175,35 @@ func (b *Sqlite3Storage) restore() error {
 		var node_id string
 		var payload string
 		if err := rows.Scan(&id, &version, &node_id, &payload); err != nil {
-			return fmt.Errorf("Scanning contextnode error: %w", err)
+			return result, fmt.Errorf("Scanning contextnode error: %w", err)
 		}
 
 		if version != compressnode_schema_version {
-			return fmt.Errorf("Unsupported contextnode version: %d", version)
+			return result, fmt.Errorf("Unsupported contextnode version: %d", version)
 		}
 
 		if err := json.Unmarshal([]byte(payload), &compressnode); err != nil {
-			return fmt.Errorf("Decoding contextnode error: %w", err)
+			return result, fmt.Errorf("Decoding contextnode error: %w", err)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return err
+		return result, err
 	}
 
-	contextWindow = history.ContextWindow{
-		CurrentNode:      compressnode,
-		CurrentHistories: b.ListAfter(compressnode.CompressEventIDTo),
-	}
-
-	b.ContextWindow = contextWindow
-	return nil
+	result.LatestNode = compressnode
+	return result, nil
 }
 
-func New() (*Sqlite3Storage, error) {
+func New() (*Sqlite3Storage, history.RestoreResult, error) {
+	var restoreResult history.RestoreResult
 	db, err := sql.Open("sqlite3", "yachiyo.db?_busy_timeout=5000")
 	if err != nil {
-		return nil, err
+		return nil, restoreResult, err
 	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()
-		return nil, err
+		return nil, restoreResult, err
 	}
 
 	if _, err = db.Exec(`
@@ -221,7 +216,7 @@ func New() (*Sqlite3Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `histories` error: %w", err)
+		return nil, restoreResult, fmt.Errorf("Processing storage of `histories` error: %w", err)
 	}
 
 	if _, err = db.Exec(`
@@ -233,7 +228,7 @@ func New() (*Sqlite3Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `checkpoint` error: %w", err)
+		return nil, restoreResult, fmt.Errorf("Processing storage of `checkpoint` error: %w", err)
 	}
 
 	if _, err = db.Exec(`
@@ -245,39 +240,36 @@ func New() (*Sqlite3Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `contextnode` error: %w", err)
+		return nil, restoreResult, fmt.Errorf("Processing storage of `contextnode` error: %w", err)
 	}
 
 	storage := &Sqlite3Storage{
-		Histories:     make([]history.History, 0),
-		db:            db,
-		Checkpoint:    history.Checkpoint{},
-		ContextWindow: history.ContextWindow{},
+		Histories: make([]event.History, 0),
+		db:        db,
 	}
 
-	if err := storage.restore(); err != nil {
+	if restoreResult, err = storage.restore(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Restoring histories and state error: %w", err)
+		return nil, restoreResult, fmt.Errorf("Restoring histories and state error: %w", err)
 	}
 
-	return storage, nil
+	return storage, restoreResult, nil
 }
 
-func (b *Sqlite3Storage) Append(m history.History) error {
+func (b *Sqlite3Storage) Append(m event.History) error {
 	if err := b.saveMessage(m); err != nil {
 		return err
 	}
 
 	b.Histories = append(b.Histories, m)
-	b.ContextWindow.CurrentHistories = append(b.ContextWindow.CurrentHistories, m)
 	return nil
 }
 
-func (b *Sqlite3Storage) ListAll() []history.History {
+func (b *Sqlite3Storage) ListAll() []event.History {
 	return b.Histories
 }
 
-func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []history.History {
+func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []event.History {
 	var history_len = len(b.Histories)
 	var index = history_len - 1
 	var findflag = false

@@ -2,46 +2,24 @@ package action
 
 import (
 	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-runtime/event"
 )
 
-type Message interface {
-	Message()
-}
-
-type UserMessage struct {
-	Content string
-	Time    int64
-
-	Address address.Address // The address of the message. e.g. onebot://group/12345
-}
-
-func (m *UserMessage) action() {}
-func (m *UserMessage) GetAddress() address.Address {
-	return m.Address
-}
-func (*UserMessage) Message() {}
-
 type AssistantMessage struct {
-	Content    []string
-	Time       int64
-	Initiative bool
-	Reply      bool
-
-	Address address.Address // The address of the message. e.g. onebot://group/12345
+	event.AssistantMessageContent
 }
 
 func (m *AssistantMessage) action() {}
 func (m *AssistantMessage) GetAddress() address.Address {
 	return m.Address
 }
-func (*AssistantMessage) Message() {}
 
 type MessageHistory struct {
-	Messages []Message
+	Messages []event.Message
 	Address  address.Address
 }
 
-func (*MessageHistory) action() {}
+func (m *MessageHistory) action() {}
 func (m *MessageHistory) GetAddress() address.Address {
 	return m.Address
 }

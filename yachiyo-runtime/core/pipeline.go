@@ -46,7 +46,7 @@ func (p *Pipeline) GetGateway(scheme string) chan action.Action {
 func (p *Pipeline) Listen() {
 	for trig := range p.Raw {
 		switch t := trig.(type) {
-		case *trigger.Message:
+		case *trigger.UserMessage:
 			p.DecisionChan <- t
 		case *trigger.InitiativeMessage:
 			p.DecisionChan <- t

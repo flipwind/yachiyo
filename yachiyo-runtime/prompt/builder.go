@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-util/logger"
 )
@@ -14,7 +15,7 @@ type Context struct {
 	Note          string
 }
 
-func statementPrompt(snap history.Snapshot, note string) string {
+func statementPrompt(snap event.Snapshot, note string) string {
 	return fmt.Sprintf(`<Yachiyo Runtime>
 In this round of conversation, you must consider these statements and follow them.
 State: %s
@@ -39,7 +40,7 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 }
 
 // System Prompt Builders
-func PassivePrompt(snap history.Snapshot, note string) SystemPrompt {
+func PassivePrompt(snap event.Snapshot, note string) SystemPrompt {
 	content := fmt.Sprintf(`<Triggered by [UserMessage]>
 %s`,
 		statementPrompt(snap, note))
@@ -49,7 +50,7 @@ func PassivePrompt(snap history.Snapshot, note string) SystemPrompt {
 	}
 }
 
-func InitiativePrompt(snap history.Snapshot, note string) SystemPrompt {
+func InitiativePrompt(snap event.Snapshot, note string) SystemPrompt {
 	content := fmt.Sprintf(`<Triggered by [InitiativeMessage]>
 %s`,
 		statementPrompt(snap, note),
@@ -71,11 +72,11 @@ func HistoryPrompt(window history.ContextWindow) []Prompts {
 	
 	for _, h := range window.CurrentHistories {
 		switch hist := h.(type) {
-		case history.UserMessage:
+		case event.UserMessage:
 			prompts = append(prompts, UserPrompt{
 				Content: hist.Render(),
 			})
-		case history.AssistantMessage:
+		case event.AssistantMessage:
 			prompts = append(prompts, AssistantPrompt{
 				Content: hist.Render(),
 			})
@@ -87,7 +88,7 @@ func HistoryPrompt(window history.ContextWindow) []Prompts {
 	return prompts
 }
 
-func UserPromptBuilder(c Context, snap history.Snapshot) []Prompts {
+func UserPromptBuilder(c Context, snap event.Snapshot) []Prompts {
 	var prompts []Prompts
 
 	// 1. System Prompt
@@ -104,7 +105,7 @@ func UserPromptBuilder(c Context, snap history.Snapshot) []Prompts {
 	return prompts
 }
 
-func InitiativePromptBuilder(c Context, snap history.Snapshot) []Prompts {
+func InitiativePromptBuilder(c Context, snap event.Snapshot) []Prompts {
 	// 0. Check if the trigger vaild
 	if c.ContextWindow.IsEmpty() {
 		ylog.Error("History is empty.")

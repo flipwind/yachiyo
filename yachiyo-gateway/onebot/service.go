@@ -78,12 +78,11 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		if messageEvent.PostType == "message" {
 			// TODO：rich message supporter
-			channel.ToServer <- &trigger.Message{
-				Type:     "user",
-				Author:   messageEvent.Sender.Nickname,
-				Platform: "QQ",
-				Time:     time.Now().Unix(),
-				Content:  messageEvent.RawMessage,
+			channel.ToServer <- &trigger.UserMessage{
+				Author:    messageEvent.Sender.Nickname,
+				Platform:  "QQ",
+				Timestamp: time.Now(),
+				Content:   messageEvent.RawMessage,
 
 				Address: address.Address{
 					Content: fmt.Sprintf("onebot://group/%v", messageEvent.GroupID),

@@ -2,11 +2,12 @@ package core
 
 import (
 	"fmt"
-	"math"
+	"slices"
 	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/config"
+	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/sqlite3"
 	"yachiyo/yachiyo-runtime/initiative"
@@ -21,7 +22,7 @@ var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
 	History       history.HistoryStorage
-	ContextWindow *history.ContextWindow
+	compressNode  history.CompressNode
 	State         state.State
 	LLM           llm.LLM
 	Config        config.Config
@@ -50,14 +51,21 @@ func New() (*Core, error) {
 	llm := provider.NewOpenAIProvider(*llmConfig.BaseUrl, *llmConfig.Secret, *llmConfig.Model)
 
 	initiativeConfig := config.Initiative
+	bigFiveConfig := state.BigFive{
+		Openness:          config.Core.BigFive.Openness,
+		Conscientiousness: config.Core.BigFive.Conscientiousness,
+		Extraversion:      config.Core.BigFive.Extraversion,
+		Agreeableness:     config.Core.BigFive.Agreeableness,
+		Neuroticism:       config.Core.BigFive.Neuroticism,
+	}
 
-	storage, err := sqlite3.New()
+	storage, restoreResult, err := sqlite3.New()
 	if err != nil {
 		return nil, fmt.Errorf("Storage created error: %w", err)
 	}
 
 	// Restore state
-	checkpoint := storage.Checkpoint
+	checkpoint := restoreResult.Checkpoint
 	checkpointExist := checkpoint.Exist
 
 	ylog.Success("Now history sequence at %v.", checkpoint.NowSequence)
@@ -65,13 +73,7 @@ func New() (*Core, error) {
 	var core *Core
 
 	if checkpointExist {
-		affect := state.NewEngine(state.BigFive{
-			Openness:          config.Core.BigFive.Openness,
-			Conscientiousness: config.Core.BigFive.Conscientiousness,
-			Extraversion:      config.Core.BigFive.Extraversion,
-			Agreeableness:     config.Core.BigFive.Agreeableness,
-			Neuroticism:       config.Core.BigFive.Neuroticism,
-		}, &checkpoint.Affect.Current.Position, &checkpoint.Affect.Emotions)
+		affect := state.NewEngine(bigFiveConfig, &checkpoint.Affect.Current.Position, &checkpoint.Affect.Emotions)
 
 		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, &checkpoint.Energy.Value)
 
@@ -81,7 +83,7 @@ func New() (*Core, error) {
 
 		core = &Core{
 			History:       storage,
-			ContextWindow: &storage.ContextWindow,
+			compressNode:  restoreResult.LatestNode,
 			State:         checkpoint.State,
 			LLM:           llm,
 			Config:        config,
@@ -97,13 +99,7 @@ func New() (*Core, error) {
 
 		core.processTimetick(time.Since(checkpoint.StateAt))
 	} else {
-		affect := state.NewEngine(state.BigFive{
-			Openness:          config.Core.BigFive.Openness,
-			Conscientiousness: config.Core.BigFive.Conscientiousness,
-			Extraversion:      config.Core.BigFive.Extraversion,
-			Agreeableness:     config.Core.BigFive.Agreeableness,
-			Neuroticism:       config.Core.BigFive.Neuroticism,
-		}, nil, nil)
+		affect := state.NewEngine(bigFiveConfig, nil, nil)
 
 		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, nil)
 
@@ -113,7 +109,7 @@ func New() (*Core, error) {
 
 		core = &Core{
 			History:       storage,
-			ContextWindow: &storage.ContextWindow,
+			compressNode:  restoreResult.LatestNode,
 			State:         state.NewState(),
 			LLM:           llm,
 			Config:        config,
@@ -175,7 +171,7 @@ func (c *Core) InternalState() string {
 	return msg
 }
 
-func (c *Core) AppendHistory(hist history.History) error {
+func (c *Core) AppendHistory(hist event.History) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -186,7 +182,7 @@ func (c *Core) AppendHistory(hist history.History) error {
 	return nil
 }
 
-func (c *Core) SaveCompressNode(node history.CompressNode) error {
+func (c *Core) commitCompressNode(node history.CompressNode) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -194,50 +190,18 @@ func (c *Core) SaveCompressNode(node history.CompressNode) error {
 		ylog.Error("Append compressnode error: %v", err)
 		return err
 	}
+	c.compressNode = node
+
 	return nil
 }
 
-// Core snapshot
-
-type Snapshot struct {
-	State          state.State
-	Affect         state.Engine
-	Determination  state.Determination
-	Energy         initiative.Energy
-	Note           string
-	LastActiveTime time.Time
-}
-
-func (c *Core) snapshot() Snapshot {
+func (c *Core) getHistory() []event.History {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	snap := Snapshot{
-		State:          c.State,
-		Affect:         c.Affect,
-		Determination:  c.Determination,
-		Energy:         c.Energy,
-		Note:           c.Note,
-		LastActiveTime: c.LastActiveTime,
-	}
-
-	return snap
-}
-
-func (c *Core) getHistory() []history.History {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	hist := append([]history.History(nil), c.History.ListAll()...)
+	hist := append([]event.History(nil), c.History.ListAll()...)
 
 	return hist
-}
-
-func (c *Core) getContextWindow() history.ContextWindow {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return *c.ContextWindow
 }
 
 func (c *Core) getSystemPrompt() string {
@@ -261,31 +225,17 @@ func (c *Core) getNote() string {
 	return c.Note
 }
 
-func (c *Core) checkpoint() error {
-	return c.History.SaveCheckpoint(history.Checkpoint{
-		Exist:          true,
-		StateAt:        time.Now(),
-		State:          c.State,
-		Determination:  c.Determination,
-		Energy:         c.Energy,
-		Affect:         c.Affect,
-		Note:           c.Note,
-		LastActiveTime: c.LastActiveTime,
-		NowSequence:    c.History.NowSequence(),
-	})
-}
+func (c *Core) getContextWindow() history.ContextWindow {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
-	const MAXTOKEN = 500 * 1000
-
-	charnum := 0 + deltaLength
-	charnum += len(c.getSystemPrompt())
-	charnum += len(c.getContextWindow().CurrentNode.Rend())
-	for _, h := range c.getContextWindow().CurrentHistories {
-		charnum += len(h.Render())
+	hist := c.History.ListAll()
+	if !c.compressNode.Empty {
+		hist = c.History.ListAfter(c.compressNode.CompressEventIDTo)
 	}
 
-	token := charnum / 3
-
-	return token > int(math.Round(MAXTOKEN*percentage/100))
+	return history.ContextWindow{
+		CurrentNode:      c.compressNode,
+		CurrentHistories: slices.Clone(hist),
+	}
 }

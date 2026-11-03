@@ -1,32 +1,15 @@
 package trigger
 
 import (
-	"fmt"
-	"time"
 	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-runtime/event"
 )
 
-type Message struct {
-	Type     string
-	Author   string
-	Platform string
-	Content  string
-	Time     int64
-
-	Address address.Address // The address of the message. e.g. onebot://group/12345
+type UserMessage struct {
+	event.UserMessageContent
 }
 
-func (m *Message) String() string {
-	return fmt.Sprintf("<[%s] %s>(%s/%s) %s",
-		m.Type,
-		m.Author,
-		time.Unix(m.Time, 0).Format("2006.01.02 15:04:05"),
-		m.Platform,
-		m.Content,
-	)
-}
-
-func (m *Message) trigger() {}
+func (*UserMessage) trigger() {}
 
 type MessageHistoryRequest struct {
 	Address address.Address

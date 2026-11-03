@@ -54,12 +54,11 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		channel.ToServer <- &trigger.Message{
-			Type:     "user",
-			Author:   "user",
-			Platform: "CLI",
-			Time:     time.Now().Unix(),
-			Content:  string(msg),
+		channel.ToServer <- &trigger.UserMessage{
+			Author:    "user",
+			Platform:  "CLI",
+			Timestamp: time.Now(),
+			Content:   string(msg),
 
 			Address: address.Address{
 				Content: "client://cli",

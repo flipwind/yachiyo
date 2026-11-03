@@ -11,6 +11,7 @@ import (
 	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-util/logger"
@@ -197,16 +198,20 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			return
 		}
 
-		s.channel.ToServer <- &trigger.Message{
-			Type:     "user",
-			Author:   "user",
-			Platform: c.Type,
-			Content:  data.Message,
-			Time:     time.Now().Unix(),
+		s.channel.ToServer <- &trigger.UserMessage{
+			Author:    "user",
+			Platform:  c.Type,
+			Content:   data.Message,
+			Timestamp: time.Now(),
 
 			Address: address.Address{
 				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
 			},
+
+			// Set to empty for these field should be set by runtime.
+			ID:       uuid.Nil(),
+			Sequence: -1,
+			Snapshot: event.Snapshot{},
 		}
 	case "get_relative_message_history":
 		if s.checkClient(c) == false {
@@ -266,7 +271,7 @@ func (s *JsonClientService) ListenSend() {
 				break
 			}
 
-			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Time, Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
+			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 		case *action.RuntimeState:
 			c, err := s.getClient(t)
 			if err != nil {
@@ -309,12 +314,12 @@ func (s *JsonClientService) ListenSend() {
 			msgs := make([]model.Envelope, 0)
 			for _, msg := range t.Messages {
 				switch m := msg.(type) {
-				case *action.AssistantMessage:
+				case event.AssistantMessage:
 					data, err := json.Marshal(model.RuntimeMessage{
 						Reply:        m.Reply,
 						IsInitiative: m.Initiative,
 						Message:      m.Content,
-						Time:         m.Time,
+						Time:         m.Timestamp.Unix(),
 					})
 					if err != nil {
 						ylog.Error("AssistantMessage Marshal error: %v", err)
@@ -325,10 +330,10 @@ func (s *JsonClientService) ListenSend() {
 						Type:     "runtime_message",
 						Data:     data,
 					})
-				case *action.UserMessage:
+				case event.UserMessage:
 					data, err := json.Marshal(model.ClientMessage{
 						Message: m.Content,
-						Time:    m.Time,
+						Time:    m.Timestamp.Unix(),
 					})
 					if err != nil {
 						ylog.Error("AssistantMessage Marshal error: %v", err)
