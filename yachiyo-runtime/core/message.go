@@ -61,7 +61,15 @@ func (c *Core) processUserMessage(m *trigger.UserMessage) action.Action {
 		Note:          c.getNote(),
 	}, histSnap)
 
-	answer, isReply, err := c.processLLM(prompts)
+	testTool := prompt.Tool{
+		Name:        "return_a_string",
+		Description: "Return a fixed string",
+		Execute: func(payload string) (string, error) {
+			return "Hello yachiyo!", nil
+		},
+	}
+
+	answer, isReply, err := c.processLLM(prompts, testTool)
 	if err != nil {
 		ylog.Error("Process UserMessage failed: %s", err)
 		return processError(err, m.Address)

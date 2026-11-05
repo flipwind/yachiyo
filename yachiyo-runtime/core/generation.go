@@ -119,43 +119,93 @@ func (c *Core) apply(schema string) ([]string, bool, error) {
 	return output.Answer, true, nil
 }
 
-func (c *Core) processLLM(rawPrompts []prompt.Prompts) ([]string, bool, error) {
+// returns `answers`, `if_reply`, `error`
+func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]string, bool, error) {
 	var prompts = rawPrompts
 	var jsonConstraint = false
 	var lastErr error
 
-	for range 3 {
+	var retryNum = 0
+
+	toolMap := make(map[string]prompt.Tool, len(tools))
+	for _, t := range tools {
+		toolMap[t.Name] = t
+	}
+
+	for step := 1; step <= 10; step++ {
+		ylog.Info("LLM step %v: requesting model", step)
+		if retryNum >= 3 {
+			return emptyAnswers, false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+		}
+
 		if jsonConstraint {
-			prompts = append(rawPrompts, prompt.SystemPrompt{
+			prompts = append(prompts, prompt.SystemPrompt{
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 			})
 		}
 
-		result, err, finish_reason := c.LLM.Gen(prompts, true)
+		result, err := c.LLM.Gen(prompts, true, tools...)
 
 		if err != nil {
 			lastErr = err
 			ylog.Error("LLM Generating error, retrying: %v", err)
+			retryNum++
 			continue
 		}
 
-		if finish_reason != "stop" {
-			lastErr = fmt.Errorf("finish_reason of LLM generation is not `stop`.")
-			ylog.Error("LLM Generating error, retrying: %v", err)
+		switch result.FinishReason {
+		case "stop":
+			answer, reply, err := c.apply(result.Content)
+			if err != nil {
+				jsonConstraint = true
+				lastErr = fmt.Errorf("LLM output unusable: %w", err)
+				retryNum++
+				continue
+			}
+			ylog.Info("LLM finished after %v steps", step)
+			// If successfully generated, return.
+			return answer, reply, nil
+		case "tool_calls":
+			prompts = append(prompts, prompt.AssistantPrompt{
+				Content:     result.Content,
+				UseToolcall: result.ToolCall,
+			})
+
+			for _, call := range result.ToolCall {
+				tool, ok := toolMap[call.Name]
+				output := fmt.Sprintf("Error: Unknown tool <%v>", call.Name)
+
+				if ok && tool.Execute != nil {
+					ylog.Info("LLM using tool call: %v(%v), ID [%v]", call.Name, call.Payload, call.ID)
+					res, err := toolMap[call.Name].Execute(call.Payload)
+					if err != nil {
+						output = fmt.Sprintf("Error when execute tool <%v>: %v", call.Name, err.Error())
+					} else {
+						output = res
+					}
+				}
+
+				ylog.Info("LLM tool result: %v -> %v, ID [%v]", call.Name, output, call.ID)
+				prompts = append(prompts, prompt.ToolPrompt{
+					CallID:  call.ID,
+					Content: output,
+				})
+			}
+		case "length":
+			return emptyAnswers, false, fmt.Errorf("Model output exceeded limit: %w", yerror.ErrLLMGenerate)
+		case "content_filter":
+			return emptyAnswers, false, fmt.Errorf("Output content is being filtered: %w", yerror.ErrLLMGenerate)
+		case "insufficient_system_resource":
+			return emptyAnswers, false, fmt.Errorf("Provider now unavailable: %w", yerror.ErrLLMGenerate)
+		case "aborted":
+			return emptyAnswers, false, fmt.Errorf("Output was aborted: %w", yerror.ErrLLMGenerate)
+		default:
+			lastErr = fmt.Errorf("Unknown finish_reason: %v", result.FinishReason)
+			ylog.Error("Unexcepted finish_reason, retrying: %v", result.FinishReason)
+			retryNum++
 			continue
 		}
-
-		answer, reply, err := c.apply(result)
-
-		if err != nil {
-			jsonConstraint = true
-			lastErr = fmt.Errorf("LLM output unusable: %w", err)
-			continue
-		}
-
-		// If successfully generated, return.
-		return answer, reply, nil
 	}
 
-	return emptyAnswers, false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+	return emptyAnswers, false, fmt.Errorf("LLM exceeded 10 steps, stop generating: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
 }

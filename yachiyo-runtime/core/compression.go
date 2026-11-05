@@ -70,7 +70,7 @@ func (c *Core) processCompress() error {
 	var successflag bool = false
 
 	for range 3 {
-		result, err, finish_reason := c.LLM.Gen(prompts, false)
+		result, err := c.LLM.Gen(prompts, false)
 
 		if err != nil {
 			lastErr = err
@@ -78,20 +78,20 @@ func (c *Core) processCompress() error {
 			continue
 		}
 
-		if finish_reason != "stop" {
+		if result.FinishReason != "stop" {
 			lastErr = fmt.Errorf("finish_reason of LLM generation is not `stop`.")
 			ylog.Error("LLM compressing error, retrying: %v", err)
 			continue
 		}
 
-		if strings.TrimSpace(result) == "" && !strings.ContainsAny(result, "#*-~") {
+		if strings.TrimSpace(result.Content) == "" && !strings.ContainsAny(result.Content, "#*-~") {
 			lastErr = fmt.Errorf("LLM returns a empty message.")
 			ylog.Error("LLM compressing error, retrying: %v", err)
 			continue
 		}
 
 		// If successfully generated, break.
-		node.Content = result
+		node.Content = result.Content
 		successflag = true
 		break
 	}

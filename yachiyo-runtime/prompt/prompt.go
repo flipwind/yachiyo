@@ -17,7 +17,8 @@ type UserPrompt struct {
 func (UserPrompt) Prompts() {}
 
 type AssistantPrompt struct {
-	Content string
+	Content     string
+	UseToolcall []ToolCall
 }
 
 func (AssistantPrompt) Prompts() {}
@@ -27,3 +28,10 @@ type CompressPrompt struct {
 }
 
 func (CompressPrompt) Prompts() {}
+
+type ToolPrompt struct {
+	Content string
+	CallID  string
+}
+
+func (ToolPrompt) Prompts() {}
