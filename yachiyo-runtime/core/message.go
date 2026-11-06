@@ -61,15 +61,9 @@ func (c *Core) processUserMessage(m *trigger.UserMessage) action.Action {
 		Note:          c.getNote(),
 	}, histSnap)
 
-	testTool := prompt.Tool{
-		Name:        "return_a_string",
-		Description: "Return a fixed string",
-		Execute: func(payload string) (string, error) {
-			return "Hello yachiyo!", nil
-		},
-	}
+	tools := c.GetTools()
+	answer, isReply, err := c.processLLM(prompts, tools...)
 
-	answer, isReply, err := c.processLLM(prompts, testTool)
 	if err != nil {
 		ylog.Error("Process UserMessage failed: %s", err)
 		return processError(err, m.Address)
@@ -141,7 +135,9 @@ func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Act
 			Note:          c.getNote(),
 		}, histSnap)
 
-	answer, isReply, err := c.processLLM(prompts)
+	tools := c.GetBuiltinTools()
+	answer, isReply, err := c.processLLM(prompts, tools...)
+
 	if err != nil {
 		ylog.Error("Process InitiativeMessage failed: %s", err)
 		return processError(err, addr)

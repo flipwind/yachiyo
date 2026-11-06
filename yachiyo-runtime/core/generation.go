@@ -173,10 +173,10 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 
 			for _, call := range result.ToolCall {
 				tool, ok := toolMap[call.Name]
-				output := fmt.Sprintf("Error: Unknown tool <%v>", call.Name)
+				output := fmt.Sprintf("Error: Unknown tool <`%v`>", call.Name)
 
 				if ok && tool.Execute != nil {
-					ylog.Info("LLM using tool call: %v(%v), ID [%v]", call.Name, call.Payload, call.ID)
+					ylog.Info("LLM using tool call: `%v`(%v), ID [%v]", call.Name, call.Payload, call.ID)
 					res, err := toolMap[call.Name].Execute(call.Payload)
 					if err != nil {
 						output = fmt.Sprintf("Error when execute tool <%v>: %v", call.Name, err.Error())
@@ -185,7 +185,7 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 					}
 				}
 
-				ylog.Info("LLM tool result: %v -> %v, ID [%v]", call.Name, output, call.ID)
+				ylog.Info("LLM tool result: `%v` -> `%v`, ID [%v]", call.Name, output, call.ID)
 				prompts = append(prompts, prompt.ToolPrompt{
 					CallID:  call.ID,
 					Content: output,
