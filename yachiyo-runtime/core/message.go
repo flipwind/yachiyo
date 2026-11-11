@@ -26,9 +26,10 @@ Yachiyo > %v
 }
 
 func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
-	ylog.Info("Received user message [%v]", m.Render())
+	rendered := prompt.RenderUserMessage(m)
+	ylog.Info("Received user message [%v]", rendered)
 
-	if c.checkTokenThreshold(85, len(m.Render())) {
+	if c.checkTokenThreshold(85, len(rendered)) {
 		ylog.Success("Context too big.(85%%) Compressing, please wait...")
 		if err := c.processCompress(); err != nil {
 			return processError(err, m.Address)
