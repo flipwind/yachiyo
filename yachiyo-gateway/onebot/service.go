@@ -7,11 +7,11 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	"yachiyo/yachiyo-gateway"
-	"yachiyo/yachiyo-gateway/onebot/model"
+	gateway "yachiyo/yachiyo-gateway"
+	onebotModel "yachiyo/yachiyo-gateway/onebot/model"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -84,9 +84,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 				Timestamp: time.Now(),
 				Content:   messageEvent.RawMessage,
 
-				Address: address.Address{
-					Content: fmt.Sprintf("onebot://group/%v", messageEvent.GroupID),
-				},
+				Address: address.New(fmt.Sprintf("onebot://group/%v", messageEvent.GroupID)),
 			}
 		}
 	}

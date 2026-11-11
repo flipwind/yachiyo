@@ -2,7 +2,7 @@ package event
 
 import (
 	"fmt"
-	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-shared/address"
 )
 
 type Message interface {

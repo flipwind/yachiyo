@@ -1,8 +1,8 @@
 package trigger
 
 import (
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/event"
+	"yachiyo/yachiyo-shared/address"
 )
 
 type UserMessage struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-util/yerror"
 )
 

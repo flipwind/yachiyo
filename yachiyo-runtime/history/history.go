@@ -4,10 +4,10 @@ import (
 	"slices"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-shared/address"
 )
 
 type HistoryStorage interface {

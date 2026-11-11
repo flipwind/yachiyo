@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"yachiyo/yachiyo-gateway"
+	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -60,9 +60,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			Timestamp: time.Now(),
 			Content:   string(msg),
 
-			Address: address.Address{
-				Content: "client://cli",
-			},
+			Address: address.New("client://cli"),
 		}
 	}
 }

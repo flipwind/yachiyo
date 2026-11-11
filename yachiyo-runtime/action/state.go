@@ -1,6 +1,6 @@
 package action
 
-import "yachiyo/yachiyo-runtime/address"
+import "yachiyo/yachiyo-shared/address"
 
 type OCCEmotion struct {
 	Type      string
@@ -15,7 +15,7 @@ type RuntimeState struct {
 		Pleasure  float64
 		Arousal   float64
 		Dominance float64
-		Actives    []OCCEmotion
+		Actives   []OCCEmotion
 	}
 
 	Address address.Address // The address of the message. e.g. onebot://group/12345

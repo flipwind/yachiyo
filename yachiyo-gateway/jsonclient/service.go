@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-gateway"
+	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/address"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-runtime/ycontext"
+	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -204,9 +204,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			Content:   data.Message,
 			Timestamp: time.Now(),
 
-			Address: address.Address{
-				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
-			},
+			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
 
 			// Set to empty for these field should be set by runtime.
 			ID:       uuid.Nil(),
@@ -218,9 +216,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			return
 		}
 		s.channel.ToServer <- &trigger.MessageHistoryRequest{
-			Address: address.Address{
-				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
-			},
+			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
 		}
 	}
 }
@@ -229,9 +225,7 @@ func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "runtime_state_request":
 		s.channel.ToServer <- &trigger.RuntimeStateRequest{
-			Address: address.Address{
-				Content: fmt.Sprintf("%s://%s", s.SchemeName(), c.ID),
-			},
+			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
 		}
 	}
 }

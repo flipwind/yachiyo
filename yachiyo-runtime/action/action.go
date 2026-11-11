@@ -1,7 +1,7 @@
 package action
 
 import (
-	"yachiyo/yachiyo-runtime/address"
+	"yachiyo/yachiyo-shared/address"
 )
 
 type Action interface {

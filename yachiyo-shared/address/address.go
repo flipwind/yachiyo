@@ -9,7 +9,13 @@ type Address struct {
 	Content string
 }
 
-func (a *Address) Scheme() (string, error) {
+func New(content string) Address {
+	return Address{
+		Content: content,
+	}
+}
+
+func (a Address) Scheme() (string, error) {
 	u, err := url.Parse(a.Content)
 	if err != nil {
 		return "", fmt.Errorf("address parsing error: %w", err)
@@ -17,7 +23,7 @@ func (a *Address) Scheme() (string, error) {
 	return u.Scheme, nil
 }
 
-func (a *Address) Host() (string, error) {
+func (a Address) Host() (string, error) {
 	u, err := url.Parse(a.Content)
 	if err != nil {
 		return "", fmt.Errorf("address parsing error: %w", err)

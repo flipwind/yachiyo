@@ -1,6 +1,6 @@
 package action
 
-import "yachiyo/yachiyo-runtime/address"
+import "yachiyo/yachiyo-shared/address"
 
 type ErrorCode string
 

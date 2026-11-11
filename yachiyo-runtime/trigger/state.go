@@ -1,6 +1,6 @@
 package trigger
 
-import "yachiyo/yachiyo-runtime/address"
+import "yachiyo/yachiyo-shared/address"
 
 type RuntimeStateRequest struct {
 	Address address.Address
