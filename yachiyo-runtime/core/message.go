@@ -3,10 +3,10 @@ package core
 import (
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/prompt"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/yerror"
 )
@@ -101,7 +101,13 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 		go c.processCompress()
 	}
 
-	return &action.AssistantMessage{AssistantMessageContent: assistantMessage.AssistantMessageContent}
+	return &action.AssistantMessage{
+		Address:    assistantMessage.Address,
+		Content:    assistantMessage.Content,
+		Timestamp:  assistantMessage.Timestamp,
+		Initiative: assistantMessage.Initiative,
+		Reply:      assistantMessage.Reply,
+	}
 }
 
 func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Action {
@@ -174,6 +180,11 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 		ylog.Success("Context too big.(70%%) Compressing on background...")
 		go c.processCompress()
 	}
-
-	return &action.AssistantMessage{AssistantMessageContent: assistantMessage.AssistantMessageContent}
+	return &action.AssistantMessage{
+		Address:    assistantMessage.Address,
+		Content:    assistantMessage.Content,
+		Timestamp:  assistantMessage.Timestamp,
+		Initiative: assistantMessage.Initiative,
+		Reply:      assistantMessage.Reply,
+	}
 }

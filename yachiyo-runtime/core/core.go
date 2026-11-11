@@ -5,7 +5,6 @@ import (
 	"slices"
 	"sync"
 	"time"
-	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
@@ -14,6 +13,7 @@ import (
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 )

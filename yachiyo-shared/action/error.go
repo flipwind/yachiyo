@@ -1,7 +1,5 @@
 package action
 
-import "yachiyo/yachiyo-shared/address"
-
 type ErrorCode string
 
 const (
@@ -12,12 +10,9 @@ const (
 )
 
 type Error struct {
+	BaseAction
 	Code    ErrorCode
 	Message string
-	Address address.Address
 }
 
-func (e *Error) action() {}
-func (e *Error) GetAddress() address.Address {
-	return e.Address
-}
+func (*Error) action() {}

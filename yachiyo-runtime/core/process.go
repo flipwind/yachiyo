@@ -3,7 +3,7 @@ package core
 import (
 	"errors"
 	"time"
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/yerror"

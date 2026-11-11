@@ -3,7 +3,7 @@ package core
 import (
 	"sync"
 	"time"
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 )
 

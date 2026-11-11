@@ -9,9 +9,8 @@ import (
 	"uuid"
 	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
-	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/ycontext"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -303,7 +302,7 @@ func (s *JsonClientService) ListenSend() {
 			msgs := make([]model.Envelope, 0)
 			for _, msg := range t.Messages {
 				switch m := msg.(type) {
-				case event.AssistantMessage:
+				case *action.AssistantHistoryMessage:
 					data, err := json.Marshal(model.RuntimeMessage{
 						Reply:        m.Reply,
 						IsInitiative: m.Initiative,
@@ -319,7 +318,7 @@ func (s *JsonClientService) ListenSend() {
 						Type:     "runtime_message",
 						Data:     data,
 					})
-				case event.UserMessage:
+				case *action.UserHistoryMessage:
 					data, err := json.Marshal(model.ClientMessage{
 						Message: m.Content,
 						Time:    m.Timestamp.Unix(),

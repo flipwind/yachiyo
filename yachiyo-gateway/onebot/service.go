@@ -9,7 +9,7 @@ import (
 	"time"
 	gateway "yachiyo/yachiyo-gateway"
 	onebotModel "yachiyo/yachiyo-gateway/onebot/model"
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"

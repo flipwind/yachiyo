@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 )
 

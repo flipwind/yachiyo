@@ -2,8 +2,8 @@ package core
 
 import (
 	"time"
-	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/event"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 )
 
@@ -21,13 +21,7 @@ func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.
 	return &action.RuntimeState{
 		Timetick: time.Now().Unix(),
 		Energy:   c.Energy.Value,
-		Affect: struct {
-			Octants   string
-			Pleasure  float64
-			Arousal   float64
-			Dominance float64
-			Actives   []action.OCCEmotion
-		}{
+		Affect: action.Affect{
 			Octants:   c.Affect.Current.Octants(),
 			Pleasure:  c.Affect.Current.Pleasure(),
 			Arousal:   c.Affect.Current.Arousal(),
@@ -40,7 +34,7 @@ func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.
 
 func (c *Core) processMessageHistoryRequest(t trigger.MessageHistoryRequest) action.Action {
 	hist := c.getHistory()
-	msgs := make([]event.Message, 0)
+	msgs := make([]action.HistoryMessage, 0)
 
 	for _, h := range hist {
 		switch m := h.(type) {
@@ -53,13 +47,21 @@ func (c *Core) processMessageHistoryRequest(t trigger.MessageHistoryRequest) act
 				break
 			}
 
-			msgs = append(msgs, m)
+			msgs = append(msgs, &action.AssistantHistoryMessage{
+				Content:    m.Content,
+				Timestamp:  m.Timestamp,
+				Initiative: m.Initiative,
+				Reply:      m.Reply,
+			})
 		case event.UserMessage:
 			if m.Address != t.Address {
 				break
 			}
 
-			msgs = append(msgs, m)
+			msgs = append(msgs, &action.UserHistoryMessage{
+				Content:   m.Content,
+				Timestamp: m.Timestamp,
+			})
 		}
 	}
 

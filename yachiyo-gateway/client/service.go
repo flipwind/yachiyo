@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 	gateway "yachiyo/yachiyo-gateway"
-	"yachiyo/yachiyo-runtime/action"
+	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
