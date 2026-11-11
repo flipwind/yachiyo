@@ -205,11 +205,6 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			Timestamp: time.Now(),
 
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-
-			// Set to empty for these field should be set by runtime.
-			ID:       uuid.Nil(),
-			Sequence: -1,
-			Snapshot: event.Snapshot{},
 		}
 	case "get_relative_message_history":
 		if s.checkClient(c) == false {
