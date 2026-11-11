@@ -9,7 +9,6 @@ import (
 	"uuid"
 	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
-	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
@@ -20,19 +19,25 @@ import (
 
 var ylog = logger.New("Yachiyo.Jsonclient")
 
+// ServerInfo is what the client learns from the runtime when it registers.
+type ServerInfo struct {
+	Name    string
+	Version string
+}
+
 type JsonClientService struct {
 	channel *gateway.GatewayChannel //exhaustruct:optional
 
 	clients map[string]*Client
 	mutex   sync.RWMutex //exhaustruct:optional
 
-	mutableContext func() ycontext.Context
+	serverInfo ServerInfo
 }
 
-func NewJsonClientService(fn func() ycontext.Context) *JsonClientService {
+func NewJsonClientService(info ServerInfo) *JsonClientService {
 	return &JsonClientService{
-		clients:        make(map[string]*Client),
-		mutableContext: fn,
+		clients:    make(map[string]*Client),
+		serverInfo: info,
 	}
 }
 
@@ -150,9 +155,8 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 
 		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
 
-		ctx := s.mutableContext()
 		c.send("connection", "register_success",
-			&model.RegisterSuccess{RuntimeName: ctx.Name, RuntimeVersion: ctx.Version})
+			&model.RegisterSuccess{RuntimeName: s.serverInfo.Name, RuntimeVersion: s.serverInfo.Version})
 	case "heartbeat":
 		var data model.HeartBeat
 		if err := json.Unmarshal(message.Data, &data); err != nil {

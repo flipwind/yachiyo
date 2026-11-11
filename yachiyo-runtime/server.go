@@ -12,11 +12,14 @@ import (
 	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-shared/trigger"
-	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-util/logger"
 )
 
 var ylog = logger.New("Yachiyo.Server.Main")
+
+const (
+	version = "0.1.0"
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -35,10 +38,6 @@ func run() error {
 
 	yconfig := ycore.Config
 
-	mutableContext := ycontext.Generate(func(c *ycontext.Context) {
-		c.Name = *ycore.Config.Nickname
-	})
-
 	ylog.Success("Successfully initialize Yachiyo server.")
 
 	if *yconfig.Gateway.Onebot.Enabled {
@@ -48,7 +47,8 @@ func run() error {
 		go serviceChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
 	}
 	if *yconfig.Gateway.JsonClient.Enabled {
-		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(mutableContext.GetContext), *yconfig.Gateway.JsonClient.Port)
+		info := jsonclient.ServerInfo{Name: *yconfig.Nickname, Version: version}
+		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(info), *yconfig.Gateway.JsonClient.Port)
 	}
 
 	go ycore.Run()
