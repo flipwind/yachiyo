@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 )
 
 type GatewayChannel struct {

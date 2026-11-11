@@ -2,7 +2,7 @@ package core
 
 import (
 	"time"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 )
 
 func (c *Core) Clock() {
@@ -48,6 +48,6 @@ func (c *Core) processTimetick(d time.Duration) {
 	ylog.Debug("%s", c.InternalState())
 
 	if isTriggerInitiative {
-		c.Dispatch(&trigger.InitiativeMessage{})
+		c.Dispatch(trigger.InitiativeMessage{})
 	}
 }

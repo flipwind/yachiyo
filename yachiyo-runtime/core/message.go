@@ -7,7 +7,7 @@ import (
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/prompt"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/yerror"
 )
 
@@ -25,7 +25,7 @@ Yachiyo > %v
 		c_later.Note)
 }
 
-func (c *Core) processUserMessage(m *trigger.UserMessage) action.Action {
+func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	ylog.Info("Received user message [%v]", m.Render())
 
 	if c.checkTokenThreshold(85, len(m.Render())) {
@@ -103,7 +103,7 @@ func (c *Core) processUserMessage(m *trigger.UserMessage) action.Action {
 	return &action.AssistantMessage{AssistantMessageContent: assistantMessage.AssistantMessageContent}
 }
 
-func (c *Core) processInitiativeMessage(_ *trigger.InitiativeMessage) action.Action {
+func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Action {
 	// Check if this trigger vaild.
 	snap := c.snapshot()
 	hist := c.getHistory()

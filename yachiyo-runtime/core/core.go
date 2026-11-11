@@ -14,7 +14,7 @@ import (
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 )
 

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-shared/address"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/yerror"
 )
 
@@ -13,7 +13,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	timeNow := time.Now()
 
 	switch t := e.(type) {
-	case *trigger.UserMessage:
+	case trigger.UserMessage:
 		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
@@ -26,7 +26,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		c.mu.Unlock()
 
 		return a
-	case *trigger.InitiativeMessage:
+	case trigger.InitiativeMessage:
 		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
@@ -39,9 +39,9 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		c.mu.Unlock()
 
 		return a
-	case *trigger.RuntimeStateRequest:
+	case trigger.RuntimeStateRequest:
 		return c.processRuntimeStateRequest(t)
-	case *trigger.MessageHistoryRequest:
+	case trigger.MessageHistoryRequest:
 		return c.processMessageHistoryRequest(t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)

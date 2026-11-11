@@ -11,7 +11,7 @@ import (
 	"yachiyo/yachiyo-gateway/jsonclient"
 	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/core"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-util/logger"
 )
@@ -71,7 +71,7 @@ func serviceChannel(p *core.Pipeline, s gateway.Service, port int64) {
 
 	for msg := range gatewayChannel.ToServer {
 		switch t := msg.(type) {
-		case *trigger.UserMessage:
+		case trigger.UserMessage:
 			ylog.Debug("Processing [%s]", t.Content)
 		}
 		p.Raw <- msg

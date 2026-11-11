@@ -11,9 +11,9 @@ import (
 	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-runtime/ycontext"
 	"yachiyo/yachiyo-shared/address"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -198,7 +198,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			return
 		}
 
-		s.channel.ToServer <- &trigger.UserMessage{
+		s.channel.ToServer <- trigger.UserMessage{
 			Author:    "user",
 			Platform:  c.Type,
 			Content:   data.Message,
@@ -210,7 +210,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 		if s.checkClient(c) == false {
 			return
 		}
-		s.channel.ToServer <- &trigger.MessageHistoryRequest{
+		s.channel.ToServer <- trigger.MessageHistoryRequest{
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
 		}
 	}
@@ -219,7 +219,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "runtime_state_request":
-		s.channel.ToServer <- &trigger.RuntimeStateRequest{
+		s.channel.ToServer <- trigger.RuntimeStateRequest{
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
 		}
 	}

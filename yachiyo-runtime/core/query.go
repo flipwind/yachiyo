@@ -4,10 +4,10 @@ import (
 	"time"
 	"yachiyo/yachiyo-runtime/action"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 )
 
-func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action.Action {
+func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.Action {
 	actives := make([]action.OCCEmotion, 0)
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -38,7 +38,7 @@ func (c *Core) processRuntimeStateRequest(t *trigger.RuntimeStateRequest) action
 	}
 }
 
-func (c *Core) processMessageHistoryRequest(t *trigger.MessageHistoryRequest) action.Action {
+func (c *Core) processMessageHistoryRequest(t trigger.MessageHistoryRequest) action.Action {
 	hist := c.getHistory()
 	msgs := make([]event.Message, 0)
 

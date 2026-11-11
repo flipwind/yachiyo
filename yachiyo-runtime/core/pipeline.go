@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/trigger"
+	"yachiyo/yachiyo-shared/trigger"
 )
 
 type Pipeline struct {
@@ -46,14 +46,14 @@ func (p *Pipeline) GetGateway(scheme string) chan action.Action {
 func (p *Pipeline) Listen() {
 	for trig := range p.Raw {
 		switch t := trig.(type) {
-		case *trigger.UserMessage:
+		case trigger.UserMessage:
 			p.DecisionChan <- t
-		case *trigger.InitiativeMessage:
+		case trigger.InitiativeMessage:
 			p.DecisionChan <- t
-		case *trigger.RuntimeStateRequest:
+		case trigger.RuntimeStateRequest:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
-		case *trigger.MessageHistoryRequest:
+		case trigger.MessageHistoryRequest:
 			dispatch := p.handler(t)
 			p.Distribution <- dispatch
 		default:

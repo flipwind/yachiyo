@@ -10,8 +10,8 @@ import (
 	gateway "yachiyo/yachiyo-gateway"
 	onebotModel "yachiyo/yachiyo-gateway/onebot/model"
 	"yachiyo/yachiyo-runtime/action"
-	"yachiyo/yachiyo-runtime/trigger"
 	"yachiyo/yachiyo-shared/address"
+	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 
 	"github.com/coder/websocket"
@@ -78,7 +78,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		if messageEvent.PostType == "message" {
 			// TODO：rich message supporter
-			channel.ToServer <- &trigger.UserMessage{
+			channel.ToServer <- trigger.UserMessage{
 				Author:    messageEvent.Sender.Nickname,
 				Platform:  "QQ",
 				Timestamp: time.Now(),
