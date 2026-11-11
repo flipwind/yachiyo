@@ -71,7 +71,7 @@ func serviceChannel(p *core.Pipeline, s gateway.Service, port int64) {
 
 	for msg := range gatewayChannel.ToServer {
 		switch t := msg.(type) {
-		case trigger.UserMessage:
+		case *trigger.UserMessage:
 			ylog.Debug("Processing [%s]", t.Content)
 		}
 		p.Raw <- msg

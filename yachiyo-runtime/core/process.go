@@ -13,36 +13,36 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	timeNow := time.Now()
 
 	switch t := e.(type) {
-	case trigger.UserMessage:
+	case *trigger.UserMessage:
 		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
 		c.mu.Unlock()
-		a := c.processUserMessage(t)
+		a := c.processUserMessage(*t)
 
 		c.mu.Lock()
 		c.LLMBusy = false
 		c.mu.Unlock()
 
 		return a
-	case trigger.InitiativeMessage:
+	case *trigger.InitiativeMessage:
 		c.mu.Lock()
 		c.LastActiveTime = timeNow
 
 		c.LLMBusy = true
 		c.mu.Unlock()
-		a := c.processInitiativeMessage(t)
+		a := c.processInitiativeMessage(*t)
 
 		c.mu.Lock()
 		c.LLMBusy = false
 		c.mu.Unlock()
 
 		return a
-	case trigger.RuntimeStateRequest:
-		return c.processRuntimeStateRequest(t)
-	case trigger.MessageHistoryRequest:
-		return c.processMessageHistoryRequest(t)
+	case *trigger.RuntimeStateRequest:
+		return c.processRuntimeStateRequest(*t)
+	case *trigger.MessageHistoryRequest:
+		return c.processMessageHistoryRequest(*t)
 	default:
 		ylog.Error("Process unsupported type: %T", t)
 		return nil

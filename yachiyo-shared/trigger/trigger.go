@@ -17,21 +17,21 @@ type UserMessage struct {
 	Address   address.Address
 }
 
-func (UserMessage) trigger() {}
+func (*UserMessage) trigger() {}
 
 // TODO: taskify
 type InitiativeMessage struct {}
 
-func (InitiativeMessage) trigger() {}
+func (*InitiativeMessage) trigger() {}
 
 type MessageHistoryRequest struct {
 	Address address.Address
 }
 
-func (MessageHistoryRequest) trigger() {}
+func (*MessageHistoryRequest) trigger() {}
 
 type RuntimeStateRequest struct {
 	Address address.Address
 }
 
-func (RuntimeStateRequest) trigger() {}
+func (*RuntimeStateRequest) trigger() {}

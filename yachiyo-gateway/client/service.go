@@ -54,7 +54,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		channel.ToServer <- trigger.UserMessage{
+		channel.ToServer <- &trigger.UserMessage{
 			Author:    "user",
 			Platform:  "CLI",
 			Timestamp: time.Now(),
