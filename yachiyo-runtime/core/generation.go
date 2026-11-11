@@ -32,45 +32,57 @@ type LLMOutput struct {
 
 var emptyAnswers []string = make([]string, 0)
 
-func (c *Core) apply(schema string) ([]string, bool, error) {
+func parseOutput(schema string) (LLMOutput, error) {
 	var output LLMOutput
+
 	if err := json.Unmarshal([]byte(schema), &output); err != nil {
-		return emptyAnswers, false, fmt.Errorf("Json unmarshal error: %w", err)
+		return LLMOutput{}, fmt.Errorf("Json unmarshal error: %w", err)
 	}
 
 	if len(output.Answer) == 0 {
-		return emptyAnswers, false, fmt.Errorf("LLM returns invaild answer: answer has no items")
+		return LLMOutput{}, fmt.Errorf("LLM returns invaild answer: answer has no items")
 	}
 
 	if output.Reply == false && len(output.Answer) != 1 {
-		return emptyAnswers, false, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
+		return LLMOutput{}, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
 	}
 
 	for _, affect := range output.Change.AffectPress {
 		if _, ok := state.OCCEmotionMap[affect.Emotion]; !ok {
-			return emptyAnswers, false, fmt.Errorf("affect emotion type invalid")
+			return LLMOutput{}, fmt.Errorf("affect emotion type invalid")
 		}
 
 		val := affect.Value
 		switch affect.Intensity {
 		case "slight":
 			if val < 0 || val > 1.0/3 {
-				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
+				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
 			}
 		case "moderate":
 			if val < 1.0/3 || val > 2.0/3 {
-				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
+				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
 			}
 		case "high":
 			if val < 2.0/3 || val > 1 {
-				return emptyAnswers, false, fmt.Errorf("affect emotion value not match intensity")
+				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
 			}
 		default:
-			return emptyAnswers, false, fmt.Errorf("affect emotion intensity invalid")
+			return LLMOutput{}, fmt.Errorf("affect emotion intensity invalid")
 		}
 	}
 
-	ylog.Debug("%s", schema)
+	ylog.Debug("Parsed LLM output schema: `%s`", schema)
+
+	return output, nil
+}
+
+func (c *Core) apply(schema string) ([]string, bool, error) {
+	var output LLMOutput
+	var err error
+
+	if output, err = parseOutput(schema); err != nil {
+		return []string{}, false, err
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
