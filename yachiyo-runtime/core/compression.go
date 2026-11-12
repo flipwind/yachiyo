@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -8,6 +9,7 @@ import (
 	"time"
 	"uuid"
 	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-util/yerror"
 )
@@ -62,15 +64,19 @@ func (c *Core) processCompress() error {
 		Content:             "NO COMPRESS RESULT",
 	}
 
-	var prompts = prompt.HistoryPrompt(window)
-	prompts = append(prompts, prompt.SystemPrompt{
+	var messages = prompt.HistoryPrompt(window)
+	messages = append(messages, llm.Message{
+		Role:    llm.RoleSystem,
 		Content: c.getCompressPrompt(),
 	})
 	var lastErr error
 	var successflag bool = false
 
 	for range 3 {
-		result, err := c.LLM.Gen(prompts, false)
+		result, err := c.LLM.Generate(context.Background(), llm.Request{
+			Messages: messages,
+			JSON:     false,
+		})
 
 		if err != nil {
 			lastErr = err
@@ -78,7 +84,7 @@ func (c *Core) processCompress() error {
 			continue
 		}
 
-		if result.FinishReason != "stop" {
+		if result.FinishReason != llm.FinishStop {
 			lastErr = fmt.Errorf("finish_reason of LLM generation is not `stop`.")
 			ylog.Error("LLM compressing error, retrying: %v", err)
 			continue

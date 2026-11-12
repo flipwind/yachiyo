@@ -1,12 +1,14 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
-	"yachiyo/yachiyo-runtime/prompt"
+	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/tool"
 	"yachiyo/yachiyo-util/yerror"
 )
 
@@ -132,16 +134,17 @@ func (c *Core) apply(schema string) ([]string, bool, error) {
 }
 
 // returns `answers`, `if_reply`, `error`
-func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]string, bool, error) {
-	var prompts = rawPrompts
+func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string, bool, error) {
 	var jsonConstraint = false
 	var lastErr error
 
 	var retryNum = 0
 
-	toolMap := make(map[string]prompt.Tool, len(tools))
+	toolSpec := make([]llm.ToolSpec, 0)
+	toolMap := make(map[string]tool.Tool)
 	for _, t := range tools {
-		toolMap[t.Name] = t
+		toolSpec = append(toolSpec, t.Spec)
+		toolMap[t.Spec.Name] = t
 	}
 
 	for step := 1; step <= 10; step++ {
@@ -151,12 +154,17 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 		}
 
 		if jsonConstraint {
-			prompts = append(prompts, prompt.SystemPrompt{
+			messages = append(messages, llm.Message{
+				Role:    llm.RoleSystem,
 				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
 			})
 		}
 
-		result, err := c.LLM.Gen(prompts, true, tools...)
+		response, err := c.LLM.Generate(context.Background(), llm.Request{
+			Messages: messages,
+			JSON:     true,
+			Tools:    toolSpec,
+		})
 
 		if err != nil {
 			lastErr = err
@@ -165,9 +173,9 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 			continue
 		}
 
-		switch result.FinishReason {
-		case "stop":
-			answer, reply, err := c.apply(result.Content)
+		switch response.FinishReason {
+		case llm.FinishStop:
+			answer, reply, err := c.apply(response.Content)
 			if err != nil {
 				jsonConstraint = true
 				lastErr = fmt.Errorf("LLM output unusable: %w", err)
@@ -177,19 +185,20 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 			ylog.Info("LLM finished after %v steps", step)
 			// If successfully generated, return.
 			return answer, reply, nil
-		case "tool_calls":
-			prompts = append(prompts, prompt.AssistantPrompt{
-				Content:     result.Content,
-				UseToolcall: result.ToolCall,
+		case llm.FinishToolCall:
+			messages = append(messages, llm.Message{
+				Role:      llm.RoleAssistant,
+				Content:   response.Content,
+				ToolCalls: response.ToolCalls,
 			})
 
-			for _, call := range result.ToolCall {
+			for _, call := range response.ToolCalls {
 				tool, ok := toolMap[call.Name]
 				output := fmt.Sprintf("Error: Unknown tool <`%v`>", call.Name)
 
 				if ok && tool.Execute != nil {
-					ylog.Info("LLM using tool call: `%v`(%v), ID [%v]", call.Name, call.Payload, call.ID)
-					res, err := toolMap[call.Name].Execute(call.Payload)
+					ylog.Info("LLM using tool call: `%v`(%v), ID [%v]", call.Name, call.Arguments, call.ID)
+					res, err := toolMap[call.Name].Execute(call.Arguments)
 					if err != nil {
 						output = fmt.Sprintf("Error when execute tool <%v>: %v", call.Name, err.Error())
 					} else {
@@ -198,22 +207,23 @@ func (c *Core) processLLM(rawPrompts []prompt.Prompts, tools ...prompt.Tool) ([]
 				}
 
 				ylog.Info("LLM tool result: `%v` -> `%v`, ID [%v]", call.Name, output, call.ID)
-				prompts = append(prompts, prompt.ToolPrompt{
-					CallID:  call.ID,
-					Content: output,
+				messages = append(messages, llm.Message{
+					Role:       llm.RoleTool,
+					Content:    output,
+					ToolCallID: call.ID,
 				})
 			}
-		case "length":
+		case llm.FinishLength:
 			return emptyAnswers, false, fmt.Errorf("Model output exceeded limit: %w", yerror.ErrLLMGenerate)
-		case "content_filter":
+		case llm.FinishContentFilter:
 			return emptyAnswers, false, fmt.Errorf("Output content is being filtered: %w", yerror.ErrLLMGenerate)
-		case "insufficient_system_resource":
+		case llm.FinishUnavailable:
 			return emptyAnswers, false, fmt.Errorf("Provider now unavailable: %w", yerror.ErrLLMGenerate)
-		case "aborted":
+		case llm.FinishAborted:
 			return emptyAnswers, false, fmt.Errorf("Output was aborted: %w", yerror.ErrLLMGenerate)
 		default:
-			lastErr = fmt.Errorf("Unknown finish_reason: %v", result.FinishReason)
-			ylog.Error("Unexcepted finish_reason, retrying: %v", result.FinishReason)
+			lastErr = fmt.Errorf("Unknown finish_reason: %v", response.FinishReason)
+			ylog.Error("Unexcepted finish_reason, retrying: %v", response.FinishReason)
 			retryNum++
 			continue
 		}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/llm"
-	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 
@@ -32,58 +31,42 @@ func NewOpenAIProvider(baseUrl, apiKey, model string) *OpenAIProvider {
 	}
 }
 
-func (p *OpenAIProvider) LLM() {}
+func toMessages(msgs []llm.Message) (openAIMessages []openai.ChatCompletionMessageParamUnion) {
+	for _, msg := range msgs {
+		switch msg.Role {
+		case llm.RoleSystem:
+			openAIMessages = append(openAIMessages, openai.SystemMessage(msg.Content))
+		case llm.RoleUser:
+			openAIMessages = append(openAIMessages, openai.UserMessage(msg.Content))
+		case llm.RoleAssistant:
+			m := openai.AssistantMessage(msg.Content)
 
-func (p *OpenAIProvider) Gen(prompts []prompt.Prompts, jsonEnabled bool, tools ...prompt.Tool) (result llm.Result, err error) {
-	var OpenAIMessages []openai.ChatCompletionMessageParamUnion
-	for _, m := range prompts {
-		switch p := m.(type) {
-		case prompt.CompressPrompt:
-			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(p.Content))
-		case prompt.SystemPrompt:
-			OpenAIMessages = append(OpenAIMessages, openai.SystemMessage(p.Content))
-		case prompt.UserPrompt:
-			OpenAIMessages = append(OpenAIMessages, openai.UserMessage(p.Content))
-		case prompt.AssistantPrompt:
-			msg := openai.AssistantMessage(p.Content)
-
-			for _, tool := range p.UseToolcall {
-				msg.OfAssistant.ToolCalls = append(msg.OfAssistant.ToolCalls, openai.ChatCompletionMessageToolCallUnionParam{
+			for _, tool := range msg.ToolCalls {
+				m.OfAssistant.ToolCalls = append(m.OfAssistant.ToolCalls, openai.ChatCompletionMessageToolCallUnionParam{
 					OfFunction: &openai.ChatCompletionMessageFunctionToolCallParam{
 						ID: tool.ID,
 						Function: openai.ChatCompletionMessageFunctionToolCallFunctionParam{
 							Name:      tool.Name,
-							Arguments: tool.Payload,
+							Arguments: tool.Arguments,
 						},
 					},
 				})
 			}
 
-			OpenAIMessages = append(OpenAIMessages, msg)
-		case prompt.ToolPrompt:
-			OpenAIMessages = append(OpenAIMessages, openai.ToolMessage(p.Content, p.CallID))
+			openAIMessages = append(openAIMessages, m)
+		case llm.RoleTool:
+			openAIMessages = append(openAIMessages, openai.ToolMessage(msg.Content, msg.ToolCallID))
 		default:
-			ylog.Warn("Unknown type of prompt: %T", p)
+			ylog.Warn("Unknown type of prompt: %T", msg)
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
+	return openAIMessages
+}
 
-	var format openai.ChatCompletionNewParamsResponseFormatUnion
-	if jsonEnabled {
-		format = openai.ChatCompletionNewParamsResponseFormatUnion{
-			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
-		}
-	} else {
-		format = openai.ChatCompletionNewParamsResponseFormatUnion{
-			OfText: &shared.ResponseFormatTextParam{},
-		}
-	}
-
-	toolparam := make([]openai.ChatCompletionToolUnionParam, 0)
+func toTools(tools []llm.ToolSpec) (toolParams []openai.ChatCompletionToolUnionParam) {
 	for _, t := range tools {
-		properties := make(map[string]any, len(tools))
+		properties := make(map[string]any, len(t.Parameters))
 		required := make([]string, 0)
 
 		for name, p := range t.Parameters {
@@ -96,7 +79,7 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts, jsonEnabled bool, tools .
 			}
 		}
 
-		toolparam = append(toolparam, openai.ChatCompletionToolUnionParam{
+		toolParams = append(toolParams, openai.ChatCompletionToolUnionParam{
 			OfFunction: &openai.ChatCompletionFunctionToolParam{
 				Function: openai.FunctionDefinitionParam{
 					Name:        t.Name,
@@ -110,6 +93,29 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts, jsonEnabled bool, tools .
 			},
 		})
 	}
+
+	return toolParams
+}
+
+func (p *OpenAIProvider) Generate(ctx context.Context, req llm.Request) (llm.Response, error) {
+	var result llm.Response
+	OpenAIMessages := toMessages(req.Messages)
+
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	var format openai.ChatCompletionNewParamsResponseFormatUnion
+	if req.JSON {
+		format = openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
+		}
+	} else {
+		format = openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfText: &shared.ResponseFormatTextParam{},
+		}
+	}
+
+	toolparam := toTools(req.Tools)
 
 	reply, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages:       OpenAIMessages,
@@ -128,19 +134,19 @@ func (p *OpenAIProvider) Gen(prompts []prompt.Prompts, jsonEnabled bool, tools .
 
 	var rep = reply.Choices[0]
 
-	toolcalls := make([]prompt.ToolCall, 0)
+	toolcalls := make([]llm.ToolCall, 0)
 	for _, t := range rep.Message.ToolCalls {
-		toolcalls = append(toolcalls, prompt.ToolCall{
-			ID:      t.ID,
-			Name:    t.Function.Name,
-			Payload: t.Function.Arguments,
+		toolcalls = append(toolcalls, llm.ToolCall{
+			ID:        t.ID,
+			Name:      t.Function.Name,
+			Arguments: t.Function.Arguments,
 		})
 	}
 
-	result = llm.Result{
-		FinishReason: rep.FinishReason,
+	result = llm.Response{
+		FinishReason: llm.FinishReason(rep.FinishReason),
 		Content:      rep.Message.Content,
-		ToolCall:     toolcalls,
+		ToolCalls:    toolcalls,
 	}
 
 	return result, nil

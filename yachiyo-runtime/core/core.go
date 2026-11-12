@@ -24,7 +24,7 @@ type Core struct {
 	History       history.HistoryStorage
 	compressNode  history.CompressNode
 	State         state.State
-	LLM           llm.LLM
+	LLM           llm.Client
 	Config        config.Config
 	Determination state.Determination
 	Energy        initiative.Energy
