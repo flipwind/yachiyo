@@ -2,6 +2,7 @@ package core
 
 import (
 	"yachiyo/yachiyo-runtime/llm"
+	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-runtime/tool"
 )
 
@@ -24,7 +25,7 @@ func (c *Core) GetBuiltinTools() []tool.Tool {
 			Name:        "get_runtime_affect",
 		},
 		Execute: func(payload string) (string, error) {
-			return c.Affect.String(), nil
+			return prompt.Affect(c.Affect), nil
 		},
 	}
 

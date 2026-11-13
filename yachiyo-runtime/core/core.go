@@ -23,7 +23,7 @@ var ylog = logger.New("Yachiyo.Core")
 type Core struct {
 	History       history.HistoryStorage
 	compressNode  history.CompressNode
-	State         state.State
+	Drives        state.Drives
 	LLM           llm.Client
 	Config        config.Config
 	Determination state.Determination
@@ -84,7 +84,7 @@ func New() (*Core, error) {
 		core = &Core{
 			History:       storage,
 			compressNode:  restoreResult.LatestNode,
-			State:         checkpoint.State,
+			Drives:        checkpoint.Drives,
 			LLM:           llm,
 			Config:        config,
 			Determination: checkpoint.Determination,
@@ -110,7 +110,7 @@ func New() (*Core, error) {
 		core = &Core{
 			History:       storage,
 			compressNode:  restoreResult.LatestNode,
-			State:         state.NewState(),
+			Drives:        state.NewDrives(),
 			LLM:           llm,
 			Config:        config,
 			Determination: state.NewDetermination(),
@@ -163,7 +163,7 @@ func (c *Core) InternalState() string {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, s := range c.State.Drives() {
+	for _, s := range c.Drives.All() {
 		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
 	msg += fmt.Sprintf("Energy: %v\n", c.Energy.Value)

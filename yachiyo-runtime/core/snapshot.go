@@ -11,7 +11,7 @@ import (
 // Core snapshot
 
 type Snapshot struct {
-	State          state.State
+	Drives         state.Drives
 	Affect         state.Engine
 	Determination  state.Determination
 	Energy         initiative.Energy
@@ -24,7 +24,7 @@ func (c *Core) snapshot() Snapshot {
 	defer c.mu.Unlock()
 
 	snap := Snapshot{
-		State:          c.State,
+		Drives:         c.Drives,
 		Affect:         c.Affect,
 		Determination:  c.Determination,
 		Energy:         c.Energy,
@@ -39,7 +39,7 @@ func (c *Core) checkpoint() error {
 	return c.History.SaveCheckpoint(history.Checkpoint{
 		Exist:          true,
 		StateAt:        time.Now(),
-		State:          c.State,
+		Drives:         c.Drives,
 		Determination:  c.Determination,
 		Energy:         c.Energy,
 		Affect:         c.Affect,
@@ -53,7 +53,7 @@ func (snap Snapshot) toHistorySnapshot(time time.Time) event.Snapshot {
 	return event.Snapshot{
 		Timestamp:      time,
 		Affect:         snap.Affect,
-		State:          snap.State,
+		Drives:         snap.Drives,
 		Energy:         snap.Energy.Value,
 		LastActiveTime: snap.LastActiveTime,
 	}

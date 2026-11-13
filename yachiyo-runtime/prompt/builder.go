@@ -32,10 +32,10 @@ This value is in [0, 1], which the more the value, the more energetic.
 ---
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
-		snap.State.Prompt(),
+		Drives(snap.Drives),
 		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
 		note,
-		snap.Affect.String(),
+		Affect(snap.Affect),
 		snap.Energy,
 	)
 }

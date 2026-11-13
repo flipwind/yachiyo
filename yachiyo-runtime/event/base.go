@@ -15,7 +15,7 @@ type Event interface {
 type Snapshot struct {
 	Timestamp      time.Time
 	Affect         state.Engine
-	State          state.State
+	Drives         state.Drives
 	Energy         float64
 	LastActiveTime time.Time
 }

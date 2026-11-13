@@ -16,7 +16,7 @@ func (c *Core) processTimetick(d time.Duration) {
 	c.mu.Lock()
 
 	// State press
-	for _, s := range c.State.Drives() {
+	for _, s := range c.Drives.All() {
 		s.Drive.Press((1.4 * 5) / (3600 * 1) * d.Seconds())
 	}
 
@@ -33,7 +33,7 @@ func (c *Core) processTimetick(d time.Duration) {
 		ylog.Info("Initiative active.")
 
 		// Relieve
-		for _, s := range c.State.Drives() {
+		for _, s := range c.Drives.All() {
 			s.Drive.Relieve(0.5 * d.Seconds())
 			ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
 		}

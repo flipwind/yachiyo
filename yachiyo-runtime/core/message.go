@@ -20,8 +20,8 @@ Yachiyo > %v
 %s
 %+v
 * Session Context: %s`,
-		answer, c_formal.State.Prompt(),
-		c_later.State.Prompt(), c_later.Determination,
+		answer, prompt.Drives(c_formal.Drives),
+		prompt.Drives(c_later.Drives), c_later.Determination,
 		c_later.Note)
 }
 

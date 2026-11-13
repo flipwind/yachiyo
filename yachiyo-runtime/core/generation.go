@@ -91,16 +91,16 @@ func (c *Core) apply(schema string) ([]string, bool, error) {
 
 	switch output.Change.State.SocialDesire {
 	case 1:
-		c.State.SocialDesire.Increase()
+		c.Drives.SocialDesire.Increase()
 	case -1:
-		c.State.SocialDesire.Decrease()
+		c.Drives.SocialDesire.Decrease()
 	}
 
 	switch output.Change.State.Interest {
 	case 1:
-		c.State.Interest.Increase()
+		c.Drives.Interest.Increase()
 	case -1:
-		c.State.Interest.Decrease()
+		c.Drives.Interest.Decrease()
 	}
 
 	// affect

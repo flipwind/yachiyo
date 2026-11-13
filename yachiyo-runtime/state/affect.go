@@ -225,21 +225,7 @@ type Engine struct {
 	Emotions []OCCEmotion // Current OCCEmotion
 }
 
-func (e Engine) String() string {
-	moods := ""
-	for _, mood := range e.Emotions {
-		moods += fmt.Sprintf("	- %s: %f\n", mood.Type.Name, mood.Intensity)
-	}
 
-	if moods == "" {
-		moods = "	- Normal"
-	}
-
-	return fmt.Sprintf(`Mood Octants: %s
-PAD Space: %s
-Active Moods:
-%s`, e.Current.Position.Category(), e.Current.Position.String(), moods)
-}
 
 // Recommend to use only when BigFive values significantly changed.
 func NewEngine(b BigFive, p *PAD, e *[]OCCEmotion) Engine {

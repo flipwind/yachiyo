@@ -24,7 +24,7 @@ type HistoryStorage interface {
 type Checkpoint struct {
 	Exist          bool
 	StateAt        time.Time
-	State          state.State
+	Drives         state.Drives
 	Determination  state.Determination
 	Energy         initiative.Energy
 	Affect         state.Engine
