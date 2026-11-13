@@ -5,7 +5,6 @@ import (
 	"time"
 	"uuid"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-shared/address"
 )
@@ -26,7 +25,6 @@ type Checkpoint struct {
 	StateAt        time.Time
 	Drives         state.Drives
 	Determination  state.Determination
-	Energy         initiative.Energy
 	Affect         state.Engine
 	Note           string
 	LastActiveTime time.Time

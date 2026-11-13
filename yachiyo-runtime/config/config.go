@@ -6,7 +6,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 	"yachiyo/yachiyo-util/ywarning"
@@ -214,10 +213,6 @@ func (c *Config) Check() ([]ywarning.Warning, []error) {
 
 	if c.Initiative.Energy.Curve == nil {
 		errs = append(errs, fmt.Errorf("initiative.energy: %w", yerror.ErrFieldRequired))
-	} else {
-		if err := initiative.EnergyVerify(*c.Initiative.Energy.Curve); err != nil {
-			errs = append(errs, fmt.Errorf("initiative.energy: %w", yerror.ErrFieldInvalid))
-		}
 	}
 
 	// llm

@@ -225,8 +225,6 @@ type Engine struct {
 	Emotions []OCCEmotion // Current OCCEmotion
 }
 
-
-
 // Recommend to use only when BigFive values significantly changed.
 func NewEngine(b BigFive, p *PAD, e *[]OCCEmotion) Engine {
 	defaultMood := ymath.Vector3{

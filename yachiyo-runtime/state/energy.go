@@ -1,7 +1,8 @@
-package initiative
+package state
 
 import (
 	"fmt"
+	"time"
 	"yachiyo/yachiyo-util/ymath"
 )
 
@@ -10,46 +11,43 @@ import (
 // Value is the `y`;
 // `x` is the time, unit `hour` in a day.
 type Energy struct {
-	Curve *ymath.ExprCurve
-	Value float64
+	curve *ymath.ExprCurve
+	value float64
 }
 
-func NewEnergy(expression string, value *float64) (Energy, error) {
+func NewEnergy(expression string) (Energy, error) {
 	curve, err := ymath.New(expression, 0)
 	if err != nil {
 		return Energy{}, fmt.Errorf("Curve error: %w", err)
 	}
 
-	if value == nil {
-		return Energy{
-			Curve: curve,
-			Value: 0,
-		}, nil
+	if err := verify(curve); err != nil {
+		return Energy{}, fmt.Errorf("Curve error: %w", err)
 	}
 
 	return Energy{
-		Curve: curve,
-		Value: *value,
+		curve: curve,
+		value: 0,
 	}, nil
 }
 
-func (e *Energy) Update(hour float64) error {
-	value, err := e.Curve.Calculate(hour)
+func (e *Energy) Update(t time.Time) error {
+	hour := float64(t.Hour()) + float64(t.Minute())/60.0
+
+	value, err := e.curve.Calculate(hour)
 	if err != nil {
 		return fmt.Errorf("Curve calculating error: %w", err)
 	}
 
-	e.Value = value
+	e.value = value
 	return nil
 }
 
-func EnergyVerify(expression string) error {
-	curve, err := ymath.New(expression, 0)
+func (e Energy) Value() float64 {
+	return e.value
+}
 
-	if err != nil {
-		return fmt.Errorf("Expression of energy is not vaild.")
-	}
-
+func verify(curve *ymath.ExprCurve) error {
 	for i := 0.0; i <= 24; i += 0.1 {
 		value, err := curve.Calculate(i)
 		if err != nil {

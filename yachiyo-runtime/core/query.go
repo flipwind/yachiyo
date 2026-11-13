@@ -20,7 +20,7 @@ func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.
 
 	return &action.RuntimeState{
 		Timetick: time.Now().Unix(),
-		Energy:   c.Energy.Value,
+		Energy:   c.Energy.Value(),
 		Affect: action.Affect{
 			Octants:   c.Affect.Current.Octants(),
 			Pleasure:  c.Affect.Current.Pleasure(),

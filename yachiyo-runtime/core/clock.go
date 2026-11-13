@@ -24,9 +24,9 @@ func (c *Core) processTimetick(d time.Duration) {
 	c.Affect.Simulate(d.Seconds())
 
 	// Initiative
-	timeNow := time.Now()
-
-	c.Energy.Update(float64(float64(timeNow.Hour()) + float64(timeNow.Minute())/60.0))
+	if err := c.Energy.Update(time.Now()); err != nil {
+		ylog.Error("Energy updated error: %v", err)
+	}
 	isTriggerInitiative := false // TODO: implement new initiative system
 
 	if isTriggerInitiative {

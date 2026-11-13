@@ -9,7 +9,6 @@ import (
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/history/sqlite3"
-	"yachiyo/yachiyo-runtime/initiative"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
@@ -27,7 +26,7 @@ type Core struct {
 	LLM           llm.Client
 	Config        config.Config
 	Determination state.Determination
-	Energy        initiative.Energy
+	Energy        state.Energy
 	Affect        state.Engine
 
 	Note           string
@@ -72,14 +71,17 @@ func New() (*Core, error) {
 
 	var core *Core
 
+	energy, err := state.NewEnergy(*initiativeConfig.Energy.Curve)
+	if err != nil {
+		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
+	}
+
+	if err := energy.Update(time.Now()); err != nil {
+		return nil, fmt.Errorf("Energy updated error: %w", err)
+	}
+
 	if checkpointExist {
 		affect := state.NewEngine(bigFiveConfig, &checkpoint.Affect.Current.Position, &checkpoint.Affect.Emotions)
-
-		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, &checkpoint.Energy.Value)
-
-		if err != nil {
-			return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
-		}
 
 		core = &Core{
 			History:       storage,
@@ -100,12 +102,6 @@ func New() (*Core, error) {
 		core.processTimetick(time.Since(checkpoint.StateAt))
 	} else {
 		affect := state.NewEngine(bigFiveConfig, nil, nil)
-
-		energy, err := initiative.NewEnergy(*initiativeConfig.Energy.Curve, nil)
-
-		if err != nil {
-			return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
-		}
 
 		core = &Core{
 			History:       storage,
@@ -166,7 +162,7 @@ func (c *Core) InternalState() string {
 	for _, s := range c.Drives.All() {
 		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
-	msg += fmt.Sprintf("Energy: %v\n", c.Energy.Value)
+	msg += fmt.Sprintf("Energy: %v\n", c.Energy.Value())
 
 	return msg
 }
