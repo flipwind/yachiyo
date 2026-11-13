@@ -9,6 +9,8 @@ import (
 func (c *Core) GetBuiltinTools() []tool.Tool {
 	builtinTools := make([]tool.Tool, 0)
 
+	snap := c.snapshot()
+
 	test := tool.Tool{
 		Spec: llm.ToolSpec{
 			Description: "Return a fixed string",
@@ -25,7 +27,7 @@ func (c *Core) GetBuiltinTools() []tool.Tool {
 			Name:        "get_runtime_affect",
 		},
 		Execute: func(payload string) (string, error) {
-			return prompt.Affect(c.Affect), nil
+			return prompt.Affect(snap.State.Mood, snap.State.Emotions), nil
 		},
 	}
 

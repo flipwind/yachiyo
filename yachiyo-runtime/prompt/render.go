@@ -39,9 +39,9 @@ func Drives(d state.Drives) string {
 	return result
 }
 
-func Affect(e state.Engine) string {
+func Affect(cur state.PAD, emotion []state.OCCEmotion) string {
 	moods := ""
-	for _, mood := range e.Emotions {
+	for _, mood := range emotion {
 		moods += fmt.Sprintf("	- %s: %f\n", mood.Type.Name, mood.Intensity)
 	}
 
@@ -52,5 +52,5 @@ func Affect(e state.Engine) string {
 	return fmt.Sprintf(`Mood Octants: %s
 PAD Space: %s
 Active Moods:
-%s`, e.Current.Position.Category(), e.Current.Position.String(), moods)
+%s`, cur.Category(), cur.String(), moods)
 }

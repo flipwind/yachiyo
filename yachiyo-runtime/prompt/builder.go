@@ -5,6 +5,7 @@ import (
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/llm"
+	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-util/logger"
 )
 
@@ -16,7 +17,7 @@ type Context struct {
 	Note          string
 }
 
-func statementPrompt(snap event.Snapshot, note string) string {
+func statementPrompt(snap state.Snapshot, note string) string {
 	return fmt.Sprintf(`<Yachiyo Runtime>
 In this round of conversation, you must consider these statements and follow them.
 State: %s
@@ -33,15 +34,15 @@ This value is in [0, 1], which the more the value, the more energetic.
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 		Drives(snap.Drives),
-		snap.LastActiveTime.Format("2006.01.02 15:04:05"),
+		snap.LastActive.Format("2006.01.02 15:04:05"),
 		note,
-		Affect(snap.Affect),
+		Affect(snap.Mood, snap.Emotions),
 		snap.Energy,
 	)
 }
 
 // System Prompt Builders
-func PassivePrompt(snap event.Snapshot, note string) llm.Message {
+func PassivePrompt(snap state.Snapshot, note string) llm.Message {
 	content := fmt.Sprintf(`<Triggered by [UserMessage]>
 %s`,
 		statementPrompt(snap, note))
@@ -52,7 +53,7 @@ func PassivePrompt(snap event.Snapshot, note string) llm.Message {
 	}
 }
 
-func InitiativePrompt(snap event.Snapshot, note string) llm.Message {
+func InitiativePrompt(snap state.Snapshot, note string) llm.Message {
 	content := fmt.Sprintf(`<Triggered by [InitiativeMessage]>
 %s`,
 		statementPrompt(snap, note),
@@ -95,7 +96,7 @@ func HistoryPrompt(window history.ContextWindow) []llm.Message {
 	return msgs
 }
 
-func UserPromptBuilder(c Context, snap event.Snapshot) []llm.Message {
+func UserPromptBuilder(c Context, snap state.Snapshot) []llm.Message {
 	var msgs []llm.Message
 
 	// 1. System Prompt
@@ -112,7 +113,7 @@ func UserPromptBuilder(c Context, snap event.Snapshot) []llm.Message {
 	return msgs
 }
 
-func InitiativePromptBuilder(c Context, snap event.Snapshot) []llm.Message {
+func InitiativePromptBuilder(c Context, snap state.Snapshot) []llm.Message {
 	// 0. Check if the trigger vaild
 	if c.ContextWindow.IsEmpty() {
 		ylog.Error("History is empty.")

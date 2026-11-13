@@ -15,28 +15,15 @@ func (c *Core) Clock() {
 func (c *Core) processTimetick(d time.Duration) {
 	c.mu.Lock()
 
-	// State press
-	for _, s := range c.Drives.All() {
-		s.Drive.Press((1.4 * 5) / (3600 * 1) * d.Seconds())
-	}
-
-	// Affect Engine
-	c.Affect.Simulate(d.Seconds())
-
-	// Initiative
-	if err := c.Energy.Update(time.Now()); err != nil {
-		ylog.Error("Energy updated error: %v", err)
+	if err := c.State.Advance(d, time.Now()); err != nil {
+		ylog.Error("State advanced error: %v", err)
 	}
 	isTriggerInitiative := false // TODO: implement new initiative system
 
 	if isTriggerInitiative {
 		ylog.Info("Initiative active.")
 
-		// Relieve
-		for _, s := range c.Drives.All() {
-			s.Drive.Relieve(0.5 * d.Seconds())
-			ylog.Debug("State: %v at %v, is %v", s.Name, s.Drive.Value, s.Drive.String())
-		}
+		c.State.Relieve(d)
 	}
 
 	if err := c.checkpoint(); err != nil {

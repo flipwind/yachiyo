@@ -86,38 +86,27 @@ func (c *Core) apply(schema string) ([]string, bool, error) {
 		return []string{}, false, err
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	switch output.Change.State.SocialDesire {
-	case 1:
-		c.Drives.SocialDesire.Increase()
-	case -1:
-		c.Drives.SocialDesire.Decrease()
-	}
-
-	switch output.Change.State.Interest {
-	case 1:
-		c.Drives.Interest.Increase()
-	case -1:
-		c.Drives.Interest.Decrease()
-	}
-
 	// affect
+	var emotions []state.OCCEmotion
 	for _, affect := range output.Change.AffectPress {
-		val := affect.Value
-		emot := state.OCCEmotionMap[affect.Emotion]
-		c.Affect.Emotions = append(c.Affect.Emotions, state.OCCEmotion{
-			Type:      emot,
-			Intensity: val,
+		emotions = append(emotions, state.OCCEmotion{
+			Type:      state.OCCEmotionMap[affect.Emotion],
+			Intensity: affect.Value,
 		})
 	}
 
-	c.Determination = output.Determination
+	c.mu.Lock()
+	c.State.Apply(state.Change{
+		SocialDesire:  int(output.Change.State.SocialDesire),
+		Interest:      int(output.Change.State.Interest),
+		Emotions:      emotions,
+		Determination: output.Determination,
+	})
 
 	if output.Note != "-1" {
 		c.Note = output.Note
 	}
+	c.mu.Unlock()
 
 	allempty := true
 	for _, ans := range output.Answer {

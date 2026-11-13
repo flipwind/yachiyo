@@ -15,7 +15,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	switch t := e.(type) {
 	case *trigger.UserMessage:
 		c.mu.Lock()
-		c.LastActiveTime = timeNow
+		c.State.Touch(timeNow)
 
 		c.LLMBusy = true
 		c.mu.Unlock()
@@ -28,7 +28,7 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 		return a
 	case *trigger.InitiativeMessage:
 		c.mu.Lock()
-		c.LastActiveTime = timeNow
+		c.State.Touch(timeNow)
 
 		c.LLMBusy = true
 		c.mu.Unlock()

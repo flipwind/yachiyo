@@ -21,14 +21,11 @@ type HistoryStorage interface {
 }
 
 type Checkpoint struct {
-	Exist          bool
-	StateAt        time.Time
-	Drives         state.Drives
-	Determination  state.Determination
-	Affect         state.Engine
-	Note           string
-	LastActiveTime time.Time
-	NowSequence    int64
+	Exist       bool
+	StateAt     time.Time
+	State       state.Snapshot
+	Note        string
+	NowSequence int64
 }
 
 type RestoreResult struct {

@@ -12,19 +12,11 @@ type Event interface {
 	Render() string
 }
 
-type Snapshot struct {
-	Timestamp      time.Time
-	Affect         state.Engine
-	Drives         state.Drives
-	Energy         float64
-	LastActiveTime time.Time
-}
-
 type BaseEvent struct {
 	ID        uuid.UUID
 	Sequence  int64
 	Timestamp time.Time
-	Snapshot  Snapshot
+	Snapshot  state.Snapshot
 }
 
 func (b BaseEvent) GetSequence() int64 {

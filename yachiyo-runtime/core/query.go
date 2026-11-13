@@ -9,9 +9,8 @@ import (
 
 func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.Action {
 	actives := make([]action.OCCEmotion, 0)
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for _, emo := range c.Affect.Emotions {
+	snap := c.snapshot().State
+	for _, emo := range snap.Emotions {
 		actives = append(actives, action.OCCEmotion{
 			Type:      emo.Type.Name,
 			Intensity: emo.Intensity,
@@ -20,12 +19,12 @@ func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.
 
 	return &action.RuntimeState{
 		Timetick: time.Now().Unix(),
-		Energy:   c.Energy.Value(),
+		Energy:   snap.Energy,
 		Affect: action.Affect{
-			Octants:   c.Affect.Current.Octants(),
-			Pleasure:  c.Affect.Current.Pleasure(),
-			Arousal:   c.Affect.Current.Arousal(),
-			Dominance: c.Affect.Current.Dominance(),
+			Octants:   snap.Mood.Octants(),
+			Pleasure:  snap.Mood.Pleasure(),
+			Arousal:   snap.Mood.Arousal(),
+			Dominance: snap.Mood.Dominance(),
 			Actives:   actives,
 		},
 		Address: t.Address,

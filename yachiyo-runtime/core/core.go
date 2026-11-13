@@ -20,19 +20,15 @@ import (
 var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
-	History       history.HistoryStorage
-	compressNode  history.CompressNode
-	Drives        state.Drives
-	LLM           llm.Client
-	Config        config.Config
-	Determination state.Determination
-	Energy        state.Energy
-	Affect        state.Engine
+	History      history.HistoryStorage
+	compressNode history.CompressNode
+	LLM          llm.Client
+	Config       config.Config
+	State        *state.State
 
-	Note           string
-	LastActiveTime time.Time
-	LLMBusy        bool
-	CompressBusy   bool
+	Note         string
+	LLMBusy      bool
+	CompressBusy bool
 
 	Pipe *Pipeline  //exhaustruct:optional
 	mu   sync.Mutex //exhaustruct:optional
@@ -50,7 +46,7 @@ func New() (*Core, error) {
 	llm := provider.NewOpenAIProvider(*llmConfig.BaseUrl, *llmConfig.Secret, *llmConfig.Model)
 
 	initiativeConfig := config.Initiative
-	bigFiveConfig := state.BigFive{
+	personality := state.BigFive{
 		Openness:          config.Core.BigFive.Openness,
 		Conscientiousness: config.Core.BigFive.Conscientiousness,
 		Extraversion:      config.Core.BigFive.Extraversion,
@@ -76,48 +72,26 @@ func New() (*Core, error) {
 		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
 	}
 
-	if err := energy.Update(time.Now()); err != nil {
-		return nil, fmt.Errorf("Energy updated error: %w", err)
+	snap := state.Initial(personality, time.Now())
+	elapsed := time.Duration(0)
+	if checkpointExist {
+		snap = checkpoint.State
+		elapsed = time.Since(checkpoint.StateAt)
+	}
+	st := state.Restore(personality, energy, snap)
+	if err := st.Advance(elapsed, time.Now()); err != nil {
+		return nil, fmt.Errorf("State advanced error: %w", err)
 	}
 
-	if checkpointExist {
-		affect := state.NewEngine(bigFiveConfig, &checkpoint.Affect.Current.Position, &checkpoint.Affect.Emotions)
-
-		core = &Core{
-			History:       storage,
-			compressNode:  restoreResult.LatestNode,
-			Drives:        checkpoint.Drives,
-			LLM:           llm,
-			Config:        config,
-			Determination: checkpoint.Determination,
-			Energy:        energy,
-			Affect:        affect,
-
-			Note:           checkpoint.Note,
-			LastActiveTime: checkpoint.LastActiveTime,
-			LLMBusy:        false,
-			CompressBusy:   false,
-		}
-
-		core.processTimetick(time.Since(checkpoint.StateAt))
-	} else {
-		affect := state.NewEngine(bigFiveConfig, nil, nil)
-
-		core = &Core{
-			History:       storage,
-			compressNode:  restoreResult.LatestNode,
-			Drives:        state.NewDrives(),
-			LLM:           llm,
-			Config:        config,
-			Determination: state.NewDetermination(),
-			Energy:        energy,
-			Affect:        affect,
-
-			Note:           "",
-			LastActiveTime: time.Now(),
-			LLMBusy:        false,
-			CompressBusy:   false,
-		}
+	core = &Core{
+		History:      storage,
+		compressNode: restoreResult.LatestNode,
+		LLM:          llm,
+		Config:       config,
+		State:        st,
+		Note:         checkpoint.Note,
+		LLMBusy:      false,
+		CompressBusy: false,
 	}
 
 	ylog.Success("Successfully restored/created checkpoint and histories.")
@@ -157,12 +131,11 @@ func (c *Core) Distribution(a action.Action) {
 func (c *Core) InternalState() string {
 	msg := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for _, s := range c.Drives.All() {
+	snap := c.snapshot().State
+	for _, s := range snap.Drives.All() {
 		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
 	}
-	msg += fmt.Sprintf("Energy: %v\n", c.Energy.Value())
+	msg += fmt.Sprintf("Energy: %v\n", snap.Energy)
 
 	return msg
 }

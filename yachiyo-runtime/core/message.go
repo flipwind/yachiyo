@@ -20,8 +20,8 @@ Yachiyo > %v
 %s
 %+v
 * Session Context: %s`,
-		answer, prompt.Drives(c_formal.Drives),
-		prompt.Drives(c_later.Drives), c_later.Determination,
+		answer, prompt.Drives(c_formal.State.Drives),
+		prompt.Drives(c_later.State.Drives), c_later.State.Determination,
 		c_later.Note)
 }
 
@@ -37,12 +37,12 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	}
 
 	snap := c.snapshot()
-	histSnap := snap.toHistorySnapshot(time.Now())
+	stateSnap := snap.State
 
 	userMessage := event.UserMessage{
 		ID:       uuid.NewV7(),
 		Sequence: c.History.NextSequence(),
-		Snapshot: histSnap,
+		Snapshot: stateSnap,
 		Content:  m.Content,
 
 		Author:    m.Author,
@@ -60,7 +60,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 		SystemPrompt:  c.getSystemPrompt(),
 		ContextWindow: c.getContextWindow(),
 		Note:          c.getNote(),
-	}, histSnap)
+	}, stateSnap)
 
 	tools := c.GetTools()
 	answer, isReply, err := c.processLLM(prompts, tools...)
@@ -74,12 +74,12 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	// After processed, store the assistant message
 
 	snap = c.snapshot()
-	histSnap = snap.toHistorySnapshot(time.Now())
+	stateSnap = snap.State
 
 	assistantMessage := event.AssistantMessage{
 		ID:       uuid.NewV7(),
 		Sequence: c.History.NextSequence(),
-		Snapshot: histSnap,
+		Snapshot: stateSnap,
 		Content:  answer,
 
 		Timestamp: time.Now(),
@@ -132,7 +132,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 		}
 	}
 
-	histSnap := snap.toHistorySnapshot(time.Now())
+	stateSnap := snap.State
 
 	// Build Prompt
 	prompts := prompt.InitiativePromptBuilder(
@@ -140,7 +140,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 			SystemPrompt:  c.getSystemPrompt(),
 			ContextWindow: c.getContextWindow(),
 			Note:          c.getNote(),
-		}, histSnap)
+		}, stateSnap)
 
 	tools := c.GetBuiltinTools()
 	answer, isReply, err := c.processLLM(prompts, tools...)
@@ -154,12 +154,12 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 	// After processed, store the assistant message
 
 	snap = c.snapshot()
-	histSnap = snap.toHistorySnapshot(time.Now())
+	stateSnap = snap.State
 
 	assistantMessage := event.AssistantMessage{
 		ID:       uuid.NewV7(),
 		Sequence: c.History.NextSequence(),
-		Snapshot: histSnap,
+		Snapshot: stateSnap,
 		Content:  answer,
 
 		Timestamp: time.Now(),
