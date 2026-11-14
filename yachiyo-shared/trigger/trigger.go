@@ -20,7 +20,7 @@ type UserMessage struct {
 func (*UserMessage) trigger() {}
 
 // TODO: taskify
-type InitiativeMessage struct {}
+type InitiativeMessage struct{}
 
 func (*InitiativeMessage) trigger() {}
 
