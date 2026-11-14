@@ -9,8 +9,8 @@ import (
 // Core snapshot
 
 type Snapshot struct {
-	State  state.Snapshot
-	Note   string
+	State state.Snapshot
+	Note  string
 }
 
 func (c *Core) snapshot() Snapshot {
@@ -18,8 +18,8 @@ func (c *Core) snapshot() Snapshot {
 	defer c.mu.Unlock()
 
 	snap := Snapshot{
-		State:  c.State.Snapshot(),
-		Note:   c.Note,
+		State: c.State.Snapshot(),
+		Note:  c.Note,
 	}
 
 	return snap

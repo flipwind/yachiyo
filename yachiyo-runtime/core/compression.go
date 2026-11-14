@@ -23,7 +23,7 @@ func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimat
 	charnum += len(c.getSystemPrompt())
 	charnum += len(contextWindow.CurrentNode.Rend())
 	for _, h := range contextWindow.CurrentHistories {
-		charnum += len(h.Render())
+		charnum += len(prompt.Event(h))
 	}
 
 	token := charnum / 3
@@ -59,8 +59,8 @@ func (c *Core) processCompress() error {
 		ID:                  uuid.NewV7(),
 		CompressTimestamp:   time.Now(),
 		SubCompressNodeID:   window.CurrentNode.ID,
-		CompressEventIDFrom: window.CurrentHistories[0].GetID(),
-		CompressEventIDTo:   window.CurrentHistories[len(window.CurrentHistories)-1].GetID(),
+		CompressEventIDFrom: window.CurrentHistories[0].GetMeta().ID,
+		CompressEventIDTo:   window.CurrentHistories[len(window.CurrentHistories)-1].GetMeta().ID,
 		Content:             "NO COMPRESS RESULT",
 	}
 

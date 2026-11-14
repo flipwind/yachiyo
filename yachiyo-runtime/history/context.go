@@ -8,7 +8,7 @@ import (
 )
 
 type CompressNode struct {
-	Empty bool
+	Empty             bool
 	ID                uuid.UUID
 	CompressTimestamp time.Time
 	SubCompressNodeID uuid.UUID
@@ -27,7 +27,7 @@ type CompressNode struct {
 // It's clear that this is a recursive struct.
 type ContextWindow struct {
 	CurrentNode      CompressNode
-	CurrentHistories []event.History
+	CurrentHistories []event.Event
 }
 
 func (c CompressNode) Rend() string {

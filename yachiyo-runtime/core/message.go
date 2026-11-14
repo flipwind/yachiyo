@@ -40,15 +40,16 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	stateSnap := snap.State
 
 	userMessage := event.UserMessage{
-		ID:       uuid.NewV7(),
-		Sequence: c.History.NextSequence(),
-		Snapshot: stateSnap,
+		Meta: event.Meta{
+			ID:        uuid.NewV7(),
+			Sequence:  c.History.NextSequence(),
+			Snapshot:  stateSnap,
+			Timestamp: time.Now(),
+		},
 		Content:  m.Content,
-
-		Author:    m.Author,
-		Platform:  m.Platform,
-		Timestamp: time.Now(),
-		Address:   m.Address,
+		Author:   m.Author,
+		Platform: m.Platform,
+		Address:  m.Address,
 	}
 
 	if err := c.AppendHistory(userMessage); err != nil {
@@ -77,14 +78,14 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	stateSnap = snap.State
 
 	assistantMessage := event.AssistantMessage{
-		ID:       uuid.NewV7(),
-		Sequence: c.History.NextSequence(),
-		Snapshot: stateSnap,
-		Content:  answer,
-
-		Timestamp: time.Now(),
-		Address:   m.Address,
-
+		Meta: event.Meta{
+			ID:        uuid.NewV7(),
+			Sequence:  c.History.NextSequence(),
+			Snapshot:  stateSnap,
+			Timestamp: time.Now(),
+		},
+		Content:    answer,
+		Address:    m.Address,
 		Initiative: false,
 		Reply:      isReply,
 	}
@@ -157,14 +158,14 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 	stateSnap = snap.State
 
 	assistantMessage := event.AssistantMessage{
-		ID:       uuid.NewV7(),
-		Sequence: c.History.NextSequence(),
-		Snapshot: stateSnap,
-		Content:  answer,
-
-		Timestamp: time.Now(),
-		Address:   addr,
-
+		Meta: event.Meta{
+			ID:        uuid.NewV7(),
+			Sequence:  c.History.NextSequence(),
+			Snapshot:  stateSnap,
+			Timestamp: time.Now(),
+		},
+		Content:    answer,
+		Address:    addr,
 		Initiative: true,
 		Reply:      isReply,
 	}

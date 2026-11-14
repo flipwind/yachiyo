@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 	"yachiyo/yachiyo-runtime/config"
@@ -140,7 +139,7 @@ func (c *Core) InternalState() string {
 	return msg
 }
 
-func (c *Core) AppendHistory(hist event.History) error {
+func (c *Core) AppendHistory(hist event.Event) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -164,11 +163,11 @@ func (c *Core) commitCompressNode(node history.CompressNode) error {
 	return nil
 }
 
-func (c *Core) getHistory() []event.History {
+func (c *Core) getHistory() []event.Event {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	hist := append([]event.History(nil), c.History.ListAll()...)
+	hist := c.History.ListAll()
 
 	return hist
 }
@@ -205,6 +204,6 @@ func (c *Core) getContextWindow() history.ContextWindow {
 
 	return history.ContextWindow{
 		CurrentNode:      c.compressNode,
-		CurrentHistories: slices.Clone(hist),
+		CurrentHistories: hist,
 	}
 }

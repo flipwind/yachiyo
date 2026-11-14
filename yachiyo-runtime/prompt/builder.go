@@ -34,7 +34,7 @@ This value is in [0, 1], which the more the value, the more energetic.
 Whatever the answer is, Remember YOU **MUST** FOLLOW THE JSON OUTPUT RULE.
 OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 		Drives(snap.Drives),
-		snap.LastActive.Format("2006.01.02 15:04:05"),
+		snap.LastActive.Format(timeLayout),
 		note,
 		Affect(snap.Mood, snap.Emotions),
 		snap.Energy,
@@ -81,15 +81,15 @@ func HistoryPrompt(window history.ContextWindow) []llm.Message {
 		case event.UserMessage:
 			msgs = append(msgs, llm.Message{
 				Role:    llm.RoleUser,
-				Content: hist.Render(),
+				Content: UserMessage(hist),
 			})
 		case event.AssistantMessage:
 			msgs = append(msgs, llm.Message{
 				Role:    llm.RoleAssistant,
-				Content: hist.Render(),
+				Content: AssistantMessage(hist),
 			})
 		default:
-			ylog.Debug("Unsupport history: %T", hist)
+			ylog.Error("Unsupport history: %T", hist)
 		}
 	}
 

@@ -10,9 +10,11 @@ import (
 )
 
 type HistoryStorage interface {
-	Append(memory event.History) error
-	ListAll() []event.History
-	ListAfter(id uuid.UUID) []event.History // returns history[indexOfID+1:]
+	Append(memory event.Event) error
+
+	ListAll() []event.Event	// returns the *copy* of history
+	ListAfter(id uuid.UUID) []event.Event // returns the *copy* of history[indexOfID+1:]
+
 	Close() error
 	SaveCheckpoint(point Checkpoint) error
 	SaveCompressNode(node CompressNode) error
@@ -33,7 +35,7 @@ type RestoreResult struct {
 	LatestNode CompressNode
 }
 
-func GetLastUserAddress(hist []event.History) (address.Address, bool) {
+func GetLastUserAddress(hist []event.Event) (address.Address, bool) {
 	for _, h := range slices.Backward(hist) {
 		if item, ok := h.(event.UserMessage); ok {
 			return item.Address, true

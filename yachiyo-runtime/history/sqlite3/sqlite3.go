@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"time"
 	"uuid"
@@ -18,7 +19,7 @@ const checkpoint_schema_version = 1
 const compressnode_schema_version = 1
 
 type Sqlite3Storage struct {
-	Histories   []event.History
+	Histories   []event.Event
 	db          *sql.DB
 	nowSequence atomic.Int64 //exhaustruct:optional
 }
@@ -26,13 +27,13 @@ type Sqlite3Storage struct {
 func (b *Sqlite3Storage) getMaxSequence() int64 {
 	var maxSequence int64
 	for _, h := range b.Histories {
-		maxSequence = max(maxSequence, h.GetSequence())
+		maxSequence = max(maxSequence, h.GetMeta().Sequence)
 	}
 
 	return maxSequence
 }
 
-func (b *Sqlite3Storage) saveMessage(m event.History) error {
+func (b *Sqlite3Storage) saveMessage(m event.Event) error {
 	var messageType string
 	switch m.(type) {
 	case event.AssistantMessage:
@@ -76,7 +77,7 @@ func (b *Sqlite3Storage) restore() (history.RestoreResult, error) {
 
 	defer rows.Close()
 
-	histories := make([]event.History, 0)
+	histories := make([]event.Event, 0)
 
 	for rows.Next() {
 		var kind string
@@ -244,7 +245,7 @@ func New() (*Sqlite3Storage, history.RestoreResult, error) {
 	}
 
 	storage := &Sqlite3Storage{
-		Histories: make([]event.History, 0),
+		Histories: make([]event.Event, 0),
 		db:        db,
 	}
 
@@ -256,7 +257,7 @@ func New() (*Sqlite3Storage, history.RestoreResult, error) {
 	return storage, restoreResult, nil
 }
 
-func (b *Sqlite3Storage) Append(m event.History) error {
+func (b *Sqlite3Storage) Append(m event.Event) error {
 	if err := b.saveMessage(m); err != nil {
 		return err
 	}
@@ -265,16 +266,16 @@ func (b *Sqlite3Storage) Append(m event.History) error {
 	return nil
 }
 
-func (b *Sqlite3Storage) ListAll() []event.History {
-	return b.Histories
+func (b *Sqlite3Storage) ListAll() []event.Event {
+	return slices.Clone(b.Histories)
 }
 
-func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []event.History {
+func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []event.Event {
 	var history_len = len(b.Histories)
 	var index = history_len - 1
 	var findflag = false
 	for i := index; i >= 0; i-- {
-		if b.Histories[i].GetID() == uuid {
+		if b.Histories[i].GetMeta().ID == uuid {
 			index = i
 			findflag = true
 			break
@@ -282,10 +283,10 @@ func (b *Sqlite3Storage) ListAfter(uuid uuid.UUID) []event.History {
 	}
 
 	if findflag == false {
-		return b.Histories
+		return slices.Clone(b.Histories)
 	}
 
-	return b.Histories[index+1:]
+	return slices.Clone(b.Histories[index+1:])
 }
 
 func (b *Sqlite3Storage) Close() error {

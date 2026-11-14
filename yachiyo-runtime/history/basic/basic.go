@@ -1,38 +1,39 @@
 package basic
 
 import (
+	"slices"
 	"uuid"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/history"
 )
 
 type BasicStorage struct {
-	Histories   []event.History
+	Histories   []event.Event
 	nowSequence int64
 }
 
 func New() *BasicStorage {
 	return &BasicStorage{
-		Histories:   make([]event.History, 0),
+		Histories:   make([]event.Event, 0),
 		nowSequence: 0,
 	}
 }
 
-func (b *BasicStorage) Append(m event.History) error {
+func (b *BasicStorage) Append(m event.Event) error {
 	b.Histories = append(b.Histories, m)
 	return nil
 }
 
-func (b *BasicStorage) ListAll() []event.History {
-	return b.Histories
+func (b *BasicStorage) ListAll() []event.Event {
+	return slices.Clone(b.Histories)
 }
 
-func (b *BasicStorage) ListAfter(uuid uuid.UUID) []event.History {
+func (b *BasicStorage) ListAfter(uuid uuid.UUID) []event.Event {
 	var history_len = len(b.Histories)
 	var index = history_len - 1
 	var findflag = false
 	for i := index; i >= 0; i-- {
-		if b.Histories[i].GetID() == uuid {
+		if b.Histories[i].GetMeta().ID == uuid {
 			index = i
 			findflag = true
 			break
@@ -40,10 +41,10 @@ func (b *BasicStorage) ListAfter(uuid uuid.UUID) []event.History {
 	}
 
 	if findflag == false {
-		return b.Histories
+		return slices.Clone(b.Histories)
 	}
 
-	return b.Histories[index+1:]
+	return slices.Clone(b.Histories[index+1:])
 }
 
 func (b *BasicStorage) Close() error                                     { return nil }
