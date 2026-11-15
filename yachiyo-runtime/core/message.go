@@ -45,7 +45,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	if c.checkTokenThreshold(85, len(rendered)) {
 		ylog.Success("Context too big.(85%%) Compressing, please wait...")
 		if err := c.processCompress(); err != nil {
-			return processError(err, m.Address)
+			return errorAction(err, m.Address)
 		}
 	}
 
@@ -66,7 +66,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 
 	if err := c.AppendHistory(userMessage); err != nil {
 		ylog.Error("UserMessage history appended error: %s", err)
-		return processError(yerror.ErrMessageStore, m.Address)
+		return errorAction(yerror.ErrMessageStore, m.Address)
 	}
 
 	prompts := prompt.Build(prompt.Input{
@@ -82,7 +82,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 
 	if err != nil {
 		ylog.Error("Process UserMessage failed: %s", err)
-		return processError(err, m.Address)
+		return errorAction(err, m.Address)
 	}
 	debugOutput(out.Answer, snap, c.snapshot())
 
@@ -105,7 +105,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 
 	if err := c.AppendHistory(assistantMessage); err != nil {
 		ylog.Error("Passive InitiativeMessage history appended error: %s", err)
-		return processError(yerror.ErrMessageStore, m.Address)
+		return errorAction(yerror.ErrMessageStore, m.Address)
 	}
 
 	ylog.Success("Generated passive output %#v", out.Answer)
@@ -142,7 +142,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 	if c.checkTokenThreshold(85, 0) {
 		ylog.Success("Context too big.(85%%) Compressing, please wait...")
 		if err := c.processCompress(); err != nil {
-			return processError(err, addr)
+			return errorAction(err, addr)
 		}
 	}
 
@@ -160,7 +160,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 
 	if err != nil {
 		ylog.Error("Process InitiativeMessage failed: %s", err)
-		return processError(err, addr)
+		return errorAction(err, addr)
 	}
 	debugOutput(out.Answer, snap, c.snapshot())
 
@@ -183,7 +183,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 
 	if err := c.AppendHistory(assistantMessage); err != nil {
 		ylog.Error("Active InitiativeMessage history appended error: %s", err)
-		return processError(yerror.ErrMessageStore, addr)
+		return errorAction(yerror.ErrMessageStore, addr)
 	}
 
 	ylog.Success("Generated active output %#v", out.Answer)

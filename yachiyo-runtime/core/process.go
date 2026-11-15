@@ -49,33 +49,20 @@ func (c *Core) Process(e trigger.Trigger) action.Action {
 	}
 }
 
-func processError(err error, addr address.Address) action.Action {
-	if errors.Is(err, yerror.ErrLLMChoice) {
-		return &action.Error{
-			Code:    action.ErrLLMChoiceEmpty,
-			Message: err.Error(),
-			Address: addr,
-		}
-	}
+func errorAction(err error, addr address.Address) action.Action {
+	code := action.ErrMessageProcess
 
-	if errors.Is(err, yerror.ErrLLMGenerate) {
-		return &action.Error{
-			Code:    action.ErrLLMGenerate,
-			Message: err.Error(),
-			Address: addr,
-		}
-	}
-
-	if errors.Is(err, yerror.ErrMessageStore) {
-		return &action.Error{
-			Code:    action.ErrMessageStore,
-			Message: err.Error(),
-			Address: addr,
-		}
+	switch {
+	case errors.Is(err, yerror.ErrLLMChoice):
+		code = action.ErrLLMChoiceEmpty
+	case errors.Is(err, yerror.ErrLLMGenerate):
+		code = action.ErrLLMGenerate
+	case errors.Is(err, yerror.ErrMessageStore):
+		code = action.ErrMessageStore
 	}
 
 	return &action.Error{
-		Code:    action.ErrMessageProcess,
+		Code:    code,
 		Message: err.Error(),
 		Address: addr,
 	}
