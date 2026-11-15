@@ -11,9 +11,18 @@ import (
 
 var ylog = logger.New("Yachiyo.Prompt")
 
-type Context struct {
+type Cause int
+
+const (
+	Passive Cause = iota
+	Initiative
+)
+
+type Input struct {
+	Cause         Cause
 	SystemPrompt  string
 	ContextWindow history.ContextWindow
+	State         state.Snapshot
 	Note          string
 }
 
@@ -42,27 +51,14 @@ OUTPUT JSON ONLY. OUTPUT SHOULD ONLY START WITH '{' AND END WITH '}'.`,
 }
 
 // System Prompt Builders
-func PassivePrompt(snap state.Snapshot, note string) llm.Message {
-	content := fmt.Sprintf(`<Triggered by [UserMessage]>
-%s`,
-		statementPrompt(snap, note))
-
-	return llm.Message{
-		Role:    llm.RoleSystem,
-		Content: content,
+func (c Cause) trigger() string {
+	switch c {
+	case Passive:
+		return "UserMessage"
+	case Initiative:
+		return "InitiativeMessage"
 	}
-}
-
-func InitiativePrompt(snap state.Snapshot, note string) llm.Message {
-	content := fmt.Sprintf(`<Triggered by [InitiativeMessage]>
-%s`,
-		statementPrompt(snap, note),
-	)
-
-	return llm.Message{
-		Role:    llm.RoleSystem,
-		Content: content,
-	}
+	return "Unknown"
 }
 
 func HistoryPrompt(window history.ContextWindow) []llm.Message {
@@ -96,41 +92,47 @@ func HistoryPrompt(window history.ContextWindow) []llm.Message {
 	return msgs
 }
 
-func UserPromptBuilder(c Context, snap state.Snapshot) []llm.Message {
+func Build(in Input) []llm.Message {
 	var msgs []llm.Message
 
 	// 1. System Prompt
-	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: c.SystemPrompt})
+	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: in.SystemPrompt})
 
 	// 2. History Prompt (Including new message)
-	msgs = append(msgs, HistoryPrompt(c.ContextWindow)...)
+	msgs = append(msgs, HistoryPrompt(in.ContextWindow)...)
 
-	// 3. Current Statement
-	statementPrompt := PassivePrompt(snap, c.Note)
+	// 3. Current Statement & Initiative trigger reason
+	statementPrompt := llm.Message{
+		Role: llm.RoleSystem,
+		Content: fmt.Sprintf("<Triggered by [%s]>\n%s",
+			in.Cause.trigger(),
+			statementPrompt(in.State, in.Note),
+		),
+	}
+
 	msgs = append(msgs, statementPrompt)
 
 	ylog.Debug("Generated prompt list: %v", msgs)
 	return msgs
 }
 
-func InitiativePromptBuilder(c Context, snap state.Snapshot) []llm.Message {
-	// 0. Check if the trigger vaild
-	if c.ContextWindow.IsEmpty() {
-		ylog.Error("History is empty.")
-		return nil
+func BuildCompression(contextWindow history.ContextWindow, compressPrompt string) []llm.Message {
+	var messages = HistoryPrompt(contextWindow)
+	messages = append(messages, llm.Message{
+		Role:    llm.RoleSystem,
+		Content: compressPrompt,
+	})
+
+	return messages
+}
+
+func EstimateTokens(systemPrompt string, window history.ContextWindow, extraChars int) int {
+	charnum := len(systemPrompt) + extraChars
+	charnum += len(window.CurrentNode.Rend())
+	for _, h := range window.CurrentHistories {
+		charnum += len(Event(h))
 	}
 
-	// 1. System Prompt
-	var msgs []llm.Message
-	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: c.SystemPrompt})
-
-	// 2. History Prompt (Including new message)
-	msgs = append(msgs, HistoryPrompt(c.ContextWindow)...)
-
-	// 3. Current Statement & Initiative trigger reason
-	statementPrompt := InitiativePrompt(snap, c.Note)
-	msgs = append(msgs, statementPrompt)
-
-	ylog.Debug("Generated prompt list: %v", msgs)
-	return msgs
+	token := charnum / 3
+	return token
 }

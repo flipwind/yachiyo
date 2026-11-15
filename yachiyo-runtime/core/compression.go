@@ -16,17 +16,7 @@ import (
 
 func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
 	const MAXTOKEN = 500 * 1000
-	var contextWindow history.ContextWindow
-	contextWindow = c.getContextWindow()
-
-	charnum := 0 + deltaLength
-	charnum += len(c.getSystemPrompt())
-	charnum += len(contextWindow.CurrentNode.Rend())
-	for _, h := range contextWindow.CurrentHistories {
-		charnum += len(prompt.Event(h))
-	}
-
-	token := charnum / 3
+	token := prompt.EstimateTokens(c.getSystemPrompt(), c.getContextWindow(), deltaLength)
 
 	return token > int(math.Round(MAXTOKEN*percentage/100))
 }
@@ -64,11 +54,7 @@ func (c *Core) processCompress() error {
 		Content:             "NO COMPRESS RESULT",
 	}
 
-	var messages = prompt.HistoryPrompt(window)
-	messages = append(messages, llm.Message{
-		Role:    llm.RoleSystem,
-		Content: c.getCompressPrompt(),
-	})
+	messages := prompt.BuildCompression(window, c.getCompressPrompt())
 	var lastErr error
 	var successflag bool = false
 

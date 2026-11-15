@@ -12,7 +12,7 @@ import (
 type HistoryStorage interface {
 	Append(memory event.Event) error
 
-	ListAll() []event.Event	// returns the *copy* of history
+	ListAll() []event.Event               // returns the *copy* of history
 	ListAfter(id uuid.UUID) []event.Event // returns the *copy* of history[indexOfID+1:]
 
 	Close() error

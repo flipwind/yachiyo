@@ -150,10 +150,7 @@ func generate(ctx context.Context, client llm.Client, messages []llm.Message, to
 		case llm.FinishStop:
 			out, err := parseOutput(response.Content)
 			if err != nil {
-				messages = append(messages, llm.Message{
-					Role:    llm.RoleSystem,
-					Content: prompt.JSONReminder(),
-				})
+				messages = append(messages, prompt.JSONReminder())
 
 				lastErr = fmt.Errorf("LLM output unusable: %w", err)
 				retryNum++

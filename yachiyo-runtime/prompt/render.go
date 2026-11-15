@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/event"
+	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-shared/trigger"
 )
@@ -94,6 +95,9 @@ func Event(e event.Event) string {
 	}
 }
 
-func JSONReminder() string {
-	return "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE."
+func JSONReminder() llm.Message {
+	return llm.Message{
+		Role:    llm.RoleSystem,
+		Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
+	}
 }
