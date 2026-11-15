@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"yachiyo/yachiyo-runtime/llm"
+	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/tool"
 	"yachiyo/yachiyo-util/yerror"
@@ -118,7 +119,6 @@ func parseOutput(schema string) (output, error) {
 }
 
 func generate(ctx context.Context, client llm.Client, messages []llm.Message, tools tool.Set) (output, error) {
-	var jsonConstraint = false
 	var lastErr error
 
 	var retryNum = 0
@@ -131,13 +131,6 @@ func generate(ctx context.Context, client llm.Client, messages []llm.Message, to
 		ylog.Info("LLM step %v: requesting model", step)
 		if retryNum >= maxRetries {
 			return output{}, fmt.Errorf("LLM failed after %v attempts: %w", maxRetries, errors.Join(yerror.ErrLLMGenerate, lastErr))
-		}
-
-		if jsonConstraint {
-			messages = append(messages, llm.Message{
-				Role:    llm.RoleSystem,
-				Content: "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE.",
-			})
 		}
 
 		response, err := client.Generate(ctx, llm.Request{
@@ -157,7 +150,11 @@ func generate(ctx context.Context, client llm.Client, messages []llm.Message, to
 		case llm.FinishStop:
 			out, err := parseOutput(response.Content)
 			if err != nil {
-				jsonConstraint = true
+				messages = append(messages, llm.Message{
+					Role:    llm.RoleSystem,
+					Content: prompt.JSONReminder(),
+				})
+
 				lastErr = fmt.Errorf("LLM output unusable: %w", err)
 				retryNum++
 				continue

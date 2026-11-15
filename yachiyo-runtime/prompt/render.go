@@ -93,3 +93,7 @@ func Event(e event.Event) string {
 		return ""
 	}
 }
+
+func JSONReminder() string {
+	return "<PROCESS HINT> JSON MODE IS ENABLED. YOU MUST FOLLOW THE OUTPUT ROLE."
+}
