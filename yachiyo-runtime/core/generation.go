@@ -12,134 +12,125 @@ import (
 	"yachiyo/yachiyo-util/yerror"
 )
 
-type EmotionPress struct {
-	Emotion   string  `json:"emotion"`
-	Intensity string  `json:"intensity"`
-	Value     float64 `json:"value"`
-}
+const maxRetries = 3
+const maxSteps = 10
 
-type LLMOutput struct {
+type llmOutput struct {
 	Reply  bool     `json:"reply"`
 	Answer []string `json:"answer"`
 	Change struct {
 		State struct {
-			SocialDesire int64 `json:"SocialDesire"`
-			Interest     int64 `json:"Interest"`
+			SocialDesire int `json:"SocialDesire"`
+			Interest     int `json:"Interest"`
 		} `json:"state_delta"`
-		AffectPress []EmotionPress `json:"affect_press"`
+		AffectPress []struct {
+			Emotion   string  `json:"emotion"`
+			Intensity string  `json:"intensity"`
+			Value     float64 `json:"value"`
+		} `json:"affect_press"`
 	} `json:"change"`
-	Determination state.Determination `json:"determination"`
-	Note          string              `json:"note"`
+	Determination struct {
+		NewSession   bool `json:"should_open_a_new_session"`
+		WaitForReply bool `json:"should_wait_for_reply"`
+	} `json:"determination"`
+	Note string `json:"note"`
 }
 
-var emptyAnswers []string = make([]string, 0)
+type output struct {
+	Reply  bool
+	Answer []string
+	Change state.Change
+	Note   string
+}
 
-func parseOutput(schema string) (LLMOutput, error) {
-	var output LLMOutput
+func allEmpty(s []string) bool {
+	for _, str := range s {
+		if strings.TrimSpace(str) != "" {
+			return false
+		}
+	}
+	return true
+}
 
-	if err := json.Unmarshal([]byte(schema), &output); err != nil {
-		return LLMOutput{}, fmt.Errorf("Json unmarshal error: %w", err)
+func parseOutput(schema string) (output, error) {
+	var llmoutput llmOutput
+
+	if err := json.Unmarshal([]byte(schema), &llmoutput); err != nil {
+		return output{}, fmt.Errorf("Json unmarshal error: %w", err)
 	}
 
-	if len(output.Answer) == 0 {
-		return LLMOutput{}, fmt.Errorf("LLM returns invaild answer: answer has no items")
+	if len(llmoutput.Answer) == 0 {
+		return output{}, fmt.Errorf("LLM returns invaild answer: answer has no items")
 	}
 
-	if output.Reply == false && len(output.Answer) != 1 {
-		return LLMOutput{}, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
+	if llmoutput.Reply == false && len(llmoutput.Answer) != 1 {
+		return output{}, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
 	}
 
-	for _, affect := range output.Change.AffectPress {
-		if _, ok := state.OCCEmotionMap[affect.Emotion]; !ok {
-			return LLMOutput{}, fmt.Errorf("affect emotion type invalid")
+	emotions := make([]state.OCCEmotion, 0)
+	for _, affect := range llmoutput.Change.AffectPress {
+		typ, ok := state.OCCEmotionMap[affect.Emotion]
+		if !ok {
+			return output{}, fmt.Errorf("affect emotion type invalid")
 		}
 
 		val := affect.Value
+		var inf, sup float64
 		switch affect.Intensity {
 		case "slight":
-			if val < 0 || val > 1.0/3 {
-				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
-			}
+			inf, sup = 0, 1.0/3
 		case "moderate":
-			if val < 1.0/3 || val > 2.0/3 {
-				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
-			}
+			inf, sup = 1.0/3, 2.0/3
 		case "high":
-			if val < 2.0/3 || val > 1 {
-				return LLMOutput{}, fmt.Errorf("affect emotion value not match intensity")
-			}
+			inf, sup = 2.0/3, 1
 		default:
-			return LLMOutput{}, fmt.Errorf("affect emotion intensity invalid")
+			return output{}, errors.New("affect emotion intensity invalid")
 		}
+
+		if val < inf || val > sup {
+			return output{},
+				fmt.Errorf("affect emotion value not match intensity: <%v> should be in [%v, %v], (%v)",
+					val, inf, sup, affect.Intensity)
+		}
+
+		emotions = append(emotions, state.OCCEmotion{
+			Type:      typ,
+			Intensity: val,
+		})
 	}
 
 	ylog.Debug("Parsed LLM output schema: `%s`", schema)
 
-	return output, nil
+	return output{
+		Reply:  llmoutput.Reply && !allEmpty(llmoutput.Answer),
+		Answer: llmoutput.Answer,
+		Change: state.Change{
+			SocialDesire: llmoutput.Change.State.SocialDesire,
+			Interest:     llmoutput.Change.State.Interest,
+			Emotions:     emotions,
+			Determination: state.Determination{
+				NewSession:   llmoutput.Determination.NewSession,
+				WaitForReply: llmoutput.Determination.WaitForReply,
+			},
+		},
+		Note: llmoutput.Note,
+	}, nil
 }
 
-func (c *Core) apply(schema string) ([]string, bool, error) {
-	var output LLMOutput
-	var err error
-
-	if output, err = parseOutput(schema); err != nil {
-		return []string{}, false, err
-	}
-
-	// affect
-	var emotions []state.OCCEmotion
-	for _, affect := range output.Change.AffectPress {
-		emotions = append(emotions, state.OCCEmotion{
-			Type:      state.OCCEmotionMap[affect.Emotion],
-			Intensity: affect.Value,
-		})
-	}
-
-	c.mu.Lock()
-	c.State.Apply(state.Change{
-		SocialDesire:  int(output.Change.State.SocialDesire),
-		Interest:      int(output.Change.State.Interest),
-		Emotions:      emotions,
-		Determination: output.Determination,
-	})
-
-	if output.Note != "-1" {
-		c.Note = output.Note
-	}
-	c.mu.Unlock()
-
-	allempty := true
-	for _, ans := range output.Answer {
-		if strings.TrimSpace(ans) != "" {
-			allempty = false
-			break
-		}
-	}
-
-	if output.Reply == false || allempty {
-		return output.Answer, false, nil
-	}
-	return output.Answer, true, nil
-}
-
-// returns `answers`, `if_reply`, `error`
-func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string, bool, error) {
+func generate(ctx context.Context, client llm.Client, messages []llm.Message, tools tool.Set) (output, error) {
 	var jsonConstraint = false
 	var lastErr error
 
 	var retryNum = 0
 
-	toolSpec := make([]llm.ToolSpec, 0)
-	toolMap := make(map[string]tool.Tool)
-	for _, t := range tools {
-		toolSpec = append(toolSpec, t.Spec)
-		toolMap[t.Spec.Name] = t
-	}
+	for step := 1; step <= maxSteps; step++ {
+		if err := ctx.Err(); err != nil {
+			return output{}, err
+		}
 
-	for step := 1; step <= 10; step++ {
 		ylog.Info("LLM step %v: requesting model", step)
-		if retryNum >= 3 {
-			return emptyAnswers, false, fmt.Errorf("LLM failed after 3 attempts: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+		if retryNum >= maxRetries {
+			return output{}, fmt.Errorf("LLM failed after %v attempts: %w", maxRetries, errors.Join(yerror.ErrLLMGenerate, lastErr))
 		}
 
 		if jsonConstraint {
@@ -149,10 +140,10 @@ func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string,
 			})
 		}
 
-		response, err := c.LLM.Generate(context.Background(), llm.Request{
+		response, err := client.Generate(ctx, llm.Request{
 			Messages: messages,
 			JSON:     true,
-			Tools:    toolSpec,
+			Tools:    tools.Specs(),
 		})
 
 		if err != nil {
@@ -164,7 +155,7 @@ func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string,
 
 		switch response.FinishReason {
 		case llm.FinishStop:
-			answer, reply, err := c.apply(response.Content)
+			out, err := parseOutput(response.Content)
 			if err != nil {
 				jsonConstraint = true
 				lastErr = fmt.Errorf("LLM output unusable: %w", err)
@@ -173,7 +164,7 @@ func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string,
 			}
 			ylog.Info("LLM finished after %v steps", step)
 			// If successfully generated, return.
-			return answer, reply, nil
+			return out, nil
 		case llm.FinishToolCall:
 			messages = append(messages, llm.Message{
 				Role:      llm.RoleAssistant,
@@ -182,34 +173,24 @@ func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string,
 			})
 
 			for _, call := range response.ToolCalls {
-				tool, ok := toolMap[call.Name]
-				output := fmt.Sprintf("Error: Unknown tool <`%v`>", call.Name)
+				ylog.Info("LLM using tool call: `%v`(%v), ID [%v]", call.Name, call.Arguments, call.ID)
+				out := tools.Call(call.Name, call.Arguments)
 
-				if ok && tool.Execute != nil {
-					ylog.Info("LLM using tool call: `%v`(%v), ID [%v]", call.Name, call.Arguments, call.ID)
-					res, err := toolMap[call.Name].Execute(call.Arguments)
-					if err != nil {
-						output = fmt.Sprintf("Error when execute tool <%v>: %v", call.Name, err.Error())
-					} else {
-						output = res
-					}
-				}
-
-				ylog.Info("LLM tool result: `%v` -> `%v`, ID [%v]", call.Name, output, call.ID)
+				ylog.Info("LLM tool result: `%v` -> `%v`, ID [%v]", call.Name, out, call.ID)
 				messages = append(messages, llm.Message{
 					Role:       llm.RoleTool,
-					Content:    output,
+					Content:    out,
 					ToolCallID: call.ID,
 				})
 			}
 		case llm.FinishLength:
-			return emptyAnswers, false, fmt.Errorf("Model output exceeded limit: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("Model output exceeded limit: %w", yerror.ErrLLMGenerate)
 		case llm.FinishContentFilter:
-			return emptyAnswers, false, fmt.Errorf("Output content is being filtered: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("Output content is being filtered: %w", yerror.ErrLLMGenerate)
 		case llm.FinishUnavailable:
-			return emptyAnswers, false, fmt.Errorf("Provider now unavailable: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("Provider now unavailable: %w", yerror.ErrLLMGenerate)
 		case llm.FinishAborted:
-			return emptyAnswers, false, fmt.Errorf("Output was aborted: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("Output was aborted: %w", yerror.ErrLLMGenerate)
 		default:
 			lastErr = fmt.Errorf("Unknown finish_reason: %v", response.FinishReason)
 			ylog.Error("Unexcepted finish_reason, retrying: %v", response.FinishReason)
@@ -218,5 +199,5 @@ func (c *Core) processLLM(messages []llm.Message, tools ...tool.Tool) ([]string,
 		}
 	}
 
-	return emptyAnswers, false, fmt.Errorf("LLM exceeded 10 steps, stop generating: %w", errors.Join(yerror.ErrLLMGenerate, lastErr))
+	return output{}, fmt.Errorf("LLM exceeded %v steps, stop generating: %w", maxSteps, errors.Join(yerror.ErrLLMGenerate, lastErr))
 }

@@ -6,10 +6,8 @@ import (
 	"yachiyo/yachiyo-runtime/tool"
 )
 
-func (c *Core) GetBuiltinTools() []tool.Tool {
+func GetBuiltinTools(snap Snapshot) []tool.Tool {
 	builtinTools := make([]tool.Tool, 0)
-
-	snap := c.snapshot()
 
 	test := tool.Tool{
 		Spec: llm.ToolSpec{
@@ -36,10 +34,10 @@ func (c *Core) GetBuiltinTools() []tool.Tool {
 	return builtinTools
 }
 
-func (c *Core) GetTools() []tool.Tool {
+func GetTools(snap Snapshot) []tool.Tool {
 	tools := make([]tool.Tool, 0)
 
-	tools = append(tools, c.GetBuiltinTools()...)
+	tools = append(tools, GetBuiltinTools(snap)...)
 
 	// implement third-party tools, from clients or other mcps.
 

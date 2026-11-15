@@ -1,8 +1,8 @@
 package state
 
 type Determination struct {
-	NewSession   bool `json:"should_open_a_new_session"`
-	WaitForReply bool `json:"should_wait_for_reply"`
+	NewSession   bool
+	WaitForReply bool
 }
 
 func NewDetermination() Determination {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"time"
 	"uuid"
 	"yachiyo/yachiyo-runtime/event"
@@ -10,6 +11,8 @@ import (
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/yerror"
 )
+
+const keepNote = "-1"
 
 func debugOutput(answer []string, c_formal Snapshot, c_later Snapshot) {
 	ylog.Debug(`== DEBUG MESSAGE ==
@@ -23,6 +26,16 @@ Yachiyo > %v
 		answer, prompt.Drives(c_formal.State.Drives),
 		prompt.Drives(c_later.State.Drives), c_later.State.Determination,
 		c_later.Note)
+}
+
+func (c *Core) applyOutput(out output) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.State.Apply(out.Change)
+
+	if out.Note != keepNote {
+		c.Note = out.Note
+	}
 }
 
 func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
@@ -63,14 +76,14 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 		Note:          c.getNote(),
 	}, stateSnap)
 
-	tools := c.GetTools()
-	answer, isReply, err := c.processLLM(prompts, tools...)
+	tools := GetTools(snap)
+	out, err := generate(context.Background(), c.LLM, prompts, tools)
 
 	if err != nil {
 		ylog.Error("Process UserMessage failed: %s", err)
 		return processError(err, m.Address)
 	}
-	debugOutput(answer, snap, c.snapshot())
+	debugOutput(out.Answer, snap, c.snapshot())
 
 	// After processed, store the assistant message
 
@@ -84,10 +97,10 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 			Snapshot:  stateSnap,
 			Timestamp: time.Now(),
 		},
-		Content:    answer,
+		Content:    out.Answer,
 		Address:    m.Address,
 		Initiative: false,
-		Reply:      isReply,
+		Reply:      out.Reply,
 	}
 
 	if err := c.AppendHistory(assistantMessage); err != nil {
@@ -95,7 +108,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 		return processError(yerror.ErrMessageStore, m.Address)
 	}
 
-	ylog.Success("Generated passive output %#v", answer)
+	ylog.Success("Generated passive output %#v", out.Answer)
 
 	if c.checkTokenThreshold(70, 0) {
 		ylog.Success("Context too big.(70%%) Compressing on background...")
@@ -143,14 +156,14 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 			Note:          c.getNote(),
 		}, stateSnap)
 
-	tools := c.GetBuiltinTools()
-	answer, isReply, err := c.processLLM(prompts, tools...)
+	tools := GetTools(snap)
+	out, err := generate(context.Background(), c.LLM, prompts, tools)
 
 	if err != nil {
 		ylog.Error("Process InitiativeMessage failed: %s", err)
 		return processError(err, addr)
 	}
-	debugOutput(answer, snap, c.snapshot())
+	debugOutput(out.Answer, snap, c.snapshot())
 
 	// After processed, store the assistant message
 
@@ -164,10 +177,10 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 			Snapshot:  stateSnap,
 			Timestamp: time.Now(),
 		},
-		Content:    answer,
+		Content:    out.Answer,
 		Address:    addr,
 		Initiative: true,
-		Reply:      isReply,
+		Reply:      out.Reply,
 	}
 
 	if err := c.AppendHistory(assistantMessage); err != nil {
@@ -175,7 +188,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 		return processError(yerror.ErrMessageStore, addr)
 	}
 
-	ylog.Success("Generated active output %#v", answer)
+	ylog.Success("Generated active output %#v", out.Answer)
 
 	if c.checkTokenThreshold(70, 0) {
 		ylog.Success("Context too big.(70%%) Compressing on background...")
