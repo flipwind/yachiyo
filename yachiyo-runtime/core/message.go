@@ -77,6 +77,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 		ylog.Error("Process UserMessage failed: %s", err)
 		return errorAction(err, m.Address)
 	}
+	c.applyOutput(out)
 	debugOutput(out.Answer, snap, c.snapshot())
 
 	// After processed, store the assistant message
@@ -150,6 +151,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 		ylog.Error("Process InitiativeMessage failed: %s", err)
 		return errorAction(err, addr)
 	}
+	c.applyOutput(out)
 	debugOutput(out.Answer, snap, c.snapshot())
 
 	// After processed, store the assistant message
