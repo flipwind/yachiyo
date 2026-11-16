@@ -9,14 +9,12 @@ import (
 )
 
 type Summary struct {
-	ID       uuid.UUID
-	CreateAt time.Time
-	Parent   uuid.UUID // uuid.Nil() if none
-	RangeID  struct {
-		From uuid.UUID
-		To   uuid.UUID
-	}
-	Content string
+	ID          uuid.UUID
+	CreateAt    time.Time
+	Parent      uuid.UUID // uuid.Nil() if none
+	FromEventID uuid.UUID
+	ToEventID   uuid.UUID
+	Content     string
 }
 
 type Window struct {
@@ -101,7 +99,7 @@ func (c *Conversation) SetSummary(s Summary) {
 
 	c.startAt = 0
 	for i := len(c.events) - 1; i >= 0; i-- {
-		if c.events[i].GetMeta().ID == s.RangeID.To {
+		if c.events[i].GetMeta().ID == s.ToEventID {
 			c.startAt = i + 1
 			break
 		}

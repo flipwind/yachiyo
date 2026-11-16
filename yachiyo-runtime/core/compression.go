@@ -52,17 +52,12 @@ func (c *Core) processCompress() error {
 	}
 
 	summary := conversation.Summary{
-		ID:       uuid.NewV7(),
-		CreateAt: time.Now(),
-		Parent:   parent,
-		RangeID: struct {
-			From uuid.UUID
-			To   uuid.UUID
-		}{
-			From: window.Events[0].GetMeta().ID,
-			To:   window.Events[len(window.Events)-1].GetMeta().ID,
-		},
-		Content:             "NO COMPRESS RESULT",
+		ID:          uuid.NewV7(),
+		CreateAt:    time.Now(),
+		Parent:      parent,
+		FromEventID: window.Events[0].GetMeta().ID,
+		ToEventID:   window.Events[len(window.Events)-1].GetMeta().ID,
+		Content:     "NO COMPRESS RESULT",
 	}
 
 	messages := prompt.BuildCompression(window, c.getCompressPrompt())

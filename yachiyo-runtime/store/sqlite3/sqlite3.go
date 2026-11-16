@@ -13,9 +13,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const history_schema_version = 1
-const checkpoint_schema_version = 1
-const compressnode_schema_version = 1
+const historySchemaVersion = 1
+const checkpointSchemaVersion = 1
+const compressnodeSchemaVersion = 1
+
+const (
+	kindUserMessage      = "user_message"
+	kindAssistantMessage = "assistant_message"
+)
 
 // role as a fuse
 var _ store.Store = (*Storage)(nil)
@@ -129,23 +134,23 @@ func (s *Storage) loadEvents() ([]event.Event, error) {
 			return []event.Event{}, fmt.Errorf("Scaning histories error: %w", err)
 		}
 
-		if version != history_schema_version {
+		if version != historySchemaVersion {
 			return []event.Event{}, fmt.Errorf("Unsupported history version: %d", version)
 		}
 
 		switch kind {
-		case "user_message":
-			var message event.UserMessage
+		case kindUserMessage:
+			var message userMessageRecord
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
 				return []event.Event{}, fmt.Errorf("Decoding user message error: %w", err)
 			}
-			histories = append(histories, message)
-		case "assistant_message":
-			var message event.AssistantMessage
+			histories = append(histories, message.event())
+		case kindAssistantMessage:
+			var message assistantMessageRecord
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
 				return []event.Event{}, fmt.Errorf("Decoding assistant message error: %w", err)
 			}
-			histories = append(histories, message)
+			histories = append(histories, message.event())
 		default:
 			return []event.Event{}, fmt.Errorf("Unknown history kind: %v", kind)
 		}
@@ -164,7 +169,7 @@ func (s *Storage) loadCheckpoint() (*store.Checkpoint, error) {
 		ORDER BY id DESC
 	`)
 
-	var checkpoint store.Checkpoint
+	var checkpoint checkpointRecord
 
 	var id int
 	var state_at int
@@ -177,7 +182,7 @@ func (s *Storage) loadCheckpoint() (*store.Checkpoint, error) {
 		return nil, fmt.Errorf("Scanning checkpoint error: %w", err)
 	}
 
-	if version != checkpoint_schema_version {
+	if version != checkpointSchemaVersion {
 		return nil, fmt.Errorf("Unsupported checkpoint version: %d", version)
 	}
 
@@ -185,31 +190,31 @@ func (s *Storage) loadCheckpoint() (*store.Checkpoint, error) {
 		return nil, fmt.Errorf("Decoding checkpoint error: %w", err)
 	}
 
-	return &checkpoint, nil
+	cp := checkpoint.checkpoint()
+
+	return &cp, nil
 }
 
 func (s *Storage) loadSummary() (*conversation.Summary, error) {
 	row := s.db.QueryRow(`
-		SELECT id, schema_version, node_id, payload
+		SELECT schema_version, payload
 		FROM contextnode
 		ORDER BY id DESC
 		LIMIT 1;
 	`)
 
-	var summary conversation.Summary
+	var summary summaryRecord
 
-	var id int
 	var version int
-	var node_id string
 	var payload string
-	if err := row.Scan(&id, &version, &node_id, &payload); err != nil {
+	if err := row.Scan(&version, &payload); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("Scanning contextnode error: %w", err)
 	}
 
-	if version != compressnode_schema_version {
+	if version != compressnodeSchemaVersion {
 		return nil, fmt.Errorf("Unsupported contextnode version: %d", version)
 	}
 
@@ -217,21 +222,24 @@ func (s *Storage) loadSummary() (*conversation.Summary, error) {
 		return nil, fmt.Errorf("Decoding contextnode error: %w", err)
 	}
 
-	return &summary, nil
+	sum := summary.summary()
+
+	return &sum, nil
 }
 
-func (s *Storage) Append(m event.Event) error {
+func (s *Storage) Append(e event.Event) error {
 	var messageType string
-	switch m.(type) {
+	var record any
+	switch m := e.(type) {
 	case event.AssistantMessage:
-		messageType = "assistant_message"
+		messageType, record = kindAssistantMessage, toAssistantMessageRecord(m)
 	case event.UserMessage:
-		messageType = "user_message"
+		messageType, record = kindUserMessage, toUserMessageRecord(m)
 	default:
-		return fmt.Errorf("Unknown event type: %T", m)
+		return fmt.Errorf("Unknown event type: %T", e)
 	}
 
-	payload, err := json.Marshal(m)
+	payload, err := json.Marshal(record)
 	if err != nil {
 		return err
 	}
@@ -240,7 +248,7 @@ func (s *Storage) Append(m event.Event) error {
 	INSERT INTO histories
 		(kind, schema_version, create_at, payload)
 		VALUES (?, ?, ?, ?)
-	`, messageType, history_schema_version, time.Now().Unix(), string(payload))
+	`, messageType, historySchemaVersion, time.Now().Unix(), string(payload))
 
 	if err != nil {
 		return err
@@ -249,7 +257,8 @@ func (s *Storage) Append(m event.Event) error {
 	return nil
 }
 
-func (s *Storage) SaveCheckpoint(point store.Checkpoint) error {
+func (s *Storage) SaveCheckpoint(p store.Checkpoint) error {
+	point := toCheckpointRecord(p)
 	payload, err := json.Marshal(point)
 	if err != nil {
 		return fmt.Errorf("json marshal error: %w", err)
@@ -262,7 +271,7 @@ func (s *Storage) SaveCheckpoint(point store.Checkpoint) error {
         schema_version = excluded.schema_version,
         state_at = excluded.state_at,
         payload = excluded.payload
-	`, checkpoint_schema_version, point.SavedAt.UnixMilli(), string(payload))
+	`, checkpointSchemaVersion, point.SavedAt.UnixMilli(), string(payload))
 
 	if err != nil {
 		return fmt.Errorf("store checkpoint error: %w", err)
@@ -271,17 +280,18 @@ func (s *Storage) SaveCheckpoint(point store.Checkpoint) error {
 	return nil
 }
 
-func (b *Storage) SaveSummary(summary conversation.Summary) error {
+func (s *Storage) SaveSummary(sum conversation.Summary) error {
+	summary := toSummaryRecord(sum)
 	payload, err := json.Marshal(summary)
 	if err != nil {
 		return fmt.Errorf("json marshal error: %w", err)
 	}
 
-	_, err = b.db.Exec(`
+	_, err = s.db.Exec(`
     INSERT INTO contextnode
 		(schema_version, node_id, payload)
 		VALUES (?, ?, ?)
-	`, compressnode_schema_version, summary.ID, string(payload))
+	`, compressnodeSchemaVersion, summary.ID, string(payload))
 
 	if err != nil {
 		return fmt.Errorf("store contextnode error: %w", err)
