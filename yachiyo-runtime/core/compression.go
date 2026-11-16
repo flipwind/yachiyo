@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-runtime/history"
+	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-util/yerror"
@@ -16,7 +16,7 @@ import (
 
 func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
 	const MAXTOKEN = 500 * 1000
-	token := prompt.EstimateTokens(c.getSystemPrompt(), c.getContextWindow(), deltaLength)
+	token := prompt.EstimateTokens(c.getSystemPrompt(), c.getWindow(), deltaLength)
 
 	return token > int(math.Round(MAXTOKEN*percentage/100))
 }
@@ -38,19 +38,30 @@ func (c *Core) processCompress() error {
 
 	defer clearbusy()
 
-	window := c.getContextWindow()
+	window := c.getWindow()
 
-	if len(window.CurrentHistories) == 0 {
+	if len(window.Events) == 0 {
 		return fmt.Errorf("Current history list is empty. Skip compress.")
 	}
 
-	node := history.CompressNode{
-		Empty:               false,
-		ID:                  uuid.NewV7(),
-		CompressTimestamp:   time.Now(),
-		SubCompressNodeID:   window.CurrentNode.ID,
-		CompressEventIDFrom: window.CurrentHistories[0].GetMeta().ID,
-		CompressEventIDTo:   window.CurrentHistories[len(window.CurrentHistories)-1].GetMeta().ID,
+	var parent uuid.UUID
+	if window.Summary == nil {
+		parent = uuid.Nil()
+	} else {
+		parent = window.Summary.ID
+	}
+
+	summary := conversation.Summary{
+		ID:       uuid.NewV7(),
+		CreateAt: time.Now(),
+		Parent:   parent,
+		RangeID: struct {
+			From uuid.UUID
+			To   uuid.UUID
+		}{
+			From: window.Events[0].GetMeta().ID,
+			To:   window.Events[len(window.Events)-1].GetMeta().ID,
+		},
 		Content:             "NO COMPRESS RESULT",
 	}
 
@@ -83,13 +94,13 @@ func (c *Core) processCompress() error {
 		}
 
 		// If successfully generated, break.
-		node.Content = result.Content
+		summary.Content = result.Content
 		successflag = true
 		break
 	}
 
 	if successflag {
-		if err := c.commitCompressNode(node); err != nil {
+		if err := c.commitSummary(summary); err != nil {
 			saveErr := fmt.Errorf("Compressed but failed to save in storage: %w", err)
 			ylog.Error("Compressed failed: %v", saveErr)
 			return saveErr

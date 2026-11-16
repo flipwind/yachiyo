@@ -3,6 +3,7 @@ package prompt
 import (
 	"fmt"
 	"time"
+	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
@@ -93,6 +94,11 @@ func Event(e event.Event) string {
 		ylog.Error("Unknown event: %T", m)
 		return ""
 	}
+}
+
+func Summary(s conversation.Summary) string {
+	return fmt.Sprintf(`<CompressNode>[Compressed at %s]
+%s`, s.CreateAt.Format(timeLayout), s.Content)
 }
 
 func JSONReminder() llm.Message {

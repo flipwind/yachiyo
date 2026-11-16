@@ -2,8 +2,8 @@ package core
 
 import (
 	"time"
-	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/store"
 )
 
 // Core snapshot
@@ -19,18 +19,18 @@ func (c *Core) snapshot() Snapshot {
 
 	snap := Snapshot{
 		State: c.State.Snapshot(),
-		Note:  c.Note,
+		Note:  c.conv.Note(),
 	}
 
 	return snap
 }
 
+// caller must hold c.mu
 func (c *Core) checkpoint() error {
-	return c.History.SaveCheckpoint(history.Checkpoint{
-		Exist:       true,
-		StateAt:     time.Now(),
-		State:       c.State.Snapshot(),
-		Note:        c.Note,
-		NowSequence: c.History.NowSequence(),
+	return c.store.SaveCheckpoint(store.Checkpoint{
+		SavedAt:  time.Now(),
+		State:    c.State.Snapshot(),
+		Note:     c.conv.Note(),
+		Sequence: c.conv.Sequence(),
 	})
 }

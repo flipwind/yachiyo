@@ -2,8 +2,8 @@ package prompt
 
 import (
 	"fmt"
+	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-util/logger"
@@ -19,11 +19,11 @@ const (
 )
 
 type Input struct {
-	Cause         Cause
-	SystemPrompt  string
-	ContextWindow history.ContextWindow
-	State         state.Snapshot
-	Note          string
+	Cause        Cause
+	SystemPrompt string
+	Window       conversation.Window
+	State        state.Snapshot
+	Note         string
 }
 
 func statementPrompt(snap state.Snapshot, note string) string {
@@ -61,18 +61,18 @@ func (c Cause) trigger() string {
 	return "Unknown"
 }
 
-func HistoryPrompt(window history.ContextWindow) []llm.Message {
+func HistoryPrompt(window conversation.Window) []llm.Message {
 	var msgs []llm.Message
 
-	if window.CurrentNode.Empty == false {
+	if window.Summary != nil {
 		// Compression Message
 		msgs = append(msgs, llm.Message{
 			Role:    llm.RoleUser,
-			Content: window.CurrentNode.Rend(),
+			Content: Summary(*window.Summary),
 		})
 	}
 
-	for _, h := range window.CurrentHistories {
+	for _, h := range window.Events {
 		switch hist := h.(type) {
 		case event.UserMessage:
 			msgs = append(msgs, llm.Message{
@@ -99,7 +99,7 @@ func Build(in Input) []llm.Message {
 	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: in.SystemPrompt})
 
 	// 2. History Prompt (Including new message)
-	msgs = append(msgs, HistoryPrompt(in.ContextWindow)...)
+	msgs = append(msgs, HistoryPrompt(in.Window)...)
 
 	// 3. Current Statement & Initiative trigger reason
 	statementPrompt := llm.Message{
@@ -116,7 +116,7 @@ func Build(in Input) []llm.Message {
 	return msgs
 }
 
-func BuildCompression(contextWindow history.ContextWindow, compressPrompt string) []llm.Message {
+func BuildCompression(contextWindow conversation.Window, compressPrompt string) []llm.Message {
 	var messages = HistoryPrompt(contextWindow)
 	messages = append(messages, llm.Message{
 		Role:    llm.RoleSystem,
@@ -126,10 +126,14 @@ func BuildCompression(contextWindow history.ContextWindow, compressPrompt string
 	return messages
 }
 
-func EstimateTokens(systemPrompt string, window history.ContextWindow, extraChars int) int {
+func EstimateTokens(systemPrompt string, window conversation.Window, extraChars int) int {
 	charnum := len(systemPrompt) + extraChars
-	charnum += len(window.CurrentNode.Rend())
-	for _, h := range window.CurrentHistories {
+
+	if window.Summary != nil {
+		charnum += len(Summary(*window.Summary))
+	}
+
+	for _, h := range window.Events {
 		charnum += len(Event(h))
 	}
 

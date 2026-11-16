@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"uuid"
 	"yachiyo/yachiyo-runtime/config"
+	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/history"
-	"yachiyo/yachiyo-runtime/history/sqlite3"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-runtime/store"
+	"yachiyo/yachiyo-runtime/store/sqlite3"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -19,13 +21,12 @@ import (
 var ylog = logger.New("Yachiyo.Core")
 
 type Core struct {
-	History      history.HistoryStorage
-	compressNode history.CompressNode
-	LLM          llm.Client
-	Config       config.Config
-	State        *state.State
+	store  store.Store
+	conv   *conversation.Conversation
+	LLM    llm.Client
+	Config config.Config
+	State  *state.State
 
-	Note         string
 	LLMBusy      bool
 	CompressBusy bool
 
@@ -53,16 +54,18 @@ func New() (*Core, error) {
 		Neuroticism:       config.Core.BigFive.Neuroticism,
 	}
 
-	storage, restoreResult, err := sqlite3.New()
+	storage, err := sqlite3.Open("yachiyo.db")
 	if err != nil {
 		return nil, fmt.Errorf("Storage created error: %w", err)
 	}
 
-	// Restore state
-	checkpoint := restoreResult.Checkpoint
-	checkpointExist := checkpoint.Exist
-
-	ylog.Success("Now history sequence at %v.", checkpoint.NowSequence)
+	restored, err := storage.Load()
+	if err != nil {
+		if err := storage.Close(); err != nil {
+			ylog.Error("Storage close error: %v", err)
+		}
+		return nil, fmt.Errorf("Storage restored error: %w", err)
+	}
 
 	var core *Core
 
@@ -73,22 +76,28 @@ func New() (*Core, error) {
 
 	snap := state.Initial(personality, time.Now())
 	elapsed := time.Duration(0)
-	if checkpointExist {
-		snap = checkpoint.State
-		elapsed = time.Since(checkpoint.StateAt)
+	note := ""
+	var sequence int64
+	if cp := restored.Checkpoint; cp != nil {
+		snap = cp.State
+		elapsed = time.Since(cp.SavedAt)
+		note = cp.Note
+		sequence = cp.Sequence
 	}
+	
+	conv := conversation.Restore(restored.Events, restored.Summary, note, sequence)
+	ylog.Success("Now history sequence at %v.", conv.Sequence())
 	st := state.Restore(personality, energy, snap)
 	if err := st.Advance(elapsed, time.Now()); err != nil {
 		return nil, fmt.Errorf("State advanced error: %w", err)
 	}
 
 	core = &Core{
-		History:      storage,
-		compressNode: restoreResult.LatestNode,
+		conv:         conv,
+		store:        storage,
 		LLM:          llm,
 		Config:       config,
 		State:        st,
-		Note:         checkpoint.Note,
 		LLMBusy:      false,
 		CompressBusy: false,
 	}
@@ -108,7 +117,9 @@ func (c *Core) Run() {
 }
 
 func (c *Core) Close() {
-	c.History.Close()
+	if err := c.store.Close(); err != nil {
+		ylog.Error("Storage close error: %v", err)
+	}
 }
 
 func (c *Core) Dispatch(t trigger.Trigger) {
@@ -139,37 +150,28 @@ func (c *Core) InternalState() string {
 	return msg
 }
 
-func (c *Core) AppendHistory(hist event.Event) error {
+func (c *Core) record(e event.Event) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := c.History.Append(hist); err != nil {
-		ylog.Error("Append history error: %v", err)
-		return err
+	if err := c.store.Append(e); err != nil {
+		return fmt.Errorf("Storage saving event error: %w", err)
 	}
+
+	c.conv.Append(e)
 	return nil
 }
 
-func (c *Core) commitCompressNode(node history.CompressNode) error {
+func (c *Core) commitSummary(summary conversation.Summary) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := c.History.SaveCompressNode(node); err != nil {
-		ylog.Error("Append compressnode error: %v", err)
-		return err
+	if err := c.store.SaveSummary(summary); err != nil {
+		return fmt.Errorf("Storage saving summary error: %w", err)
 	}
-	c.compressNode = node
 
+	c.conv.SetSummary(summary)
 	return nil
-}
-
-func (c *Core) getHistory() []event.Event {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	hist := c.History.ListAll()
-
-	return hist
 }
 
 func (c *Core) getSystemPrompt() string {
@@ -186,24 +188,42 @@ func (c *Core) getCompressPrompt() string {
 	return c.Config.Prompt.CompressPrompt
 }
 
+func (c *Core) getWindow() conversation.Window {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.conv.Window()
+}
+
+func (c *Core) getEvents() []event.Event {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.conv.Events()
+}
+
 func (c *Core) getNote() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.Note
+	return c.conv.Note()
 }
 
-func (c *Core) getContextWindow() history.ContextWindow {
+func (c *Core) setNote(note string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	hist := c.History.ListAll()
-	if !c.compressNode.Empty {
-		hist = c.History.ListAfter(c.compressNode.CompressEventIDTo)
-	}
+	c.conv.SetNote(note)
+}
 
-	return history.ContextWindow{
-		CurrentNode:      c.compressNode,
-		CurrentHistories: hist,
+func (c *Core) newMeta(snap state.Snapshot) event.Meta {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return event.Meta{
+		ID:        uuid.NewV7(),
+		Sequence:  c.conv.NextSequence(),
+		Timestamp: time.Now(),
+		Snapshot:  snap,
 	}
 }

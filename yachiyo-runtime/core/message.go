@@ -2,10 +2,8 @@ package core
 
 import (
 	"context"
-	"time"
-	"uuid"
+	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
-	"yachiyo/yachiyo-runtime/history"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
@@ -34,7 +32,7 @@ func (c *Core) applyOutput(out output) {
 	c.State.Apply(out.Change)
 
 	if out.Note != keepNote {
-		c.Note = out.Note
+		c.setNote(out.Note)
 	}
 }
 
@@ -52,29 +50,24 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	snap := c.snapshot()
 
 	userMessage := event.UserMessage{
-		Meta: event.Meta{
-			ID:        uuid.NewV7(),
-			Sequence:  c.History.NextSequence(),
-			Snapshot:  snap.State,
-			Timestamp: time.Now(),
-		},
+		Meta:     c.newMeta(snap.State),
 		Content:  m.Content,
 		Author:   m.Author,
 		Platform: m.Platform,
 		Address:  m.Address,
 	}
 
-	if err := c.AppendHistory(userMessage); err != nil {
+	if err := c.record(userMessage); err != nil {
 		ylog.Error("UserMessage history appended error: %s", err)
 		return errorAction(yerror.ErrMessageStore, m.Address)
 	}
 
 	prompts := prompt.Build(prompt.Input{
-		Cause:         prompt.Passive,
-		SystemPrompt:  c.getSystemPrompt(),
-		ContextWindow: c.getContextWindow(),
-		State:         snap.State,
-		Note:          c.getNote(),
+		Cause:        prompt.Passive,
+		SystemPrompt: c.getSystemPrompt(),
+		Window:       c.getWindow(),
+		State:        snap.State,
+		Note:         c.getNote(),
 	})
 
 	tools := GetTools(snap)
@@ -91,19 +84,14 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 	snap = c.snapshot()
 
 	assistantMessage := event.AssistantMessage{
-		Meta: event.Meta{
-			ID:        uuid.NewV7(),
-			Sequence:  c.History.NextSequence(),
-			Snapshot:  snap.State,
-			Timestamp: time.Now(),
-		},
+		Meta:       c.newMeta(snap.State),
 		Content:    out.Answer,
 		Address:    m.Address,
 		Initiative: false,
 		Reply:      out.Reply,
 	}
 
-	if err := c.AppendHistory(assistantMessage); err != nil {
+	if err := c.record(assistantMessage); err != nil {
 		ylog.Error("Passive InitiativeMessage history appended error: %s", err)
 		return errorAction(yerror.ErrMessageStore, m.Address)
 	}
@@ -127,12 +115,12 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Action {
 	// Check if this trigger vaild.
 	snap := c.snapshot()
-	hist := c.getHistory()
-	if len(hist) == 0 {
+	window := c.getWindow()
+	if len(window.Events) == 0 {
 		return nil
 	}
 
-	addr, ok := history.GetLastUserAddress(hist)
+	addr, ok := conversation.LastUserAddress(window.Events)
 	if ok == false {
 		return nil
 	}
@@ -148,11 +136,11 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 
 	// Build Prompt
 	prompts := prompt.Build(prompt.Input{
-		Cause:         prompt.Initiative,
-		SystemPrompt:  c.getSystemPrompt(),
-		ContextWindow: c.getContextWindow(),
-		Note:          c.getNote(),
-		State:         snap.State,
+		Cause:        prompt.Initiative,
+		SystemPrompt: c.getSystemPrompt(),
+		Window:       c.getWindow(),
+		Note:         c.getNote(),
+		State:        snap.State,
 	})
 
 	tools := GetTools(snap)
@@ -169,19 +157,14 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 	snap = c.snapshot()
 
 	assistantMessage := event.AssistantMessage{
-		Meta: event.Meta{
-			ID:        uuid.NewV7(),
-			Sequence:  c.History.NextSequence(),
-			Snapshot:  snap.State,
-			Timestamp: time.Now(),
-		},
+		Meta:       c.newMeta(snap.State),
 		Content:    out.Answer,
 		Address:    addr,
 		Initiative: true,
 		Reply:      out.Reply,
 	}
 
-	if err := c.AppendHistory(assistantMessage); err != nil {
+	if err := c.record(assistantMessage); err != nil {
 		ylog.Error("Active InitiativeMessage history appended error: %s", err)
 		return errorAction(yerror.ErrMessageStore, addr)
 	}
