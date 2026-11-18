@@ -1,0 +1,79 @@
+package config
+
+import "testing"
+
+var example = `
+nickname: Yachiyo
+
+log:
+  level: debug
+
+core:
+  bigfive:
+    openness: 0.92
+    conscientiousness:  0.65
+    extraversion: 0.88
+    agreeableness: 0.82
+    neuroticism: 0.42
+
+prompt:
+  system: ./prompt/system.md
+  compress: ./prompt/compress.md
+
+gateway:
+  onebot:
+    enabled: False
+    port: 16801
+  client:
+    enabled: False
+    port: 16802
+  jsonclient:
+    enabled: True
+    port: 16899
+
+initiative:
+  energy: 
+    curve: (1+cos(π/12*(x-14)))/2
+  threshold: 0.9
+  factors:
+    sociability: 
+      curve:  0.8
+      value:  0.8
+      max:    1
+      weight: 1
+    alonetime:
+      curve:  1/(1+e^((-0.1)*x+3))
+      value:  0
+      max:    1
+      weight: 5
+    daytime:
+      curve:  sin((π/12)*(x+14))+0.5
+      value:  0
+      max:    1.5
+      weight: 2
+
+llm:
+  default: deepseek
+  providers:
+    - enabled: True
+      name: deepseek
+      base_url: https://api.deepseek.com
+      secret: <your-key-here>
+      model: deepseek-v4-pro
+      
+    - enabled: True
+      name: qwen3.7-plus
+      base_url: <your-base-url-here>
+      secret: <your-key-here>
+      model: qwen3.7-plus
+`
+
+func TestConfigParse(t *testing.T) {
+	_, warns, err := Parse([]byte(example))
+	if len(warns) != 0 {
+		t.Fatal(warns)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}

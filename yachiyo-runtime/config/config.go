@@ -4,26 +4,34 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
-	"yachiyo/yachiyo-util/logger"
 	"yachiyo/yachiyo-util/yerror"
 	"yachiyo/yachiyo-util/ywarning"
 
 	"go.yaml.in/yaml/v4"
 )
 
-var ylog = logger.New("Yachiyo.Config")
-
-type BigFive struct {
-	Openness          float64 `yaml:"openness"`
-	Conscientiousness float64 `yaml:"conscientiousness"`
-	Extraversion      float64 `yaml:"extraversion"`
-	Agreeableness     float64 `yaml:"agreeableness"`
-	Neuroticism       float64 `yaml:"neuroticism"`
+type fileBigfive struct {
+	Openness          *float64 `yaml:"openness"`
+	Conscientiousness *float64 `yaml:"conscientiousness"`
+	Extraversion      *float64 `yaml:"extraversion"`
+	Agreeableness     *float64 `yaml:"agreeableness"`
+	Neuroticism       *float64 `yaml:"neuroticism"`
 }
 
-type LLMProvider struct {
+type fileGateway struct {
+	Enabled *bool  `yaml:"enabled"`
+	Port    *int64 `yaml:"port"`
+}
+
+type fileFactor struct {
+	Curve  *string  `yaml:"curve"`
+	Value  *float64 `yaml:"value"`
+	Max    *float64 `yaml:"max"`
+	Weight *float64 `yaml:"weight"`
+}
+
+type fileProvider struct {
 	Enabled *bool   `yaml:"enabled"`
 	Name    *string `yaml:"name"`
 	BaseUrl *string `yaml:"base_url"`
@@ -31,223 +39,303 @@ type LLMProvider struct {
 	Model   *string `yaml:"model"`
 }
 
-type GatewayConfig struct {
-	Enabled *bool  `yaml:"enabled"`
-	Port    *int64 `yaml:"port"`
-}
-
-type Config struct {
+type file struct {
 	Nickname *string `yaml:"nickname"`
 	Log      struct {
 		Level *string `yaml:"level"`
 	} `yaml:"log"`
-	Core struct {
-		BigFive *BigFive `yaml:"bigfive"`
-	} `yaml:"core"`
 	Prompt struct {
-		SystemPromptPath   *string `yaml:"system"`
-		SystemPrompt       string
-		CompressPromptPath *string `yaml:"compress"`
-		CompressPrompt     string
+		System   *string `yaml:"system"`
+		Compress *string `yaml:"compress"`
 	} `yaml:"prompt"`
+	Core struct {
+		Bigfive fileBigfive `yaml:"bigfive"`
+	} `yaml:"core"`
 	Gateway struct {
-		Onebot     GatewayConfig `yaml:"onebot"`
-		Client     GatewayConfig `yaml:"client"`
-		JsonClient GatewayConfig `yaml:"jsonclient"`
+		Onebot     fileGateway `yaml:"onebot"`
+		Client     fileGateway `yaml:"client"`
+		JSONClient fileGateway `yaml:"jsonclient"`
 	} `yaml:"gateway"`
 	Initiative struct {
-		Threshold *float64 `yaml:"threshold"`
-		Energy    struct {
+		Energy struct {
 			Curve *string `yaml:"curve"`
 		} `yaml:"energy"`
+		Threshold *float64 `yaml:"threshold"`
+		Factors   struct {
+			Sociability fileFactor `yaml:"sociability"`
+			Alonetime   fileFactor `yaml:"alonetime"`
+			Daytime     fileFactor `yaml:"daytime"`
+		} `yaml:"factors"`
 	} `yaml:"initiative"`
 	LLM struct {
-		DefaultProvider     LLMProvider
-		DefaultProviderName *string       `yaml:"default"`
-		Providers           []LLMProvider `yaml:"providers"`
+		DefaultProvider *string        `yaml:"default"`
+		Providers       []fileProvider `yaml:"providers"`
 	} `yaml:"llm"`
 }
 
-func LoadConfig(configPath string) (Config, error) {
-	fileData, err := os.ReadFile(configPath)
-	if err != nil {
-		return Config{}, fmt.Errorf("Failed to read config: %w", err)
-	}
+type LogLevel string
 
-	var config Config
-	if err := yaml.Unmarshal(fileData, &config); err != nil {
-		return Config{}, fmt.Errorf("Config unmarshal yaml failed: %w", err)
-	}
+const (
+	LogInfo  LogLevel = "info"
+	LogDebug LogLevel = "debug"
+)
 
-	warns, errs := config.Check()
-	for _, warn := range warns {
-		ylog.Warn("%v", warn)
-	}
-
-	if err := errors.Join(errs...); err != nil {
-		return Config{}, fmt.Errorf("Config invalid: %w", err)
-	}
-
-	for _, prov := range config.LLM.Providers {
-		if *config.LLM.DefaultProviderName == *prov.Name {
-			config.LLM.DefaultProvider = prov
-			break
-		}
-	}
-
-	systemPrompt, err := os.ReadFile(*config.Prompt.SystemPromptPath)
-	if err != nil {
-		return Config{}, fmt.Errorf("Failed to read system prompt: %w", err)
-	}
-
-	config.Prompt.SystemPrompt = string(systemPrompt)
-
-	compressPrompt, err := os.ReadFile(*config.Prompt.CompressPromptPath)
-	if err != nil {
-		return Config{}, fmt.Errorf("Failed to read system prompt: %w", err)
-	}
-
-	config.Prompt.CompressPrompt = string(compressPrompt)
-
-	return config, nil
+type BigFive struct {
+	Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism float64
 }
 
-func (c *Config) Check() ([]ywarning.Warning, []error) {
+type Prompt struct {
+	System, Compress string
+}
+
+type Gateway struct {
+	Enabled bool
+	Port    int64
+}
+
+type Gateways struct {
+	Onebot, Client, JSONClient Gateway
+}
+
+type Initiative struct {
+	Threshold   float64
+	EnergyCurve string
+}
+
+type LLMProvider struct {
+	Enabled bool
+	Name    string
+	BaseURL string
+	Secret  string
+	Model   string
+}
+
+type Config struct {
+	Nickname    string
+	LogLevel    LogLevel
+	BigFive     BigFive
+	Prompt      Prompt
+	Gateways    Gateways
+	Initiative  Initiative
+	LLMProvider LLMProvider
+}
+
+var defaultBigFive = BigFive{
+	Openness:          0.92,
+	Conscientiousness: 0.65,
+	Extraversion:      0.88,
+	Agreeableness:     0.82,
+	Neuroticism:       0.42,
+}
+
+const (
+	defaultName      = "Yachiyo"
+	defaultThreshold = 0.9
+)
+
+func Load(path string) (Config, []ywarning.Warning, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, nil, fmt.Errorf("Failed to read config: %w", err)
+	}
+
+	config, warns, err := Parse(data)
+	if err != nil {
+		return Config{}, warns, err
+	}
+
+	system, err := os.ReadFile(config.Prompt.System)
+	if err != nil {
+		return Config{}, warns, fmt.Errorf("Failed to read system prompt: %w", err)
+	}
+	config.Prompt.System = string(system)
+
+	compress, err := os.ReadFile(config.Prompt.Compress)
+	if err != nil {
+		return Config{}, warns, fmt.Errorf("Failed to read compress prompt: %w", err)
+	}
+	config.Prompt.Compress = string(compress)
+
+	return config, warns, nil
+}
+
+func Parse(data []byte) (Config, []ywarning.Warning, error) {
+	var f file
+	var config Config
+	if err := yaml.Unmarshal(data, &f); err != nil {
+		return Config{}, nil, fmt.Errorf("Config unmarshal error: %w", err)
+	}
+
 	warns := make([]ywarning.Warning, 0)
 	errs := make([]error, 0)
 
+	required := func(field string) {
+		errs = append(errs, fmt.Errorf("%v: %w", field, yerror.ErrFieldRequired))
+	}
+
+	incomplete := func(field string) {
+		errs = append(errs, fmt.Errorf("%v: %w", field, yerror.ErrFieldIncomplete))
+	}
+
+	missing := func(field string, defaultValue string) {
+		warns = append(warns, ywarning.FieldMissing(field, defaultValue))
+	}
+
 	// nickname
-	if c.Nickname == nil {
-		warns = append(warns, ywarning.FieldMissing("nickname", "Yachiyo"))
-		nickname := "Yachiyo"
-		c.Nickname = &nickname
+	config.Nickname = defaultName
+	if f.Nickname == nil {
+		missing("nickname", defaultName)
+	} else {
+		config.Nickname = *f.Nickname
 	}
 
-	// loglevel
-	if c.Log.Level == nil {
-		warns = append(warns, ywarning.FieldMissing("log.level", "info"))
-		logger.SetLogLevel(logger.Info)
+	// log.level
+	config.LogLevel = LogInfo
+	if f.Log.Level == nil {
+		missing("log.level", string(LogInfo))
 	} else {
-		level := strings.ToLower(*c.Log.Level)
-
-		switch level {
-		case "info":
-			logger.SetLogLevel(logger.Info)
-		case "debug":
-			logger.SetLogLevel(logger.Debug)
+		switch LogLevel(strings.ToLower(*f.Log.Level)) {
+		case LogInfo:
+		case LogDebug:
+			config.LogLevel = LogDebug
 		default:
-			warns = append(warns, ywarning.FieldIncorrect("log.level", "info"))
-			logger.SetLogLevel(logger.Info)
-		}
-	}
-
-	// core.bigfive
-	if c.Core.BigFive == nil {
-		warns = append(warns, ywarning.FieldMissing("core.bigfive", "openness: 0.92, conscientiousness: 0.65, extraversion: 0.88, agreeableness: 0.82, neuroticism: 0.42"))
-		c.Core.BigFive = &BigFive{
-			Openness:          0.92,
-			Conscientiousness: 0.65,
-			Extraversion:      0.88,
-			Agreeableness:     0.82,
-			Neuroticism:       0.42,
-		}
-	} else {
-		bigfive := c.Core.BigFive
-		if bigfive.Openness > 1 || bigfive.Openness < 0 {
-			errs = append(errs, fmt.Errorf("core.bigfive.openness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
-		}
-		if bigfive.Conscientiousness > 1 || bigfive.Conscientiousness < 0 {
-			errs = append(errs, fmt.Errorf("core.bigfive.conscientiousness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
-		}
-		if bigfive.Extraversion > 1 || bigfive.Extraversion < 0 {
-			errs = append(errs, fmt.Errorf("core.bigfive.extraversion should be in [0, 1]: %w", yerror.ErrFieldInvalid))
-		}
-		if bigfive.Agreeableness > 1 || bigfive.Agreeableness < 0 {
-			errs = append(errs, fmt.Errorf("core.bigfive.agreeableness should be in [0, 1]: %w", yerror.ErrFieldInvalid))
-		}
-		if bigfive.Neuroticism > 1 || bigfive.Neuroticism < 0 {
-			errs = append(errs, fmt.Errorf("core.bigfive.neuroticism should be in [0, 1]: %w", yerror.ErrFieldInvalid))
+			warns = append(warns, ywarning.FieldIncorrect("log.level", string(LogInfo)))
 		}
 	}
 
 	// prompt
-	if c.Prompt.SystemPromptPath == nil {
-		errs = append(errs, fmt.Errorf("prompt.system: %w", yerror.ErrFieldRequired))
+	if f.Prompt.System == nil {
+		required("prompt.system")
+	} else {
+		config.Prompt.System = *f.Prompt.System
 	}
 
-	if c.Prompt.CompressPromptPath == nil {
-		errs = append(errs, fmt.Errorf("prompt.compress: %w", yerror.ErrFieldRequired))
+	if f.Prompt.Compress == nil {
+		required("prompt.compress")
+	} else {
+		config.Prompt.Compress = *f.Prompt.Compress
+	}
+
+	// core.bigfive
+	config.BigFive = defaultBigFive
+	fields := []*float64{
+		f.Core.Bigfive.Openness,
+		f.Core.Bigfive.Conscientiousness,
+		f.Core.Bigfive.Extraversion,
+		f.Core.Bigfive.Agreeableness,
+		f.Core.Bigfive.Neuroticism,
+	}
+	missingFields := 0
+	for _, field := range fields {
+		if field == nil {
+			missingFields++
+		}
+	}
+
+	if missingFields == 5 {
+		missing("core.bigfive", fmt.Sprintf("%#v", defaultBigFive))
+	} else if missingFields > 0 && missingFields < 5 {
+		incomplete("core.bigfive")
+	} else {
+		config.BigFive = BigFive{
+			Openness:          *f.Core.Bigfive.Openness,
+			Conscientiousness: *f.Core.Bigfive.Conscientiousness,
+			Extraversion:      *f.Core.Bigfive.Extraversion,
+			Agreeableness:     *f.Core.Bigfive.Agreeableness,
+			Neuroticism:       *f.Core.Bigfive.Neuroticism,
+		}
+
+		parts := []struct {
+			name  string
+			value float64
+		}{
+			{"openness", config.BigFive.Openness},
+			{"conscientiousness", config.BigFive.Conscientiousness},
+			{"extraversion", config.BigFive.Extraversion},
+			{"agreeableness", config.BigFive.Agreeableness},
+			{"neuroticism", config.BigFive.Neuroticism},
+		}
+
+		for _, p := range parts {
+			if p.value < 0 || p.value > 1 {
+				errs = append(errs, fmt.Errorf("core.bigfive.%s should be in [0, 1], found %v: %w", p.name, p.value, yerror.ErrFieldInvalid))
+			}
+		}
 	}
 
 	// gateway
-	if c.Gateway.Onebot.Enabled == nil || c.Gateway.Onebot.Port == nil {
-		errs = append(errs, fmt.Errorf("gateway.onebot: %w", yerror.ErrFieldIncomplete))
+	gateway := func(name string, g fileGateway) Gateway {
+		if g.Enabled == nil || g.Port == nil {
+			incomplete(name)
+			return Gateway{Enabled: false, Port: 0}
+		}
+		return Gateway{Enabled: *g.Enabled, Port: *g.Port}
 	}
 
-	if c.Gateway.Client.Enabled == nil || c.Gateway.Client.Port == nil {
-		errs = append(errs, fmt.Errorf("gateway.client: %w", yerror.ErrFieldIncomplete))
+	config.Gateways = Gateways{
+		Onebot:     gateway("gateway.onebot", f.Gateway.Onebot),
+		Client:     gateway("gateway.client", f.Gateway.Client),
+		JSONClient: gateway("gateway.jsonclient", f.Gateway.JSONClient),
 	}
 
-	if c.Gateway.JsonClient.Enabled == nil || c.Gateway.JsonClient.Port == nil {
-		errs = append(errs, fmt.Errorf("gateway.jsonclient: %w", yerror.ErrFieldIncomplete))
-	}
-
-	if c.Gateway.Onebot.Enabled != nil && c.Gateway.Client.Enabled != nil && c.Gateway.JsonClient.Enabled != nil &&
-		*c.Gateway.Onebot.Enabled == false && *c.Gateway.Client.Enabled == false && *c.Gateway.JsonClient.Enabled == false {
+	gatewayAnyEnabled := config.Gateways.Onebot.Enabled || config.Gateways.Client.Enabled || config.Gateways.JSONClient.Enabled
+	if !gatewayAnyEnabled {
 		warns = append(warns, ywarning.New("gateway",
-			fmt.Sprintf("Gateways are closed. %v may not notice any input.", *c.Nickname)))
+			fmt.Sprintf("Gateways are closed. %v may not notice any input.", config.Nickname)))
 	}
 
-	// initiative
-	if c.Initiative.Threshold == nil {
-		warns = append(warns, ywarning.FieldMissing("initiative.threshold", "0.9"))
-		value := 0.9
-		c.Initiative.Threshold = &value
+	// initiative.energy
+	if f.Initiative.Energy.Curve == nil {
+		required("initiative.energy")
+	} else {
+		config.Initiative.EnergyCurve = *f.Initiative.Energy.Curve
 	}
 
-	if c.Initiative.Threshold == nil {
-		warns = append(warns, ywarning.FieldMissing("initiative.threshold", "0.9"))
-		value := 0.9
-		c.Initiative.Threshold = &value
-	}
-
-	if c.Initiative.Energy.Curve == nil {
-		errs = append(errs, fmt.Errorf("initiative.energy: %w", yerror.ErrFieldRequired))
+	// initiative.threshold
+	config.Initiative.Threshold = defaultThreshold
+	if f.Initiative.Threshold == nil {
+		missing("initiative.threshold", fmt.Sprint(defaultThreshold))
+	} else {
+		config.Initiative.Threshold = *f.Initiative.Threshold
 	}
 
 	// llm
-	if c.LLM.DefaultProviderName == nil {
-		errs = append(errs, fmt.Errorf("llm.default: %w", yerror.ErrFieldRequired))
+	if f.LLM.DefaultProvider == nil {
+		required("llm.default")
 	}
 
-	if len(c.LLM.Providers) == 0 {
-		errs = append(errs, fmt.Errorf("llm.providers: %w", yerror.ErrFieldIncomplete))
+	if len(f.LLM.Providers) == 0 {
+		required("llm.providers")
 	}
 
-	llm_any_enabled := false
-	var llm_names []string
-	for i, prov := range c.LLM.Providers {
-		if prov.Enabled == nil || prov.Name == nil || prov.BaseUrl == nil || prov.Secret == nil || prov.Model == nil {
-			errs = append(errs, fmt.Errorf("llm.providers[%v]: %w", i, yerror.ErrFieldIncomplete))
+	defaultProviderFound := false
+
+	for i, p := range f.LLM.Providers {
+		if p.Enabled == nil || p.Name == nil || p.BaseUrl == nil || p.Secret == nil || p.Model == nil {
+			incomplete(fmt.Sprintf("llm.providers[%v]", i))
+			continue
 		}
-		if prov.Enabled != nil && *prov.Enabled == true {
-			llm_any_enabled = true
-		}
-		if prov.Name != nil {
-			llm_names = append(llm_names, *prov.Name)
-		}
-	}
-
-	if llm_any_enabled == false {
-		warns = append(warns, ywarning.New("llm.provider",
-			fmt.Sprintf("No providers are enabled. %v may not process any input.", *c.Nickname)))
-	}
-
-	if c.LLM.DefaultProviderName != nil {
-		if slices.Contains(llm_names, *c.LLM.DefaultProviderName) == false {
-			errs = append(errs, fmt.Errorf("llm.default should be one of the providers' name: %w", yerror.ErrFieldInvalid))
+		if *p.Enabled && f.LLM.DefaultProvider != nil &&
+			*f.LLM.DefaultProvider == *p.Name {
+			config.LLMProvider = LLMProvider{
+				Enabled: true,
+				Name:    *p.Name,
+				BaseURL: *p.BaseUrl,
+				Secret:  *p.Secret,
+				Model:   *p.Model,
+			}
+			defaultProviderFound = true
+			break
 		}
 	}
 
-	return warns, errs
+	if !defaultProviderFound {
+		errs = append(errs, fmt.Errorf("llm.providers: No available default provider is provided. %v may not process any input.", config.Nickname))
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return Config{}, warns, fmt.Errorf("Config invalid: %w", err)
+	}
+
+	return config, warns, nil
 }

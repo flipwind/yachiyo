@@ -36,22 +36,30 @@ type Core struct {
 
 func New() (*Core, error) {
 	// TODO: change config status (dev)
-	config, err := config.LoadConfig("config.yaml")
+	cfg, warns, err := config.Load("config.yaml")
+	for _, wa := range warns {
+		ylog.Warn("Config warning: %v", wa)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("Core loading config failed: %w", err)
 	}
 
-	// TODO: LLM List
-	llmConfig := config.LLM.DefaultProvider
-	llm := provider.NewOpenAIProvider(*llmConfig.BaseUrl, *llmConfig.Secret, *llmConfig.Model)
+	if cfg.LogLevel == config.LogDebug {
+		logger.SetLogLevel(logger.Debug)
+	} else {
+		logger.SetLogLevel(logger.Info)
+	}
 
-	initiativeConfig := config.Initiative
+	// TODO: LLM List
+	llmConfig := cfg.LLMProvider
+	llm := provider.NewOpenAIProvider(llmConfig.BaseURL, llmConfig.Secret, llmConfig.Model)
+
 	personality := state.BigFive{
-		Openness:          config.Core.BigFive.Openness,
-		Conscientiousness: config.Core.BigFive.Conscientiousness,
-		Extraversion:      config.Core.BigFive.Extraversion,
-		Agreeableness:     config.Core.BigFive.Agreeableness,
-		Neuroticism:       config.Core.BigFive.Neuroticism,
+		Openness:          cfg.BigFive.Openness,
+		Conscientiousness: cfg.BigFive.Conscientiousness,
+		Extraversion:      cfg.BigFive.Extraversion,
+		Agreeableness:     cfg.BigFive.Agreeableness,
+		Neuroticism:       cfg.BigFive.Neuroticism,
 	}
 
 	storage, err := sqlite3.Open("yachiyo.db")
@@ -69,7 +77,7 @@ func New() (*Core, error) {
 
 	var core *Core
 
-	energy, err := state.NewEnergy(*initiativeConfig.Energy.Curve)
+	energy, err := state.NewEnergy(cfg.Initiative.EnergyCurve)
 	if err != nil {
 		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
 	}
@@ -96,7 +104,7 @@ func New() (*Core, error) {
 		conv:         conv,
 		store:        storage,
 		LLM:          llm,
-		Config:       config,
+		Config:       cfg,
 		State:        st,
 		LLMBusy:      false,
 		CompressBusy: false,
@@ -178,14 +186,14 @@ func (c *Core) getSystemPrompt() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.Config.Prompt.SystemPrompt
+	return c.Config.Prompt.System
 }
 
 func (c *Core) getCompressPrompt() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.Config.Prompt.CompressPrompt
+	return c.Config.Prompt.Compress
 }
 
 func (c *Core) getWindow() conversation.Window {

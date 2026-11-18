@@ -40,15 +40,15 @@ func run() error {
 
 	ylog.Success("Successfully initialize Yachiyo server.")
 
-	if *yconfig.Gateway.Onebot.Enabled {
-		go serviceChannel(ycore.Pipe, &onebot.OnebotService{}, *yconfig.Gateway.Onebot.Port)
+	if yconfig.Gateways.Onebot.Enabled {
+		go serviceChannel(ycore.Pipe, &onebot.OnebotService{}, yconfig.Gateways.Onebot.Port)
 	}
-	if *yconfig.Gateway.Client.Enabled {
-		go serviceChannel(ycore.Pipe, &client.ClientService{}, *yconfig.Gateway.Client.Port)
+	if yconfig.Gateways.Client.Enabled {
+		go serviceChannel(ycore.Pipe, &client.ClientService{}, yconfig.Gateways.Client.Port)
 	}
-	if *yconfig.Gateway.JsonClient.Enabled {
-		info := jsonclient.ServerInfo{Name: *yconfig.Nickname, Version: version}
-		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(info), *yconfig.Gateway.JsonClient.Port)
+	if yconfig.Gateways.JSONClient.Enabled {
+		info := jsonclient.ServerInfo{Name: yconfig.Nickname, Version: version}
+		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(info), yconfig.Gateways.JSONClient.Port)
 	}
 
 	go ycore.Run()
