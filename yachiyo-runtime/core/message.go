@@ -32,7 +32,7 @@ func (c *Core) applyOutput(out output) {
 	c.State.Apply(out.Change)
 
 	if out.Note != keepNote {
-		c.setNote(out.Note)
+		c.conv.SetNote(out.Note)
 	}
 }
 

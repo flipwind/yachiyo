@@ -177,13 +177,6 @@ func (c *Core) getNote() string {
 	return c.conv.Note()
 }
 
-func (c *Core) setNote(note string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.conv.SetNote(note)
-}
-
 func (c *Core) newMeta(snap state.Snapshot) event.Meta {
 	c.mu.Lock()
 	defer c.mu.Unlock()
