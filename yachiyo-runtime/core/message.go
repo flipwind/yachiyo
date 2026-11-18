@@ -64,7 +64,7 @@ func (c *Core) processUserMessage(m trigger.UserMessage) action.Action {
 
 	prompts := prompt.Build(prompt.Input{
 		Cause:        prompt.Passive,
-		SystemPrompt: c.getSystemPrompt(),
+		SystemPrompt: c.opts.SystemPrompt,
 		Window:       c.getWindow(),
 		State:        snap.State,
 		Note:         c.getNote(),
@@ -138,7 +138,7 @@ func (c *Core) processInitiativeMessage(_ trigger.InitiativeMessage) action.Acti
 	// Build Prompt
 	prompts := prompt.Build(prompt.Input{
 		Cause:        prompt.Initiative,
-		SystemPrompt: c.getSystemPrompt(),
+		SystemPrompt: c.opts.SystemPrompt,
 		Window:       c.getWindow(),
 		Note:         c.getNote(),
 		State:        snap.State,

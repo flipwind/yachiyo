@@ -16,7 +16,7 @@ import (
 
 func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
 	const MAXTOKEN = 500 * 1000
-	token := prompt.EstimateTokens(c.getSystemPrompt(), c.getWindow(), deltaLength)
+	token := prompt.EstimateTokens(c.opts.SystemPrompt, c.getWindow(), deltaLength)
 
 	return token > int(math.Round(MAXTOKEN*percentage/100))
 }
@@ -60,7 +60,7 @@ func (c *Core) processCompress() error {
 		Content:     "NO COMPRESS RESULT",
 	}
 
-	messages := prompt.BuildCompression(window, c.getCompressPrompt())
+	messages := prompt.BuildCompression(window, c.opts.CompressPrompt)
 	var lastErr error
 	var successflag bool = false
 

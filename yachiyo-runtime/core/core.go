@@ -1,18 +1,16 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/llm"
-	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/store"
-	"yachiyo/yachiyo-runtime/store/sqlite3"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
@@ -20,12 +18,24 @@ import (
 
 var ylog = logger.New("Yachiyo.Core")
 
+type Options struct {
+	SystemPrompt   string
+	CompressPrompt string
+	Personality    state.BigFive
+	Energy         state.Energy
+}
+
+type Deps struct {
+	Store store.Store
+	LLM   llm.Client
+}
+
 type Core struct {
-	store  store.Store
-	conv   *conversation.Conversation
-	LLM    llm.Client
-	Config config.Config
-	State  *state.State
+	opts  Options
+	LLM   llm.Client
+	store store.Store
+	conv  *conversation.Conversation
+	State *state.State
 
 	LLMBusy      bool
 	CompressBusy bool
@@ -34,55 +44,22 @@ type Core struct {
 	mu   sync.Mutex //exhaustruct:optional
 }
 
-func New() (*Core, error) {
-	// TODO: change config status (dev)
-	cfg, warns, err := config.Load("config.yaml")
-	for _, wa := range warns {
-		ylog.Warn("Config warning: %v", wa)
+func New(opts Options, deps Deps) (*Core, error) {
+	if deps.LLM == nil {
+		return nil, errors.New("core: LLM is required")
 	}
-	if err != nil {
-		return nil, fmt.Errorf("Core loading config failed: %w", err)
-	}
-
-	if cfg.LogLevel == config.LogDebug {
-		logger.SetLogLevel(logger.Debug)
-	} else {
-		logger.SetLogLevel(logger.Info)
-	}
-
-	// TODO: LLM List
-	llmConfig := cfg.LLMProvider
-	llm := provider.NewOpenAIProvider(llmConfig.BaseURL, llmConfig.Secret, llmConfig.Model)
-
-	personality := state.BigFive{
-		Openness:          cfg.BigFive.Openness,
-		Conscientiousness: cfg.BigFive.Conscientiousness,
-		Extraversion:      cfg.BigFive.Extraversion,
-		Agreeableness:     cfg.BigFive.Agreeableness,
-		Neuroticism:       cfg.BigFive.Neuroticism,
-	}
-
-	storage, err := sqlite3.Open("yachiyo.db")
-	if err != nil {
-		return nil, fmt.Errorf("Storage created error: %w", err)
-	}
-
-	restored, err := storage.Load()
-	if err != nil {
-		if err := storage.Close(); err != nil {
-			ylog.Error("Storage close error: %v", err)
-		}
-		return nil, fmt.Errorf("Storage restored error: %w", err)
+	if deps.Store == nil {
+		return nil, errors.New("core: Store is required")
 	}
 
 	var core *Core
 
-	energy, err := state.NewEnergy(cfg.Initiative.EnergyCurve)
+	restored, err := deps.Store.Load()
 	if err != nil {
-		return nil, fmt.Errorf("Core loading with invalid curves: %w", err)
+		return nil, fmt.Errorf("Storage restored error: %w", err)
 	}
 
-	snap := state.Initial(personality, time.Now())
+	snap := state.Initial(opts.Personality, time.Now())
 	elapsed := time.Duration(0)
 	note := ""
 	var sequence int64
@@ -92,19 +69,19 @@ func New() (*Core, error) {
 		note = cp.Note
 		sequence = cp.Sequence
 	}
-	
+
 	conv := conversation.Restore(restored.Events, restored.Summary, note, sequence)
 	ylog.Success("Now history sequence at %v.", conv.Sequence())
-	st := state.Restore(personality, energy, snap)
+	st := state.Restore(opts.Personality, opts.Energy, snap)
 	if err := st.Advance(elapsed, time.Now()); err != nil {
 		return nil, fmt.Errorf("State advanced error: %w", err)
 	}
 
 	core = &Core{
+		opts:         opts,
+		LLM:          deps.LLM,
+		store:        deps.Store,
 		conv:         conv,
-		store:        storage,
-		LLM:          llm,
-		Config:       cfg,
 		State:        st,
 		LLMBusy:      false,
 		CompressBusy: false,
@@ -125,9 +102,6 @@ func (c *Core) Run() {
 }
 
 func (c *Core) Close() {
-	if err := c.store.Close(); err != nil {
-		ylog.Error("Storage close error: %v", err)
-	}
 }
 
 func (c *Core) Dispatch(t trigger.Trigger) {
@@ -180,20 +154,6 @@ func (c *Core) commitSummary(summary conversation.Summary) error {
 
 	c.conv.SetSummary(summary)
 	return nil
-}
-
-func (c *Core) getSystemPrompt() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return c.Config.Prompt.System
-}
-
-func (c *Core) getCompressPrompt() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return c.Config.Prompt.Compress
 }
 
 func (c *Core) getWindow() conversation.Window {
