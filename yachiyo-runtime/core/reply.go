@@ -1,9 +1,8 @@
 package core
 
 import (
-	"fmt"
+	"errors"
 	"time"
-	"uuid"
 	"yachiyo/yachiyo-runtime/conversation"
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/prompt"
@@ -13,9 +12,7 @@ import (
 	"yachiyo/yachiyo-util/yerror"
 )
 
-type job interface {
-	isJob()
-}
+const keepNote = "-1"
 
 type userJob struct {
 	msg        trigger.UserMessage
@@ -30,14 +27,6 @@ type initiativeJob struct {
 
 func (initiativeJob) isJob() {}
 
-type compressJob struct{}
-
-func (compressJob) isJob() {}
-
-type result interface {
-	isResult()
-}
-
 type reply struct {
 	cause prompt.Cause
 	addr  address.Address
@@ -47,42 +36,6 @@ type reply struct {
 }
 
 func (reply) isResult() {}
-
-type compressed struct {
-	summary conversation.Summary
-	err     error
-}
-
-func (compressed) isResult() {}
-
-func (c *Core) pump() {
-	for !c.busy && len(c.queue) > 0 {
-		j := c.queue[0]
-		c.queue = c.queue[1:]
-		c.start(j)
-	}
-}
-
-func (c *Core) start(j job) {
-	switch task := j.(type) {
-	case userJob:
-		c.startUser(task)
-	case initiativeJob:
-		c.startInitiative(task)
-	case compressJob:
-		c.startCompress()
-	}
-}
-
-func (c *Core) finish(r result) {
-	c.busy = false
-	switch task := r.(type) {
-	case reply:
-		c.finishReply(task)
-	case compressed:
-		c.finishCompress(task)
-	}
-}
 
 func (c *Core) startUser(j userJob) {
 	rendered := prompt.RenderUserMessage(j.msg)
@@ -161,47 +114,6 @@ func (c *Core) startGenerate(cause prompt.Cause, addr address.Address) {
 	}()
 }
 
-func (c *Core) startCompress() {
-	window := c.conv.Window()
-
-	if len(window.Events) == 0 {
-		ylog.Warn("Current history list is empty. Skip compress.")
-		return
-	}
-
-	var parent uuid.UUID
-	if window.Summary == nil {
-		parent = uuid.Nil()
-	} else {
-		parent = window.Summary.ID
-	}
-
-	summary := conversation.Summary{
-		ID:          uuid.NewV7(),
-		CreateAt:    time.Now(),
-		Parent:      parent,
-		FromEventID: window.Events[0].GetMeta().ID,
-		ToEventID:   window.Events[len(window.Events)-1].GetMeta().ID,
-		Content:     "NO COMPRESS RESULT",
-	}
-
-	messages := prompt.BuildCompression(window, c.opts.CompressPrompt)
-
-	c.busy = true
-	go func() {
-		sum, err := summarize(c.ctx, c.llm, messages)
-		summary.Content = sum
-		c.send(compressed{summary: summary, err: err})
-	}()
-}
-
-func (c *Core) send(r result) {
-	select {
-	case c.results <- r:
-	case <-c.ctx.Done():
-	}
-}
-
 func (c *Core) finishReply(r reply) {
 	var typ string
 	switch r.cause {
@@ -252,17 +164,43 @@ func (c *Core) finishReply(r reply) {
 	})
 }
 
-func (c *Core) finishCompress(r compressed) {
-	if r.err != nil {
-		ylog.Error("Process compression failed: %s", r.err)
-		return
+func errorAction(err error, addr address.Address) action.Action {
+	code := action.ErrMessageProcess
+
+	switch {
+	case errors.Is(err, yerror.ErrLLMChoice):
+		code = action.ErrLLMChoiceEmpty
+	case errors.Is(err, yerror.ErrLLMGenerate):
+		code = action.ErrLLMGenerate
+	case errors.Is(err, yerror.ErrMessageStore):
+		code = action.ErrMessageStore
 	}
 
-	if err := c.commitSummary(r.summary); err != nil {
-		saveErr := fmt.Errorf("Compressed but failed to save in storage: %w", err)
-		ylog.Error("Compressed failed: %v", saveErr)
-		return
+	return &action.Error{
+		Code:    code,
+		Message: err.Error(),
+		Address: addr,
 	}
+}
 
-	ylog.Success("Compressed.")
+func debugOutput(answer []string, c_formal Snapshot, c_later Snapshot) {
+	ylog.Debug(`== DEBUG MESSAGE ==
+Yachiyo > %v
+* Formal:
+%s
+* Later:
+%s
+%+v
+* Session Context: %s`,
+		answer, prompt.Drives(c_formal.State.Drives),
+		prompt.Drives(c_later.State.Drives), c_later.State.Determination,
+		c_later.Note)
+}
+
+func (c *Core) applyOutput(out output) {
+	c.state.Apply(out.Change)
+
+	if out.Note != keepNote {
+		c.conv.SetNote(out.Note)
+	}
 }

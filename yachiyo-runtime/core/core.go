@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"uuid"
 	"yachiyo/yachiyo-runtime/conversation"
-	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/store"
@@ -18,6 +16,7 @@ import (
 
 var ylog = logger.New("Yachiyo.Core")
 
+// Options defines a series of data, usually read only once.
 type Options struct {
 	SystemPrompt   string
 	CompressPrompt string
@@ -25,6 +24,8 @@ type Options struct {
 	Energy         state.Energy
 }
 
+// Deps, which is also called dependencies, holds some usable
+// behavior components.
 type Deps struct {
 	Store      store.Store
 	LLM        llm.Client
@@ -111,109 +112,9 @@ func New(opts Options, deps Deps) (*Core, error) {
 	return core, nil
 }
 
-func (c *Core) Run(ctx context.Context) {
-	c.ctx = ctx
-	defer close(c.stopped)
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			c.saveCheckpoint()
-			return
-		case t := <-c.inbox:
-			c.handle(t)
-		case <-ticker.C:
-			c.tick(time.Second)
-		case t := <-c.results:
-			c.finish(t)
-		}
-		c.pump()
-	}
-}
-
-func (c *Core) handle(t trigger.Trigger) {
-	switch m := t.(type) {
-	case *trigger.UserMessage:
-		c.queue = append(c.queue, userJob{msg: *m, compressed: false})
-	case *trigger.RuntimeStateRequest:
-		c.deliver(c.processRuntimeStateRequest(*m))
-	case *trigger.MessageHistoryRequest:
-		c.deliver(c.processMessageHistoryRequest(*m))
-	default:
-		ylog.Error("Process unsupported type: %T", m)
-	}
-}
-
-func (c *Core) tick(d time.Duration) {
-	if err := c.state.Advance(d, time.Now()); err != nil {
-		ylog.Error("State advanced error: %v", err)
-	}
-
-	c.saveCheckpoint()
-
-	ylog.Debug("%s", c.internalState())
-
-	snap := c.state.Snapshot()
-	now := time.Now()
-
-	if !c.busy && c.initiative.ShouldInitiative(snap, now) {
-		ylog.Info("Initiative triggered.")
-		c.state.Relieve(d)
-		c.queue = append(c.queue, initiativeJob{})
-	}
-}
-
-func (c *Core) saveCheckpoint() {
-	if err := c.checkpoint(); err != nil {
-		ylog.Error("Checkpoint saving error: %v", err)
-	}
-}
-
 func (c *Core) Dispatch(t trigger.Trigger) {
 	select {
 	case c.inbox <- t:
 	case <-c.stopped:
-	}
-}
-
-func (c *Core) internalState() string {
-	msg := fmt.Sprintf("Received timetick %s\n", time.Now().Format("15:04:05"))
-
-	snap := c.snapshot().State
-	for _, s := range snap.Drives.All() {
-		msg += fmt.Sprintf("State: %v at %v, is %v\n", s.Name, s.Drive.Value, s.Drive.String())
-	}
-	msg += fmt.Sprintf("Energy: %v\n", snap.Energy)
-
-	return msg
-}
-
-func (c *Core) record(e event.Event) error {
-	if err := c.store.Append(e); err != nil {
-		return fmt.Errorf("Storage saving event error: %w", err)
-	}
-
-	c.conv.Append(e)
-	return nil
-}
-
-func (c *Core) commitSummary(summary conversation.Summary) error {
-	if err := c.store.SaveSummary(summary); err != nil {
-		return fmt.Errorf("Storage saving summary error: %w", err)
-	}
-
-	c.conv.SetSummary(summary)
-	return nil
-}
-
-func (c *Core) newMeta(snap state.Snapshot) event.Meta {
-	return event.Meta{
-		ID:        uuid.NewV7(),
-		Sequence:  c.conv.NextSequence(),
-		Timestamp: time.Now(),
-		Snapshot:  snap,
 	}
 }
