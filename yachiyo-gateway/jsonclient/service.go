@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 	"uuid"
-	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
@@ -26,35 +25,33 @@ type ServerInfo struct {
 }
 
 type JsonClientService struct {
-	channel *gateway.GatewayChannel //exhaustruct:optional
-
 	clients map[string]*Client
 	mutex   sync.RWMutex //exhaustruct:optional
 
+	submit     func(trig trigger.Trigger) //exhaustruct:optional
 	serverInfo ServerInfo
 }
 
-func NewJsonClientService(info ServerInfo) *JsonClientService {
+func New(info ServerInfo) *JsonClientService {
 	return &JsonClientService{
 		clients:    make(map[string]*Client),
 		serverInfo: info,
 	}
 }
 
-func (s *JsonClientService) Listen(c *gateway.GatewayChannel, p int64) {
-	s.channel = c
+func (s *JsonClientService) Listen(port int64, submit func(trig trigger.Trigger)) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws/", s.handleWebsocket)
 
+	s.submit = submit
+
 	go func() {
-		port := fmt.Sprintf(":%d", p)
-		ylog.Success("Running client server on :%d successfully.", p)
-		if err := http.ListenAndServe(port, mux); err != nil {
+		addr := fmt.Sprintf(":%d", port)
+		ylog.Success("Running client server on :%d successfully.", port)
+		if err := http.ListenAndServe(addr, mux); err != nil {
 			ylog.Error("json client adapter running error: %v", err)
 		}
 	}()
-
-	go s.ListenSend()
 	go s.heartbeatCleanup()
 }
 
@@ -201,30 +198,30 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 			return
 		}
 
-		s.channel.ToServer <- &trigger.UserMessage{
+		s.submit(&trigger.UserMessage{
 			Author:    "user",
 			Platform:  c.Type,
 			Content:   data.Message,
 			Timestamp: time.Now(),
 
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		}
+		})
 	case "get_relative_message_history":
 		if s.checkClient(c) == false {
 			return
 		}
-		s.channel.ToServer <- &trigger.MessageHistoryRequest{
+		s.submit(&trigger.MessageHistoryRequest{
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		}
+		})
 	}
 }
 
 func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "runtime_state_request":
-		s.channel.ToServer <- &trigger.RuntimeStateRequest{
+		s.submit(&trigger.RuntimeStateRequest{
 			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		}
+		})
 	}
 }
 
@@ -249,112 +246,111 @@ func (s *JsonClientService) unregister(c *Client) {
 	ylog.Success("Unregistered [%s @%s](%s).", c.Type, c.Name, c.ID)
 }
 
-func (s *JsonClientService) ListenSend() {
-	for act := range s.channel.ToClient {
-		switch t := act.(type) {
-		case *action.AssistantMessage:
-			c, err := s.getClient(t)
-			if err != nil {
-				ylog.Error("Process action failed: %v", err)
-				continue
-			}
+func (s *JsonClientService) Send(a action.Action) {
+	switch t := a.(type) {
+	case *action.AssistantMessage:
+		c, err := s.getClient(t)
+		if err != nil {
+			ylog.Error("Process action failed: %v", err)
+			return
+		}
 
-			if t.Initiative == true && t.Reply == false {
-				break
-			}
+		if t.Initiative == true && t.Reply == false {
+			return
+		}
 
-			c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
-		case *action.RuntimeState:
-			c, err := s.getClient(t)
-			if err != nil {
-				ylog.Error("Process action failed: %v", err)
-				continue
-			}
+		c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
+	case *action.RuntimeState:
+		c, err := s.getClient(t)
+		if err != nil {
+			ylog.Error("Process action failed: %v", err)
+			return
+		}
 
-			actives := make([]model.OCCEmotion, 0)
-			for _, emo := range t.Affect.Actives {
-				actives = append(actives, model.OCCEmotion{
-					Type:      emo.Type,
-					Intensity: emo.Intensity,
+		actives := make([]model.OCCEmotion, 0)
+		for _, emo := range t.Affect.Actives {
+			actives = append(actives, model.OCCEmotion{
+				Type:      emo.Type,
+				Intensity: emo.Intensity,
+			})
+		}
+
+		c.send("state", "runtime_state", &model.RuntimeState{
+			Timetick: t.Timetick,
+			Energy:   t.Energy,
+			Affect: struct {
+				Octants   string             `json:"octants"`
+				Pleasure  float64            `json:"pleasure"`
+				Arousal   float64            `json:"arousal"`
+				Dominance float64            `json:"dominance"`
+				Actives   []model.OCCEmotion `json:"actives"`
+			}{
+				Octants:   t.Affect.Octants,
+				Pleasure:  t.Affect.Pleasure,
+				Arousal:   t.Affect.Arousal,
+				Dominance: t.Affect.Dominance,
+				Actives:   actives,
+			},
+		})
+	case *action.MessageHistory:
+		c, err := s.getClient(t)
+		if err != nil {
+			ylog.Error("Process action failed: %v", err)
+			return
+		}
+
+		msgs := make([]model.Envelope, 0)
+		for _, msg := range t.Messages {
+			switch m := msg.(type) {
+			case *action.AssistantHistoryMessage:
+				data, err := json.Marshal(model.RuntimeMessage{
+					Reply:        m.Reply,
+					IsInitiative: m.Initiative,
+					Message:      m.Content,
+					Time:         m.Timestamp.Unix(),
+				})
+				if err != nil {
+					ylog.Error("AssistantMessage Marshal error: %v", err)
+				}
+
+				msgs = append(msgs, model.Envelope{
+					Category: "interaction",
+					Type:     "runtime_message",
+					Data:     data,
+				})
+			case *action.UserHistoryMessage:
+				data, err := json.Marshal(model.ClientMessage{
+					Message: m.Content,
+					Time:    m.Timestamp.Unix(),
+				})
+				if err != nil {
+					ylog.Error("AssistantMessage Marshal error: %v", err)
+				}
+
+				msgs = append(msgs, model.Envelope{
+					Category: "interaction",
+					Type:     "client_message",
+					Data:     data,
 				})
 			}
-
-			c.send("state", "runtime_state", &model.RuntimeState{
-				Timetick: t.Timetick,
-				Energy:   t.Energy,
-				Affect: struct {
-					Octants   string             `json:"octants"`
-					Pleasure  float64            `json:"pleasure"`
-					Arousal   float64            `json:"arousal"`
-					Dominance float64            `json:"dominance"`
-					Actives   []model.OCCEmotion `json:"actives"`
-				}{
-					Octants:   t.Affect.Octants,
-					Pleasure:  t.Affect.Pleasure,
-					Arousal:   t.Affect.Arousal,
-					Dominance: t.Affect.Dominance,
-					Actives:   actives,
-				},
-			})
-		case *action.MessageHistory:
-			c, err := s.getClient(t)
-			if err != nil {
-				ylog.Error("Process action failed: %v", err)
-				continue
-			}
-
-			msgs := make([]model.Envelope, 0)
-			for _, msg := range t.Messages {
-				switch m := msg.(type) {
-				case *action.AssistantHistoryMessage:
-					data, err := json.Marshal(model.RuntimeMessage{
-						Reply:        m.Reply,
-						IsInitiative: m.Initiative,
-						Message:      m.Content,
-						Time:         m.Timestamp.Unix(),
-					})
-					if err != nil {
-						ylog.Error("AssistantMessage Marshal error: %v", err)
-					}
-
-					msgs = append(msgs, model.Envelope{
-						Category: "interaction",
-						Type:     "runtime_message",
-						Data:     data,
-					})
-				case *action.UserHistoryMessage:
-					data, err := json.Marshal(model.ClientMessage{
-						Message: m.Content,
-						Time:    m.Timestamp.Unix(),
-					})
-					if err != nil {
-						ylog.Error("AssistantMessage Marshal error: %v", err)
-					}
-
-					msgs = append(msgs, model.Envelope{
-						Category: "interaction",
-						Type:     "client_message",
-						Data:     data,
-					})
-				}
-			}
-
-			c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
-		case *action.Error:
-			c, err := s.getClient(t)
-			if err != nil {
-				ylog.Error("Process action failed: %v", err)
-				continue
-			}
-
-			c.send("interaction", "runtime_error", &model.RuntimeError{
-				Code:    string(t.Code),
-				Message: t.Message,
-			})
-		default:
-			ylog.Info("Unsupport value: %T", t)
 		}
+
+		c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
+	case *action.Error:
+		c, err := s.getClient(t)
+		if err != nil {
+			ylog.Error("Process action failed: %v", err)
+			return
+		}
+
+		c.send("interaction", "runtime_error", &model.RuntimeError{
+			Code:    string(t.Code),
+			Message: t.Message,
+		})
+	default:
+		ylog.Info("Unsupport value: %T", t)
 	}
+
 }
 
 func (s *JsonClientService) heartbeatCleanup() {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
@@ -14,9 +13,8 @@ import (
 )
 
 var ylog = logger.New("Yachiyo.Client")
-var channel *gateway.GatewayChannel
 
-func handleReceive(w http.ResponseWriter, r *http.Request) {
+func (s *ClientService) handleReceive(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		ylog.Error("Websocket upgrade error: %v", err)
@@ -32,7 +30,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-ctx.Done():
 				return
-			case msg := <-channel.ToClient:
+			case msg := <-s.out:
 				switch t := msg.(type) {
 				case *action.AssistantMessage:
 					for _, message := range t.Content {
@@ -54,27 +52,37 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		channel.ToServer <- &trigger.UserMessage{
+		s.submit(&trigger.UserMessage{
 			Author:    "user",
 			Platform:  "CLI",
 			Timestamp: time.Now(),
 			Content:   string(msg),
 
 			Address: address.New("client://cli"),
-		}
+		})
 	}
 }
 
-type ClientService struct{}
+type ClientService struct {
+	submit func(trig trigger.Trigger) //exhaustruct:optional
+	out    chan action.Action
+}
 
-func (s *ClientService) Listen(c *gateway.GatewayChannel, p int64) {
-	channel = c
-	http.HandleFunc("/ws/", handleReceive)
+func New() *ClientService {
+	return &ClientService{
+		out: make(chan action.Action),
+	}
+}
+
+func (s *ClientService) Listen(port int64, submit func(trig trigger.Trigger)) {
+	s.submit = submit
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws/", s.handleReceive)
 
 	go func() {
-		port := fmt.Sprintf(":%d", p)
-		ylog.Success("Running client server on :%d successfully.", p)
-		if err := http.ListenAndServe(port, nil); err != nil {
+		addr := fmt.Sprintf(":%d", port)
+		ylog.Success("Running client server on :%d successfully.", port)
+		if err := http.ListenAndServe(addr, mux); err != nil {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()
@@ -82,4 +90,12 @@ func (s *ClientService) Listen(c *gateway.GatewayChannel, p int64) {
 
 func (s *ClientService) SchemeName() string {
 	return "client"
+}
+
+func (s *ClientService) Send(a action.Action) {
+	select {
+	case s.out <- a:
+	case <-time.After(time.Second):
+		ylog.Error("%s send timeout, drop action <%v>", s.SchemeName(), a)
+	}
 }

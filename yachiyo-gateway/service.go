@@ -1,6 +1,12 @@
 package gateway
 
+import (
+	"yachiyo/yachiyo-shared/action"
+	"yachiyo/yachiyo-shared/trigger"
+)
+
 type Service interface {
 	SchemeName() string
-	Listen(c *GatewayChannel, p int64)
+	Listen(port int64, submit func(trig trigger.Trigger))
+	Send(a action.Action)
 }

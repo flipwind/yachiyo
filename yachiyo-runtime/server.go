@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"yachiyo/yachiyo-gateway"
+	gateway "yachiyo/yachiyo-gateway"
 	"yachiyo/yachiyo-gateway/client"
 	"yachiyo/yachiyo-gateway/jsonclient"
 	"yachiyo/yachiyo-gateway/onebot"
@@ -15,7 +15,6 @@ import (
 	"yachiyo/yachiyo-runtime/llm/provider"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/store/sqlite3"
-	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 )
 
@@ -34,6 +33,11 @@ func main() {
 
 func run() error {
 	ylog.Info("Initializing Yachiyo server...")
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	hub := gateway.NewHub()
 
 	// TODO: change config status (dev)
 	cfg, warns, err := config.Load("config.yaml")
@@ -82,49 +86,29 @@ func run() error {
 		Personality:    personality,
 		Energy:         energy,
 	}, core.Deps{
-		LLM:   llmClient,
-		Store: storage,
+		LLM:     llmClient,
+		Store:   storage,
+		Deliver: hub.Deliver,
 	})
 	if err != nil {
 		return fmt.Errorf("Core loading failed: %w", err)
 	}
 
-	ylog.Success("Successfully initialize Yachiyo server.")
-
 	if cfg.Gateways.Onebot.Enabled {
-		go serviceChannel(ycore.Pipe, &onebot.OnebotService{}, cfg.Gateways.Onebot.Port)
+		hub.Attach(onebot.New(), cfg.Gateways.Onebot.Port, ycore.Dispatch)
 	}
 	if cfg.Gateways.Client.Enabled {
-		go serviceChannel(ycore.Pipe, &client.ClientService{}, cfg.Gateways.Client.Port)
+		hub.Attach(client.New(), cfg.Gateways.Client.Port, ycore.Dispatch)
 	}
 	if cfg.Gateways.JSONClient.Enabled {
 		info := jsonclient.ServerInfo{Name: cfg.Nickname, Version: version}
-		go serviceChannel(ycore.Pipe, jsonclient.NewJsonClientService(info), cfg.Gateways.JSONClient.Port)
+		hub.Attach(jsonclient.New(info), cfg.Gateways.JSONClient.Port, ycore.Dispatch)
 	}
 
-	go ycore.Run()
+	ylog.Success("Successfully initialize Yachiyo server.")
+	go hub.Run(ctx)
+	ycore.Run(ctx)
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	<-ctx.Done()
-
-	ycore.Close()
 	ylog.Info("Shutting down...")
 	return nil
-}
-
-func serviceChannel(p *core.Pipeline, s gateway.Service, port int64) {
-	gatewayChannel := gateway.NewGatewayChannel()
-	s.Listen(gatewayChannel, port)
-
-	p.Register(s.SchemeName(), gatewayChannel.ToClient)
-
-	for msg := range gatewayChannel.ToServer {
-		switch t := msg.(type) {
-		case *trigger.UserMessage:
-			ylog.Debug("Processing [%s]", t.Content)
-		}
-		p.Raw <- msg
-	}
 }

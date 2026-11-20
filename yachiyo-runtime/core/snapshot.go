@@ -14,22 +14,18 @@ type Snapshot struct {
 }
 
 func (c *Core) snapshot() Snapshot {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	snap := Snapshot{
-		State: c.State.Snapshot(),
+		State: c.state.Snapshot(),
 		Note:  c.conv.Note(),
 	}
 
 	return snap
 }
 
-// caller must hold c.mu
 func (c *Core) checkpoint() error {
 	return c.store.SaveCheckpoint(store.Checkpoint{
 		SavedAt:  time.Now(),
-		State:    c.State.Snapshot(),
+		State:    c.state.Snapshot(),
 		Note:     c.conv.Note(),
 		Sequence: c.conv.Sequence(),
 	})

@@ -32,7 +32,7 @@ func (c *Core) processRuntimeStateRequest(t trigger.RuntimeStateRequest) action.
 }
 
 func (c *Core) processMessageHistoryRequest(t trigger.MessageHistoryRequest) action.Action {
-	hist := c.getEvents()
+	hist := c.conv.Events()
 	msgs := make([]action.HistoryMessage, 0)
 
 	for _, h := range hist {

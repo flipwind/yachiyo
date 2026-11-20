@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	gateway "yachiyo/yachiyo-gateway"
 	onebotModel "yachiyo/yachiyo-gateway/onebot/model"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
@@ -19,9 +18,8 @@ import (
 )
 
 var ylog = logger.New("Yachiyo.Onebot")
-var channel *gateway.GatewayChannel
 
-func handleReceive(w http.ResponseWriter, r *http.Request) {
+func (s *OnebotService) handleReceive(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		ylog.Error("Websocket upgrade error: %v", err)
@@ -37,7 +35,7 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-ctx.Done():
 				return
-			case msg := <-channel.ToClient:
+			case msg := <-s.out:
 				switch t := msg.(type) {
 				case *action.AssistantMessage:
 					u, err := url.Parse(t.Address.Content)
@@ -78,28 +76,38 @@ func handleReceive(w http.ResponseWriter, r *http.Request) {
 
 		if messageEvent.PostType == "message" {
 			// TODO：rich message supporter
-			channel.ToServer <- &trigger.UserMessage{
+			s.submit(&trigger.UserMessage{
 				Author:    messageEvent.Sender.Nickname,
 				Platform:  "QQ",
 				Timestamp: time.Now(),
 				Content:   messageEvent.RawMessage,
 
 				Address: address.New(fmt.Sprintf("onebot://group/%v", messageEvent.GroupID)),
-			}
+			})
 		}
 	}
 }
 
-type OnebotService struct{}
+type OnebotService struct {
+	submit func(trig trigger.Trigger) //exhaustruct:optional
+	out    chan action.Action
+}
 
-func (s *OnebotService) Listen(c *gateway.GatewayChannel, p int64) {
-	channel = c
-	http.HandleFunc("/ws/onebot", handleReceive)
+func New() *OnebotService {
+	return &OnebotService{
+		out: make(chan action.Action),
+	}
+}
+
+func (s *OnebotService) Listen(port int64, submit func(trig trigger.Trigger)) {
+	s.submit = submit
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws/onebot", s.handleReceive)
 
 	go func() {
-		port := fmt.Sprintf(":%d", p)
-		ylog.Success("Running onebot server on :%d successfully.", p)
-		if err := http.ListenAndServe(port, nil); err != nil {
+		addr := fmt.Sprintf(":%d", port)
+		ylog.Success("Running onebot server on :%d successfully.", port)
+		if err := http.ListenAndServe(addr, mux); err != nil {
 			ylog.Error("Onebot Adapter running error: %v", err)
 		}
 	}()
@@ -107,4 +115,12 @@ func (s *OnebotService) Listen(c *gateway.GatewayChannel, p int64) {
 
 func (s *OnebotService) SchemeName() string {
 	return "onebot"
+}
+
+func (s *OnebotService) Send(a action.Action) {
+	select {
+	case s.out <- a:
+	case <-time.After(time.Second):
+		ylog.Error("%s send timeout, drop action <%v>", s.SchemeName(), a)
+	}
 }
