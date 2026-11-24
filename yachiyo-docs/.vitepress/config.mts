@@ -36,6 +36,7 @@ export default defineConfig({
                     { text: "Connection", link: "/protocol/connection.md" },
                     { text: "Interaction", link: "/protocol/interaction.md" },
                     { text: "State", link: "/protocol/state.md" },
+                    { text: "Tool", link: "/protocol/tool.md" }
                 ]
             },
         ],
