@@ -1,5 +1,6 @@
 import 'package:pancake/core/protocol/interaction.dart';
 import 'package:pancake/core/protocol/state.dart';
+import 'package:pancake/core/protocol/tool.dart';
 
 import 'connection.dart';
 import 'envelope.dart';
@@ -23,6 +24,11 @@ class DataPackParser {
 
     State.runtimeStateRequest: RuntimeStateRequest.fromJson,
     State.runtimeState: RuntimeStateData.fromJson,
+
+    Tool.updateTools: UpdateTools.fromJson,
+    Tool.updateToolsFeedback: UpdateToolsFeedback.fromJson,
+    Tool.toolCall: ToolCall.fromJson,
+    Tool.toolCallResult: ToolCallResult.fromJson,
   };
 
   static DataPack decode(String type, Map<String, dynamic> json) {

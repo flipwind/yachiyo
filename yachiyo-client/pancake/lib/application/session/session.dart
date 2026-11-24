@@ -10,6 +10,7 @@ import 'package:pancake/core/protocol/connection.dart';
 import 'package:pancake/core/protocol/envelope.dart';
 import 'package:pancake/core/protocol/interaction.dart';
 import 'package:pancake/core/protocol/state.dart';
+import 'package:pancake/core/protocol/tool.dart';
 import 'package:uuid/uuid.dart';
 
 sealed class SessionEvent {}
@@ -173,6 +174,13 @@ class PancakeSession {
         );
         _startHeartbeat();
         _startChangeState();
+        _sendEnvelope(
+          Envelope(
+            category: "tool",
+            type: "update_tools",
+            data: UpdateTools(capability: <String>["message.text"], tools: []),
+          ),
+        );
       case RegisterError():
         switch (data.errorType) {
           case "client_conflict":
@@ -259,7 +267,9 @@ class PancakeSession {
         _pushSessionEvent(
           SessionStateReceived(
             RuntimeState(
-              timetick: DateTime.fromMillisecondsSinceEpoch(state.timetick * 1000),
+              timetick: DateTime.fromMillisecondsSinceEpoch(
+                state.timetick * 1000,
+              ),
               energy: state.energy,
               affect: RuntimeAffect(
                 octants: affect.octants,
