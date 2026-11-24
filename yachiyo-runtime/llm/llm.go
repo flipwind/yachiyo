@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 )
 
 type Client interface {
@@ -31,13 +32,7 @@ const (
 type ToolSpec struct {
 	Name        string
 	Description string
-	Parameters  map[string]ToolParameter //exhaustruct:optional
-}
-
-type ToolParameter struct {
-	Type        string
-	Description string
-	Required    bool
+	Parameters  json.RawMessage //exhaustruct:optional
 }
 
 type ToolCall struct {

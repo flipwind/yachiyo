@@ -7,18 +7,19 @@ import (
 	"yachiyo/yachiyo-runtime/event"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
+	"yachiyo/yachiyo-shared/address"
 	"yachiyo/yachiyo-shared/trigger"
 )
 
 const timeLayout = "2006.01.02 15:04:05"
 
-func userMessage(author, platform, content string, t time.Time) string {
+func userMessage(author, platform, content string, address address.Address, t time.Time) string {
 	// e.g. <Iroha>(2030.07.21 16:16:08/Client) Good evening Yachiyo~
-	return fmt.Sprintf("<%s>(%s/%s) %s", author, t.Format(timeLayout), platform, content)
+	return fmt.Sprintf("<%s>(%s/%s, %s) %s", author, t.Format(timeLayout), platform, address.Content, content)
 }
 
 func RenderUserMessage(m trigger.UserMessage) string {
-	return userMessage(m.Author, m.Platform, m.Content, m.Timestamp)
+	return userMessage(m.Author, m.Platform, m.Content, m.Address, m.Timestamp)
 }
 
 func Drives(d state.Drives) string {
@@ -67,7 +68,7 @@ Active Moods:
 }
 
 func UserMessage(m event.UserMessage) string {
-	return userMessage(m.Author, m.Platform, m.Content, m.Timestamp)
+	return userMessage(m.Author, m.Platform, m.Content, m.Address, m.Timestamp)
 }
 
 func AssistantMessage(m event.AssistantMessage) string {

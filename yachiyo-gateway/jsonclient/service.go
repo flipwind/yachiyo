@@ -1,34 +1,31 @@
 package jsonclient
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
-	"uuid"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-gateway/pending"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
+	"yachiyo/yachiyo-shared/endpoint"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
-
-	"github.com/coder/websocket"
 )
 
 var ylog = logger.New("Yachiyo.Jsonclient")
 
-// ServerInfo is what the client learns from the runtime when it registers.
-type ServerInfo struct {
-	Name    string
-	Version string
-}
-
 type JsonClientService struct {
 	clients map[string]*Client
-	mutex   sync.RWMutex //exhaustruct:optional
+	mu      sync.RWMutex //exhaustruct:optional
 
 	submit     func(trig trigger.Trigger) //exhaustruct:optional
+	pending    *pending.Pending
 	serverInfo ServerInfo
 }
 
@@ -36,6 +33,7 @@ func New(info ServerInfo) *JsonClientService {
 	return &JsonClientService{
 		clients:    make(map[string]*Client),
 		serverInfo: info,
+		pending:    pending.NewPending(),
 	}
 }
 
@@ -59,212 +57,32 @@ func (s *JsonClientService) SchemeName() string {
 	return "jsonclient"
 }
 
-func (s *JsonClientService) handleWebsocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		ylog.Error("Websocket upgrade error: %v", err)
-		return
-	}
-
-	client := NewClient(conn)
-	go client.Run(s.unregister, s.handleReceive)
-}
-
-func (s *JsonClientService) handleReceive(c *Client, data []byte) {
-	var message model.Envelope
-
-	if err := json.Unmarshal(data, &message); err != nil {
-		ylog.Error("JSON unmarshal error: %v", err)
-		return
-	}
-
-	registered := (c.ID != "")
-
-	// unregister client
-	if !registered && !(message.Category == "connection" && message.Type == "register") {
-		c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_unknown"})
-		return
-	}
-
-	switch message.Category {
-	case "connection":
-		s.handleConnection(c, message)
-	case "interaction":
-		s.handleInteraction(c, message)
-	case "state":
-		s.handleState(c, message)
-	}
-}
-
-func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) {
-	switch message.Type {
-	case "register":
-		if c.ID != "" {
-			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_already_registered"})
-			return
-		}
-
-		var data model.Register
-		if err := json.Unmarshal(message.Data, &data); err != nil {
-			ylog.Error("JSON unmarshal error: %v", err)
-			return
-		}
-
-		if data.ClientType != "IM" && data.ClientType != "Client" {
-			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_info_error"})
-			return
-		}
-
-		clientUUID, err := uuid.Parse(data.ClientID)
-		if err != nil {
-			c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_id_invalid"})
-			return
-		}
-
-		var clientID = clientUUID.String()
-
-		var old *Client
-
-		s.mutex.Lock()
-		if oldClient, ok := s.clients[clientID]; ok == true {
-			// oldClient exists; register.
-			if oldClient.Type != data.ClientType {
-				c.send("connection", "register_error", &model.RegisterError{ErrorType: "client_conflict"})
-				s.mutex.Unlock()
-				return
-			}
-			old = oldClient
-		}
-
-		if old != nil && old != c {
-			// The same clientID has two client now
-			old.conn.Close(websocket.StatusNormalClosure, "")
-			delete(s.clients, old.ID)
-		}
-
-		c.Type = data.ClientType
-		c.Name = data.ClientName
-		c.ID = clientID
-		c.LastHeartbeatTime = time.Now()
-
-		s.clients[clientID] = c
-		s.mutex.Unlock()
-
-		ylog.Success("Registered [%s @%s](%s).", c.Type, c.Name, c.ID)
-
-		c.send("connection", "register_success",
-			&model.RegisterSuccess{RuntimeName: s.serverInfo.Name, RuntimeVersion: s.serverInfo.Version})
-	case "heartbeat":
-		var data model.HeartBeat
-		if err := json.Unmarshal(message.Data, &data); err != nil {
-			ylog.Error("JSON unmarshal error: %v", err)
-			return
-		}
-
-		if s.checkClient(c) == false {
-			return
-		}
-
-		s.mutex.Lock()
-		c.LastHeartbeatTime = time.Now()
-		s.mutex.Unlock()
-
-		c.send("connection", "heartbeat_respond", &model.HeartBeatRespond{})
-	case "offline":
-		var data model.Offline
-		if err := json.Unmarshal(message.Data, &data); err != nil {
-			ylog.Error("JSON unmarshal error: %v", err)
-			return
-		}
-
-		if s.checkClient(c) == false {
-			return
-		}
-
-		s.unregister(c)
-	}
-}
-
-func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope) {
-	switch message.Type {
-	case "client_message":
-		var data model.ClientMessage
-		if err := json.Unmarshal(message.Data, &data); err != nil {
-			ylog.Error("JSON unmarshal error: %v", err)
-			return
-		}
-
-		if s.checkClient(c) == false {
-			return
-		}
-
-		s.submit(&trigger.UserMessage{
-			Author:    "user",
-			Platform:  c.Type,
-			Content:   data.Message,
-			Timestamp: time.Now(),
-
-			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		})
-	case "get_relative_message_history":
-		if s.checkClient(c) == false {
-			return
-		}
-		s.submit(&trigger.MessageHistoryRequest{
-			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		})
-	}
-}
-
-func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
-	switch message.Type {
-	case "runtime_state_request":
-		s.submit(&trigger.RuntimeStateRequest{
-			Address: address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID)),
-		})
-	}
-}
-
-// Check client if former client is not the same as the current one.
-func (s *JsonClientService) checkClient(c *Client) bool {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	client, ok := s.clients[c.ID]
-
-	return ok && client == c
-}
-
-func (s *JsonClientService) unregister(c *Client) {
-	s.mutex.Lock()
-	if client, ok := s.clients[c.ID]; ok && client == c {
-		delete(s.clients, c.ID)
-	}
-	s.mutex.Unlock()
-
-	c.conn.Close(websocket.StatusAbnormalClosure, "")
-
-	ylog.Success("Unregistered [%s @%s](%s).", c.Type, c.Name, c.ID)
-}
-
-func (s *JsonClientService) Send(a action.Action) {
+func (s *JsonClientService) Send(a action.Action) error {
 	switch t := a.(type) {
 	case *action.AssistantMessage:
 		c, err := s.getClient(t)
 		if err != nil {
 			ylog.Error("Process action failed: %v", err)
-			return
+			return err
 		}
 
 		if t.Initiative == true && t.Reply == false {
-			return
+			return nil
 		}
 
-		c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
+		s.mu.RLock()
+		can := c.Capability.Has(endpoint.CapMessageText)
+		s.mu.RUnlock()
+		if !can {
+			return fmt.Errorf("Client <%s> doesn't support %s", c.ID, endpoint.CapMessageText)
+		}
+
+		return c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
 	case *action.RuntimeState:
 		c, err := s.getClient(t)
 		if err != nil {
 			ylog.Error("Process action failed: %v", err)
-			return
+			return err
 		}
 
 		actives := make([]model.OCCEmotion, 0)
@@ -275,7 +93,7 @@ func (s *JsonClientService) Send(a action.Action) {
 			})
 		}
 
-		c.send("state", "runtime_state", &model.RuntimeState{
+		return c.send("state", "runtime_state", &model.RuntimeState{
 			Timetick: t.Timetick,
 			Energy:   t.Energy,
 			Affect: struct {
@@ -296,7 +114,7 @@ func (s *JsonClientService) Send(a action.Action) {
 		c, err := s.getClient(t)
 		if err != nil {
 			ylog.Error("Process action failed: %v", err)
-			return
+			return err
 		}
 
 		msgs := make([]model.Envelope, 0)
@@ -335,61 +153,78 @@ func (s *JsonClientService) Send(a action.Action) {
 			}
 		}
 
-		c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
+		return c.send("interaction", "relative_message_history", &model.RelativeMessageHistory{Messages: msgs})
 	case *action.Error:
 		c, err := s.getClient(t)
 		if err != nil {
 			ylog.Error("Process action failed: %v", err)
-			return
+			return err
 		}
 
-		c.send("interaction", "runtime_error", &model.RuntimeError{
+		return c.send("interaction", "runtime_error", &model.RuntimeError{
 			Code:    string(t.Code),
 			Message: t.Message,
 		})
 	default:
 		ylog.Info("Unsupport value: %T", t)
-	}
-
-}
-
-func (s *JsonClientService) heartbeatCleanup() {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		var expired []*Client
-		nowtime := time.Now()
-
-		s.mutex.RLock()
-		for _, client := range s.clients {
-			if nowtime.Sub(client.LastHeartbeatTime) > 30*time.Second {
-				expired = append(expired, client)
-			}
-		}
-		s.mutex.RUnlock()
-
-		for _, client := range expired {
-			s.unregister(client)
-		}
+		return fmt.Errorf("Unsupported action type: %T", t)
 	}
 }
 
-// utils
-
-func (s *JsonClientService) getClient(a action.Action) (*Client, error) {
-	address := a.GetAddress()
-	host, err := address.Host()
+func (s *JsonClientService) UseTool(ctx context.Context, addr address.Address, reqID, toolName, payload string) (string, error) {
+	host, err := addr.Host()
 	if err != nil {
-		return nil, fmt.Errorf("Action address error: %w", err)
+		return "", fmt.Errorf("%s: %w", s.SchemeName(), err)
 	}
 
-	s.mutex.RLock()
-	c := s.clients[host]
-	s.mutex.RUnlock()
+	s.mu.RLock()
+	c, ok := s.clients[host]
+	s.mu.RUnlock()
 
-	if c == nil {
-		return nil, fmt.Errorf("Unknown address: %s", host)
+	if !ok {
+		return "", fmt.Errorf("%s: client %s not found", s.SchemeName(), host)
 	}
 
-	return c, nil
+	s.pending.Register(reqID)
+
+	pload := json.RawMessage("{}")
+	if json.Valid([]byte(payload)) {
+		pload = json.RawMessage(payload)
+	}
+
+	if err := c.send("tool", "tool_call", &model.ToolCall{
+		ToolName:  toolName,
+		RequestID: reqID,
+		Payload:   pload,
+	}); err != nil {
+		s.pending.Remove(reqID)
+		return "", err
+	}
+
+	res, err := s.pending.Wait(ctx, reqID, time.Second*5)
+	if err != nil {
+		return "", fmt.Errorf("failed to get result: %w", err)
+	}
+	if !res.OK {
+		return "", errors.New(res.Result)
+	}
+
+	return res.Result, nil
+}
+
+func (s *JsonClientService) Clients() []endpoint.Endpoint {
+	li := make([]endpoint.Endpoint, 0)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, c := range s.clients {
+		li = append(li, endpoint.Endpoint{
+			Name:       c.Name,
+			ID:         c.ID,
+			Address:    s.clientAddress(c),
+			Capability: c.Capability.Clone(),
+			Tools:      slices.Clone(c.Tools),
+		})
+	}
+	return li
 }

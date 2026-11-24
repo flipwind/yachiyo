@@ -70,9 +70,9 @@ func (c *Core) handle(t trigger.Trigger) {
 	case *trigger.UserMessage:
 		c.queue = append(c.queue, userJob{msg: *m, compressed: false})
 	case *trigger.RuntimeStateRequest:
-		c.deliver(c.processRuntimeStateRequest(*m))
+		c.hub.Deliver(c.processRuntimeStateRequest(*m))
 	case *trigger.MessageHistoryRequest:
-		c.deliver(c.processMessageHistoryRequest(*m))
+		c.hub.Deliver(c.processMessageHistoryRequest(*m))
 	default:
 		ylog.Error("Process unsupported type: %T", m)
 	}

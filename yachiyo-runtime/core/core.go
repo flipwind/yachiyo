@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/conversation"
+	"yachiyo/yachiyo-runtime/hub"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/state"
 	"yachiyo/yachiyo-runtime/store"
-	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/trigger"
 	"yachiyo/yachiyo-util/logger"
 )
@@ -29,7 +29,7 @@ type Options struct {
 type Deps struct {
 	Store      store.Store
 	LLM        llm.Client
-	Deliver    func(a action.Action)
+	Hub        hub.Hub
 	Initiative InitiativePolicy //exhaustruct:optional
 }
 
@@ -42,7 +42,7 @@ type Core struct {
 
 	inbox      chan trigger.Trigger
 	stopped    chan struct{}
-	deliver    func(a action.Action)
+	hub        hub.Hub
 	initiative InitiativePolicy
 
 	results chan result
@@ -59,8 +59,8 @@ func New(opts Options, deps Deps) (*Core, error) {
 	if deps.Store == nil {
 		return nil, errors.New("core: Store is required")
 	}
-	if deps.Deliver == nil {
-		return nil, errors.New("core: Deliver is required")
+	if deps.Hub == nil {
+		return nil, errors.New("core: Hub is required")
 	}
 	policy := deps.Initiative
 	if policy == nil {
@@ -103,7 +103,7 @@ func New(opts Options, deps Deps) (*Core, error) {
 		results:    make(chan result, 1),
 		inbox:      make(chan trigger.Trigger, 2048),
 		stopped:    make(chan struct{}),
-		deliver:    deps.Deliver,
+		hub:        deps.Hub,
 		initiative: policy,
 	}
 

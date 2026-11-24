@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 	"yachiyo/yachiyo-runtime/llm"
@@ -66,16 +67,13 @@ func toMessages(msgs []llm.Message) (openAIMessages []openai.ChatCompletionMessa
 
 func toTools(tools []llm.ToolSpec) (toolParams []openai.ChatCompletionToolUnionParam) {
 	for _, t := range tools {
-		properties := make(map[string]any, len(t.Parameters))
-		required := make([]string, 0)
-
-		for name, p := range t.Parameters {
-			properties[name] = map[string]any{
-				"type":        p.Type,
-				"description": p.Description,
-			}
-			if p.Required {
-				required = append(required, name)
+		params := shared.FunctionParameters{
+			"type":       "object",
+			"properties": map[string]any{},
+		}
+		if len(t.Parameters) > 0 {
+			if err := json.Unmarshal(t.Parameters, &params); err != nil {
+				ylog.Warn("Invalid tool parameters <%s>: %v", t.Name, err)
 			}
 		}
 
@@ -84,11 +82,7 @@ func toTools(tools []llm.ToolSpec) (toolParams []openai.ChatCompletionToolUnionP
 				Function: openai.FunctionDefinitionParam{
 					Name:        t.Name,
 					Description: param.NewOpt(t.Description),
-					Parameters: shared.FunctionParameters{
-						"type":       "object",
-						"properties": properties,
-						"required":   required,
-					},
+					Parameters:  params,
 				},
 			},
 		})

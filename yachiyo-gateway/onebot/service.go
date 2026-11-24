@@ -117,10 +117,11 @@ func (s *OnebotService) SchemeName() string {
 	return "onebot"
 }
 
-func (s *OnebotService) Send(a action.Action) {
+func (s *OnebotService) Send(a action.Action) error {
 	select {
 	case s.out <- a:
+		return nil
 	case <-time.After(time.Second):
-		ylog.Error("%s send timeout, drop action <%v>", s.SchemeName(), a)
+		return fmt.Errorf("%s send timeout, drop action <%v>", s.SchemeName(), a)
 	}
 }

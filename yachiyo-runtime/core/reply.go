@@ -32,10 +32,17 @@ type reply struct {
 	addr  address.Address
 	snap  Snapshot
 	out   output
+	sent  []sentMessage
 	err   error
 }
 
 func (reply) isResult() {}
+
+type sentMessage struct {
+	Address   address.Address
+	Content   []string
+	Timestamp time.Time
+}
 
 func (c *Core) startUser(j userJob) {
 	rendered := prompt.RenderUserMessage(j.msg)
@@ -52,7 +59,7 @@ func (c *Core) startUser(j userJob) {
 	snap := c.snapshot()
 
 	userMessage := event.UserMessage{
-		Meta:     c.newMeta(snap.State),
+		Meta:     c.newMeta(snap.State, j.msg.Timestamp),
 		Content:  j.msg.Content,
 		Author:   j.msg.Author,
 		Platform: j.msg.Platform,
@@ -61,7 +68,7 @@ func (c *Core) startUser(j userJob) {
 
 	if err := c.record(userMessage); err != nil {
 		ylog.Error("UserMessage history appended error: %s", err)
-		c.deliver(errorAction(yerror.ErrMessageStore, j.msg.Address))
+		c.hub.Deliver(errorAction(yerror.ErrMessageStore, j.msg.Address))
 		return
 	}
 
@@ -106,11 +113,12 @@ func (c *Core) startGenerate(cause prompt.Cause, addr address.Address) {
 
 	c.state.Touch(time.Now())
 
-	tools := GetTools(snap)
+	var sent []sentMessage
+	tools := getTools(c.ctx, snap, cause, &sent, c.hub)
 	c.busy = true
 	go func() {
 		out, err := generate(c.ctx, c.llm, prompts, tools)
-		c.send(reply{cause: cause, addr: addr, snap: snap, out: out, err: err})
+		c.send(reply{cause: cause, addr: addr, snap: snap, out: out, sent: sent, err: err})
 	}()
 }
 
@@ -123,45 +131,39 @@ func (c *Core) finishReply(r reply) {
 		typ = "initiative"
 	}
 
-	if r.err != nil {
-		ylog.Error("Process <%s> failed: %s", typ, r.err)
-		c.deliver(errorAction(r.err, r.addr))
-		return
+	if r.err == nil {
+		c.applyOutput(r.out)
 	}
-	c.applyOutput(r.out)
-	debugOutput(r.out.Answer, r.snap, c.snapshot())
 
 	// After processed, store the assistant message
 	snap := c.snapshot()
-
-	assistantMessage := event.AssistantMessage{
-		Meta:       c.newMeta(snap.State),
-		Content:    r.out.Answer,
-		Address:    r.addr,
-		Initiative: r.cause == prompt.Initiative,
-		Reply:      r.out.Reply,
+	for _, m := range r.sent {
+		if err := c.record(event.AssistantMessage{
+			Meta:       c.newMeta(snap.State, m.Timestamp),
+			Content:    m.Content,
+			Address:    m.Address,
+			Initiative: r.cause == prompt.Initiative,
+			Reply:      true,
+		}); err != nil {
+			ylog.Error("<%s reply> history appended error: %s", typ, err)
+			c.hub.Deliver(errorAction(yerror.ErrMessageStore, r.addr))
+		}
 	}
 
-	if err := c.record(assistantMessage); err != nil {
-		ylog.Error("<%s reply> history appended error: %s", typ, err)
-		c.deliver(errorAction(yerror.ErrMessageStore, r.addr))
+	if r.err != nil {
+		ylog.Error("Process <%s> failed: %s", typ, r.err)
+		c.hub.Deliver(errorAction(r.err, r.addr))
 		return
 	}
 
-	ylog.Success("Generated %s output %#v", typ, r.out.Answer)
+	debugOutput(r.out.Thoughts, r.snap, c.snapshot())
+
+	ylog.Success("Yachiyo(%s): %#v", typ, r.out.Thoughts)
 
 	if c.checkTokenThreshold(70, 0) {
 		ylog.Warn("Context too big.(70%%) Start a async compression task.")
 		c.queue = append([]job{compressJob{}}, c.queue...)
 	}
-
-	c.deliver(&action.AssistantMessage{
-		Address:    assistantMessage.Address,
-		Content:    assistantMessage.Content,
-		Timestamp:  assistantMessage.Timestamp,
-		Initiative: assistantMessage.Initiative,
-		Reply:      assistantMessage.Reply,
-	})
 }
 
 func errorAction(err error, addr address.Address) action.Action {
@@ -183,7 +185,7 @@ func errorAction(err error, addr address.Address) action.Action {
 	}
 }
 
-func debugOutput(answer []string, c_formal Snapshot, c_later Snapshot) {
+func debugOutput(thoughts string, c_formal Snapshot, c_later Snapshot) {
 	ylog.Debug(`== DEBUG MESSAGE ==
 Yachiyo > %v
 * Formal:
@@ -192,7 +194,7 @@ Yachiyo > %v
 %s
 %+v
 * Session Context: %s`,
-		answer, prompt.Drives(c_formal.State.Drives),
+		thoughts, prompt.Drives(c_formal.State.Drives),
 		prompt.Drives(c_later.State.Drives), c_later.State.Determination,
 		c_later.Note)
 }

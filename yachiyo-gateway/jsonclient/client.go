@@ -3,8 +3,10 @@ package jsonclient
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-shared/endpoint"
 
 	"github.com/coder/websocket"
 )
@@ -13,6 +15,9 @@ type Client struct {
 	Type string //exhaustruct:optional
 	Name string //exhaustruct:optional
 	ID   string //exhaustruct:optional
+
+	Capability *endpoint.Capability
+	Tools      []endpoint.RemoteTool
 
 	LastHeartbeatTime time.Time
 
@@ -25,6 +30,9 @@ func NewClient(conn *websocket.Conn) *Client {
 		conn:              conn,
 		sendChan:          make(chan model.Envelope, 64),
 		LastHeartbeatTime: time.Now(),
+
+		Capability: endpoint.NewCapability(),
+		Tools:      make([]endpoint.RemoteTool, 0),
 	}
 }
 
@@ -78,11 +86,11 @@ func (c *Client) writeListen(unregisterHandler func(c *Client)) {
 	}
 }
 
-func (c *Client) send(category string, contentType string, d model.DataPack) {
+func (c *Client) send(category string, contentType string, d model.DataPack) error {
 	dataJson, err := json.Marshal(d)
 	if err != nil {
 		ylog.Error("DataPack marshal to json error: %v", err)
-		return
+		return fmt.Errorf("Marshal datapack failed: %w", err)
 	}
 
 	envelope := model.Envelope{
@@ -93,7 +101,9 @@ func (c *Client) send(category string, contentType string, d model.DataPack) {
 
 	select {
 	case c.sendChan <- envelope:
+		return nil
 	default:
 		ylog.Warn("Client [%s] send channel is full, drop %s", c.Name, envelope.Type)
+		return fmt.Errorf("Client [%s] send channel is full.", c.Name)
 	}
 }

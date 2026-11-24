@@ -92,10 +92,11 @@ func (s *ClientService) SchemeName() string {
 	return "client"
 }
 
-func (s *ClientService) Send(a action.Action) {
+func (s *ClientService) Send(a action.Action) error {
 	select {
 	case s.out <- a:
+		return nil
 	case <-time.After(time.Second):
-		ylog.Error("%s send timeout, drop action <%v>", s.SchemeName(), a)
+		return fmt.Errorf("%s send timeout, drop action <%v>", s.SchemeName(), a)
 	}
 }

@@ -10,11 +10,11 @@ import (
 	"yachiyo/yachiyo-runtime/store"
 )
 
-func (c *Core) newMeta(snap state.Snapshot) event.Meta {
+func (c *Core) newMeta(snap state.Snapshot, t time.Time) event.Meta {
 	return event.Meta{
 		ID:        uuid.NewV7(),
 		Sequence:  c.conv.NextSequence(),
-		Timestamp: time.Now(),
+		Timestamp: t,
 		Snapshot:  snap,
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"yachiyo/yachiyo-runtime/llm"
 	"yachiyo/yachiyo-runtime/prompt"
 	"yachiyo/yachiyo-runtime/state"
@@ -17,9 +16,8 @@ const maxRetries = 3
 const maxSteps = 10
 
 type llmOutput struct {
-	Reply  bool     `json:"reply"`
-	Answer []string `json:"answer"`
-	Change struct {
+	Thoughts string `json:"thoughts"`
+	Change   struct {
 		State struct {
 			SocialDesire int `json:"SocialDesire"`
 			Interest     int `json:"Interest"`
@@ -38,19 +36,9 @@ type llmOutput struct {
 }
 
 type output struct {
-	Reply  bool
-	Answer []string
-	Change state.Change
-	Note   string
-}
-
-func allEmpty(s []string) bool {
-	for _, str := range s {
-		if strings.TrimSpace(str) != "" {
-			return false
-		}
-	}
-	return true
+	Thoughts string
+	Change   state.Change
+	Note     string
 }
 
 func parseOutput(schema string) (output, error) {
@@ -58,14 +46,6 @@ func parseOutput(schema string) (output, error) {
 
 	if err := json.Unmarshal([]byte(schema), &llmoutput); err != nil {
 		return output{}, fmt.Errorf("Json unmarshal error: %w", err)
-	}
-
-	if len(llmoutput.Answer) == 0 {
-		return output{}, fmt.Errorf("LLM returns invaild answer: answer has no items")
-	}
-
-	if llmoutput.Reply == false && len(llmoutput.Answer) != 1 {
-		return output{}, fmt.Errorf("LLM returns invaild answer: choose to not reply but the item number of answer not equals to 1")
 	}
 
 	emotions := make([]state.OCCEmotion, 0)
@@ -103,8 +83,7 @@ func parseOutput(schema string) (output, error) {
 	ylog.Debug("Parsed LLM output schema: `%s`", schema)
 
 	return output{
-		Reply:  llmoutput.Reply && !allEmpty(llmoutput.Answer),
-		Answer: llmoutput.Answer,
+		Thoughts: llmoutput.Thoughts,
 		Change: state.Change{
 			SocialDesire: llmoutput.Change.State.SocialDesire,
 			Interest:     llmoutput.Change.State.Interest,

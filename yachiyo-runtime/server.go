@@ -86,9 +86,9 @@ func run() error {
 		Personality:    personality,
 		Energy:         energy,
 	}, core.Deps{
-		LLM:     llmClient,
-		Store:   storage,
-		Deliver: hub.Deliver,
+		LLM:   llmClient,
+		Store: storage,
+		Hub:   hub,
 	})
 	if err != nil {
 		return fmt.Errorf("Core loading failed: %w", err)
