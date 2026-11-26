@@ -7,9 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	gateway "yachiyo/yachiyo-gateway"
-	"yachiyo/yachiyo-gateway/client"
 	"yachiyo/yachiyo-gateway/jsonclient"
-	"yachiyo/yachiyo-gateway/onebot"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-runtime/llm/provider"
@@ -94,12 +92,6 @@ func run() error {
 		return fmt.Errorf("Core loading failed: %w", err)
 	}
 
-	if cfg.Gateways.Onebot.Enabled {
-		hub.Attach(onebot.New(), cfg.Gateways.Onebot.Port, ycore.Dispatch)
-	}
-	if cfg.Gateways.Client.Enabled {
-		hub.Attach(client.New(), cfg.Gateways.Client.Port, ycore.Dispatch)
-	}
 	if cfg.Gateways.JSONClient.Enabled {
 		info := jsonclient.ServerInfo{Name: cfg.Nickname, Version: version}
 		hub.Attach(jsonclient.New(info), cfg.Gateways.JSONClient.Port, ycore.Dispatch)

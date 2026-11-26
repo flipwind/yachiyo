@@ -52,8 +52,6 @@ type file struct {
 		Bigfive fileBigfive `yaml:"bigfive"`
 	} `yaml:"core"`
 	Gateway struct {
-		Onebot     fileGateway `yaml:"onebot"`
-		Client     fileGateway `yaml:"client"`
 		JSONClient fileGateway `yaml:"jsonclient"`
 	} `yaml:"gateway"`
 	Initiative struct {
@@ -94,7 +92,7 @@ type Gateway struct {
 }
 
 type Gateways struct {
-	Onebot, Client, JSONClient Gateway
+	JSONClient Gateway
 }
 
 type Initiative struct {
@@ -273,12 +271,10 @@ func Parse(data []byte) (Config, []ywarning.Warning, error) {
 	}
 
 	config.Gateways = Gateways{
-		Onebot:     gateway("gateway.onebot", f.Gateway.Onebot),
-		Client:     gateway("gateway.client", f.Gateway.Client),
 		JSONClient: gateway("gateway.jsonclient", f.Gateway.JSONClient),
 	}
 
-	gatewayAnyEnabled := config.Gateways.Onebot.Enabled || config.Gateways.Client.Enabled || config.Gateways.JSONClient.Enabled
+	gatewayAnyEnabled := config.Gateways.JSONClient.Enabled
 	if !gatewayAnyEnabled {
 		warns = append(warns, ywarning.New("gateway",
 			fmt.Sprintf("Gateways are closed. %v may not notice any input.", config.Nickname)))

@@ -43,11 +43,7 @@ For non-provided platforms, try to compile according to the target platform. You
 
 ### Client
 
-Clients can be categorized into lots of kinds. Currently, there are only onebot, CLI and flutter clients which are built in.
-
-> [!Note]  
-> Currently, `Pancake!`, the flutter client is the only recommended client, for it has the most completed features.  
-> The other clients in this monorepo, like onebot and CLI is too simple to be suitable for use.  
+Currently, the built-in client is the Flutter client `Pancake!`.
 
 #### For flutter client (Recommend):
 
@@ -67,20 +63,6 @@ For non-provided platforms, try to build it for your target platform. You can al
     - [BUILD_TARGET] can be `aar`, `apk`, `web` or another target supported by Flutter. Run `flutter build` to see the available subcommands.
 2. Run it.
 3. Enter the server address field to monitor or message with the runtime.
-
-#### For CLI client:
-
-1. Compile according to the target platform.   
-Or run `task cli:build` to compile it.
-2. Run it. 
-
-#### For onebot client:
-
-This part is crude, and you may not hope it can work well.  
-
-It don't need a specific client.   
-The server serves as a Websocket Server, and the server have a gateway for translation.    
-Use your onebot realization as a client, and use URL `ws://<host>:<port>/ws/onebot` to connect the server.
 
 ### About Prompt
 

@@ -16,12 +16,6 @@ prompt:
   compress: ./prompt/compress.md
 
 gateway:
-  onebot:
-    enabled: False
-    port: 16801
-  client:
-    enabled: False
-    port: 16802
   jsonclient:
     enabled: True
     port: 16899

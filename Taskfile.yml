@@ -18,20 +18,6 @@ tasks:
       - task: server:build
       - cd build/server && ./server{{exeExt}}
 
-  cli:build:
-    desc: Build Yachiyo CLI
-    silent: true
-    cmds:
-      - mkdir -p build/cli
-      - go build -trimpath -o build/cli/client{{exeExt}} yachiyo-client/cli/main.go
-
-  cli:
-    desc: Build and run Yachiyo CLI
-    silent: true
-    cmds:
-      - task: cli:build
-      - cd build/cli && ./client{{exeExt}}
-  
   pancake:
     desc: Build Pancake
     dir: yachiyo-client/pancake

@@ -48,13 +48,7 @@ _✨ For the pancake. ✨_
 
 ### 客户端
 
-客户端们可以被分为许多种。当前内置的，只有 Onebot，CLI 以及 Flutter 客户端。
-
-> [!Note]  
-> 目前，Flutter 客户端 `Pancake!` 因着其最为完善的特性，是**唯一一个推荐的客户端**。  
-> 在这个混合仓库的其他客户端，例如 Onebot 和 CLI，过于简陋，因此不太适合使用。
-
-以下是内置客户端的简单说明。
+当前内置的客户端为 Flutter 客户端 `Pancake!`。
 
 #### 对于 Flutter 客户端（推荐）：
 
@@ -75,19 +69,6 @@ Flutter 客户端 `Pancake!` 被设计为跨平台应用，所以这也是使用
     - `[BUILD_TARGET]` 可以是 `aar`, `apk`, `web` 或其他 Flutter 支持平台的任何一种。运行 `flutter build` 来查阅其他支持的平台（这当然是对的，因为 task 任务肯定会使用 Flutter 的相关命令）。
 2. 运行它。
 3. 记得在应用内配置服务端地址。
-
-#### 对于 CLI 平台：
-
-1. 根据对应平台编译，或使用 `task cli:build`。
-2. 运行。
-
-#### 对于 Onebot 平台：
-
-这部分太粗糙，并且你不能指望它很舒服地运行。
-
-这并不是个特别的客户端。  
-服务端作为一个 Websocket 服务，并且在连接过程中使用内置的 Gateway 进行协议翻译。  
-在你的 Onebot 实现（例如 Napcat）中，将它们作为一个 Client；使用 `ws://<host>:<port>/ws/onebot` 以连接服务端。`port` 的内容取决于你的配置。
 
 ### 关于提示词的撰写
 
