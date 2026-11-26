@@ -1,4 +1,4 @@
-# JsonClient Gateway
+# wsjson Gateway
 
 > [!Important]
 > This gateway is a minimum viable product.  

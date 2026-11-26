@@ -1,11 +1,11 @@
-package jsonclient
+package wsjson
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"time"
-	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-gateway/wsjson/model"
 	"yachiyo/yachiyo-shared/endpoint"
 
 	"github.com/coder/websocket"

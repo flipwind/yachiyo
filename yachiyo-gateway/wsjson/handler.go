@@ -1,11 +1,11 @@
-package jsonclient
+package wsjson
 
 import (
 	"encoding/json"
 	"regexp"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-gateway/wsjson/model"
 	"yachiyo/yachiyo-gateway/pending"
 	"yachiyo/yachiyo-shared/endpoint"
 	"yachiyo/yachiyo-shared/trigger"
@@ -13,7 +13,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-func (s *JsonClientService) handleReceive(c *Client, data []byte) {
+func (s *Service) handleReceive(c *Client, data []byte) {
 	var message model.Envelope
 
 	if err := json.Unmarshal(data, &message); err != nil {
@@ -43,7 +43,7 @@ func (s *JsonClientService) handleReceive(c *Client, data []byte) {
 
 var validClientName = regexp.MustCompile(`^[a-zA-Z0-9_]{1,16}$`)
 
-func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) {
+func (s *Service) handleConnection(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "register":
 		if c.ID != "" {
@@ -137,7 +137,7 @@ func (s *JsonClientService) handleConnection(c *Client, message model.Envelope) 
 	}
 }
 
-func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope) {
+func (s *Service) handleInteraction(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "client_message":
 		var data model.ClientMessage
@@ -168,7 +168,7 @@ func (s *JsonClientService) handleInteraction(c *Client, message model.Envelope)
 	}
 }
 
-func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
+func (s *Service) handleState(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "runtime_state_request":
 		s.submit(&trigger.RuntimeStateRequest{
@@ -177,7 +177,7 @@ func (s *JsonClientService) handleState(c *Client, message model.Envelope) {
 	}
 }
 
-func (s *JsonClientService) handleTools(c *Client, message model.Envelope) {
+func (s *Service) handleTools(c *Client, message model.Envelope) {
 	switch message.Type {
 	case "update_tools":
 		newTools := make([]endpoint.RemoteTool, 0)

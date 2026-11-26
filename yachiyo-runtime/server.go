@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	gateway "yachiyo/yachiyo-gateway"
-	"yachiyo/yachiyo-gateway/jsonclient"
+	"yachiyo/yachiyo-gateway/wsjson"
 	"yachiyo/yachiyo-runtime/config"
 	"yachiyo/yachiyo-runtime/core"
 	"yachiyo/yachiyo-runtime/llm/provider"
@@ -92,9 +92,9 @@ func run() error {
 		return fmt.Errorf("Core loading failed: %w", err)
 	}
 
-	if cfg.Gateways.JSONClient.Enabled {
-		info := jsonclient.ServerInfo{Name: cfg.Nickname, Version: version}
-		hub.Attach(jsonclient.New(info), cfg.Gateways.JSONClient.Port, ycore.Dispatch)
+	if cfg.Gateways.Wsjson.Enabled {
+		info := wsjson.ServerInfo{Name: cfg.Nickname, Version: version}
+		hub.Attach(wsjson.New(info), cfg.Gateways.Wsjson.Port, ycore.Dispatch)
 	}
 
 	ylog.Success("Successfully initialize Yachiyo server.")

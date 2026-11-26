@@ -1,4 +1,4 @@
-package jsonclient
+package wsjson
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"slices"
 	"sync"
 	"time"
-	"yachiyo/yachiyo-gateway/jsonclient/model"
+	"yachiyo/yachiyo-gateway/wsjson/model"
 	"yachiyo/yachiyo-gateway/pending"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
@@ -18,9 +18,9 @@ import (
 	"yachiyo/yachiyo-util/logger"
 )
 
-var ylog = logger.New("Yachiyo.Jsonclient")
+var ylog = logger.New("Yachiyo.wsjson")
 
-type JsonClientService struct {
+type Service struct {
 	clients map[string]*Client
 	mu      sync.RWMutex //exhaustruct:optional
 
@@ -29,15 +29,15 @@ type JsonClientService struct {
 	serverInfo ServerInfo
 }
 
-func New(info ServerInfo) *JsonClientService {
-	return &JsonClientService{
+func New(info ServerInfo) *Service {
+	return &Service{
 		clients:    make(map[string]*Client),
 		serverInfo: info,
 		pending:    pending.NewPending(),
 	}
 }
 
-func (s *JsonClientService) Listen(port int64, submit func(trig trigger.Trigger)) {
+func (s *Service) Listen(port int64, submit func(trig trigger.Trigger)) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws/", s.handleWebsocket)
 
@@ -45,19 +45,19 @@ func (s *JsonClientService) Listen(port int64, submit func(trig trigger.Trigger)
 
 	go func() {
 		addr := fmt.Sprintf(":%d", port)
-		ylog.Success("Running client server on :%d successfully.", port)
+		ylog.Success("Running wsjson server on :%d successfully.", port)
 		if err := http.ListenAndServe(addr, mux); err != nil {
-			ylog.Error("json client adapter running error: %v", err)
+			ylog.Error("wsjson gateway running error: %v", err)
 		}
 	}()
 	go s.heartbeatCleanup()
 }
 
-func (s *JsonClientService) SchemeName() string {
-	return "jsonclient"
+func (s *Service) SchemeName() string {
+	return "wsjson"
 }
 
-func (s *JsonClientService) Send(a action.Action) error {
+func (s *Service) Send(a action.Action) error {
 	switch t := a.(type) {
 	case *action.AssistantMessage:
 		c, err := s.getClient(t)
@@ -171,7 +171,7 @@ func (s *JsonClientService) Send(a action.Action) error {
 	}
 }
 
-func (s *JsonClientService) UseTool(ctx context.Context, addr address.Address, reqID, toolName, payload string) (string, error) {
+func (s *Service) UseTool(ctx context.Context, addr address.Address, reqID, toolName, payload string) (string, error) {
 	host, err := addr.Host()
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", s.SchemeName(), err)
@@ -212,7 +212,7 @@ func (s *JsonClientService) UseTool(ctx context.Context, addr address.Address, r
 	return res.Result, nil
 }
 
-func (s *JsonClientService) Clients() []endpoint.Endpoint {
+func (s *Service) Clients() []endpoint.Endpoint {
 	li := make([]endpoint.Endpoint, 0)
 	s.mu.RLock()
 	defer s.mu.RUnlock()

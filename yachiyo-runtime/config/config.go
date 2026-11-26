@@ -52,7 +52,7 @@ type file struct {
 		Bigfive fileBigfive `yaml:"bigfive"`
 	} `yaml:"core"`
 	Gateway struct {
-		JSONClient fileGateway `yaml:"jsonclient"`
+		Wsjson fileGateway `yaml:"wsjson"`
 	} `yaml:"gateway"`
 	Initiative struct {
 		Energy struct {
@@ -92,7 +92,7 @@ type Gateway struct {
 }
 
 type Gateways struct {
-	JSONClient Gateway
+	Wsjson Gateway
 }
 
 type Initiative struct {
@@ -271,10 +271,10 @@ func Parse(data []byte) (Config, []ywarning.Warning, error) {
 	}
 
 	config.Gateways = Gateways{
-		JSONClient: gateway("gateway.jsonclient", f.Gateway.JSONClient),
+		Wsjson: gateway("gateway.wsjson", f.Gateway.Wsjson),
 	}
 
-	gatewayAnyEnabled := config.Gateways.JSONClient.Enabled
+	gatewayAnyEnabled := config.Gateways.Wsjson.Enabled
 	if !gatewayAnyEnabled {
 		warns = append(warns, ywarning.New("gateway",
 			fmt.Sprintf("Gateways are closed. %v may not notice any input.", config.Nickname)))

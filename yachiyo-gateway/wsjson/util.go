@@ -1,4 +1,4 @@
-package jsonclient
+package wsjson
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-func (s *JsonClientService) handleWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *Service) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		ylog.Error("Websocket upgrade error: %v", err)
@@ -21,11 +21,11 @@ func (s *JsonClientService) handleWebsocket(w http.ResponseWriter, r *http.Reque
 	go client.Run(s.unregister, s.handleReceive)
 }
 
-func (s *JsonClientService) clientAddress(c *Client) address.Address {
+func (s *Service) clientAddress(c *Client) address.Address {
 	return address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID))
 }
 
-func (s *JsonClientService) getClient(a action.Action) (*Client, error) {
+func (s *Service) getClient(a action.Action) (*Client, error) {
 	address := a.GetAddress()
 	host, err := address.Host()
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *JsonClientService) getClient(a action.Action) (*Client, error) {
 }
 
 // Check client if former client is not the same as the current one.
-func (s *JsonClientService) checkClient(c *Client) bool {
+func (s *Service) checkClient(c *Client) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	client, ok := s.clients[c.ID]
@@ -58,7 +58,7 @@ type ServerInfo struct {
 	Version string
 }
 
-func (s *JsonClientService) heartbeatCleanup() {
+func (s *Service) heartbeatCleanup() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
@@ -79,7 +79,7 @@ func (s *JsonClientService) heartbeatCleanup() {
 	}
 }
 
-func (s *JsonClientService) unregister(c *Client) {
+func (s *Service) unregister(c *Client) {
 	s.mu.Lock()
 	if client, ok := s.clients[c.ID]; ok && client == c {
 		delete(s.clients, c.ID)

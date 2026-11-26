@@ -21,7 +21,7 @@ prompt:
   compress: ./prompt/compress.md
 
 gateway:
-  jsonclient:
+  wsjson:
     enabled: True
     port: 16899
 
