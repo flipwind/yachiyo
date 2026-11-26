@@ -77,7 +77,14 @@ func (s *Service) Send(a action.Action) error {
 			return fmt.Errorf("Client <%s> doesn't support %s", c.ID, endpoint.CapMessageText)
 		}
 
-		return c.send("interaction", "runtime_message", &model.RuntimeMessage{Time: t.Timestamp.Unix(), Reply: t.Reply, Message: t.Content, IsInitiative: t.Initiative})
+		path, _ := t.Address.Path()
+		return c.send("interaction", "runtime_message", &model.RuntimeMessage{
+			Time:         t.Timestamp.Unix(),
+			Reply:        t.Reply,
+			Message:      t.Content,
+			IsInitiative: t.Initiative,
+			Path:         path,
+		})
 	case *action.RuntimeState:
 		c, err := s.getClient(t)
 		if err != nil {
@@ -161,9 +168,11 @@ func (s *Service) Send(a action.Action) error {
 			return err
 		}
 
+		path, _ := t.Address.Path()
 		return c.send("interaction", "runtime_error", &model.RuntimeError{
 			Code:    string(t.Code),
 			Message: t.Message,
+			Path:    path,
 		})
 	default:
 		ylog.Info("Unsupport value: %T", t)

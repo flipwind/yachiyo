@@ -5,6 +5,8 @@ func (_ *ClientMessage) DataPack() {}
 type ClientMessage struct {
 	Message string `json:"message"`
 	Time    int64  `json:"time"`
+	Author  string `json:"author,omitempty"` //exhaustruct:optional
+	Path    string `json:"path,omitempty"`   //exhaustruct:optional
 }
 
 func (_ *RuntimeMessage) DataPack() {}
@@ -14,6 +16,7 @@ type RuntimeMessage struct {
 	Message      []string `json:"message"`
 	IsInitiative bool     `json:"is_initiative"`
 	Time         int64    `json:"time"`
+	Path         string   `json:"path,omitempty"` //exhaustruct:optional
 }
 
 func (*GetRelativeMessageHistory) DataPack() {}
@@ -31,4 +34,5 @@ func (*RuntimeError) DataPack() {}
 type RuntimeError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Path    string `json:"path,omitempty"` //exhaustruct:optional
 }

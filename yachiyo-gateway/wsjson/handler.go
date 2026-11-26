@@ -3,10 +3,11 @@ package wsjson
 import (
 	"encoding/json"
 	"regexp"
+	"strings"
 	"time"
 	"uuid"
-	"yachiyo/yachiyo-gateway/wsjson/model"
 	"yachiyo/yachiyo-gateway/pending"
+	"yachiyo/yachiyo-gateway/wsjson/model"
 	"yachiyo/yachiyo-shared/endpoint"
 	"yachiyo/yachiyo-shared/trigger"
 
@@ -150,13 +151,28 @@ func (s *Service) handleInteraction(c *Client, message model.Envelope) {
 			return
 		}
 
+		path, err := normalizePath(data.Path)
+		if err != nil {
+			ylog.Warn("Invalid path from client <%s>: %v", c.Name, err)
+			_ = c.send("interaction", "runtime_error", &model.RuntimeError{
+				Code:    "invalid_path",
+				Message: err.Error(),
+			})
+			return
+		}
+
+		author := strings.TrimSpace(data.Author)
+		if author == "" {
+			author = "user"
+		}
+
 		s.submit(&trigger.UserMessage{
-			Author:    "user",
+			Author:    author,
 			Platform:  c.Type,
 			Content:   data.Message,
 			Timestamp: time.Now(),
 
-			Address: s.clientAddress(c),
+			Address: s.clientAddressWithPath(c, path),
 		})
 	case "get_relative_message_history":
 		if s.checkClient(c) == false {

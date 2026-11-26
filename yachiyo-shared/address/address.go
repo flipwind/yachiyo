@@ -3,6 +3,7 @@ package address
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type Address struct {
@@ -29,4 +30,12 @@ func (a Address) Host() (string, error) {
 		return "", fmt.Errorf("address parsing error: %w", err)
 	}
 	return u.Host, nil
+}
+
+func (a Address) Path() (string, error) {
+	u, err := url.Parse(a.Content)
+	if err != nil {
+		return "", fmt.Errorf("address parsing error: %w", err)
+	}
+	return strings.Trim(u.Path, "/"), nil
 }

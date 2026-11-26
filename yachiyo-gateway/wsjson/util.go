@@ -1,8 +1,11 @@
 package wsjson
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 	"yachiyo/yachiyo-shared/action"
 	"yachiyo/yachiyo-shared/address"
@@ -21,8 +24,44 @@ func (s *Service) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 	go client.Run(s.unregister, s.handleReceive)
 }
 
+const maxPathLength = 128
+
+var validPathChars = regexp.MustCompile(`^[a-zA-Z0-9._/-]+$`)
+
+func normalizePath(raw string) (string, error) {
+	if raw == "" {
+		return "", nil
+	}
+
+	trimmed := strings.Trim(raw, "/")
+	if trimmed == "" {
+		return "", errors.New("path must not only consist `/`s")
+	}
+	if len(trimmed) > maxPathLength {
+		return "", fmt.Errorf("path exceeds maximum length of %d", maxPathLength)
+	}
+	if !validPathChars.MatchString(trimmed) {
+		return "", errors.New("path contains invalid characters (allowed: a-z, A-Z, 0-9, ., _, -, /)")
+	}
+
+	for seg := range strings.SplitSeq(trimmed, "/") {
+		if seg == "" || seg == "." || seg == ".." {
+			return "", fmt.Errorf("path contains invalid segment %q", seg)
+		}
+	}
+
+	return trimmed, nil
+}
+
 func (s *Service) clientAddress(c *Client) address.Address {
 	return address.New(fmt.Sprintf("%s://%s", s.SchemeName(), c.ID))
+}
+
+func (s *Service) clientAddressWithPath(c *Client, path string) address.Address {
+	if path == "" {
+		return s.clientAddress(c)
+	}
+	return address.New(fmt.Sprintf("%s://%s/%s", s.SchemeName(), c.ID, path))
 }
 
 func (s *Service) getClient(a action.Action) (*Client, error) {
