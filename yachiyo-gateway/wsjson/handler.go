@@ -42,7 +42,7 @@ func (s *Service) handleReceive(c *Client, data []byte) {
 	}
 }
 
-var validClientName = regexp.MustCompile(`^[a-zA-Z0-9_]{1,16}$`)
+var validClientName = regexp.MustCompile(`^[a-zA-Z0-9_!?]{1,16}$`)
 
 func (s *Service) handleConnection(c *Client, message model.Envelope) {
 	switch message.Type {
