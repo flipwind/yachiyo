@@ -1,0 +1,4 @@
+config.yaml
+*.db
+*.db-wal
+*.db-shm

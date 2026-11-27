@@ -173,12 +173,71 @@ jobs:
       run: |
         rm -f android/key.properties
         rm -f android/pancake-release.jks
-  
+
+  build-qq:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            binary: yachiyo-qq
+            archive: yachiyo-qq-linux-${{github.ref_name}}.tar.gz
+            archive_command: tar -zcvf yachiyo-qq-linux-${{github.ref_name}}.tar.gz -C build/qq .
+
+          - os: windows-latest
+            platform: windows
+            binary: yachiyo-qq.exe
+            archive: yachiyo-qq-windows-${{github.ref_name}}.zip
+            archive_command: powershell "Compress-Archive -Path 'build/qq/*' -DestinationPath 'yachiyo-qq-windows-${{github.ref_name}}.zip' -Force"
+
+    name: QQ Client Build (${{matrix.os}})
+    runs-on: ${{matrix.os}}
+    env:
+      CGO_ENABLED: "1"
+      CC: gcc
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Go
+      uses: actions/setup-go@v7
+      with:
+        go-version-file: "go.mod"
+        cache: true
+
+    - name: Test QQ Client
+      shell: bash
+      run: go test ./yachiyo-client/qq/...
+
+    - name: Prepare Assets
+      shell: bash
+      run: |
+        mkdir -p build/qq
+        cp yachiyo-client/qq/README.md build/qq
+        cp yachiyo-client/qq/README.en.md build/qq
+        cp yachiyo-client/qq/config.example.yaml build/qq
+        cp LICENSE build/qq
+
+    - name: Build QQ Client
+      shell: bash
+      run: go build -trimpath -o build/qq/${{matrix.binary}} ./yachiyo-client/qq
+
+    - name: Archive
+      shell: bash
+      run: ${{matrix.archive_command}}
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: yachiyo-qq-${{matrix.platform}}
+        if-no-files-found: error
+        path: ${{matrix.archive}}
+
   release:
     name: Create Release
     needs: 
       - build-runtime
       - build-pancake
+      - build-qq
     runs-on: ubuntu-latest
 
     permissions:
@@ -199,3 +258,5 @@ jobs:
             release/yachiyo-runtime-windows/*
             release/pancake-windows/*
             release/pancake-android/*
+            release/yachiyo-qq-linux/*
+            release/yachiyo-qq-windows/*

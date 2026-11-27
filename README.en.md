@@ -43,7 +43,7 @@ For non-provided platforms, try to compile according to the target platform. You
 
 ### Client
 
-Currently, the built-in client is the Flutter client `Pancake!`.
+Currently, the built-in clients include the Flutter client `Pancake!` and the official QQ Bot client `yachiyo-qq`.
 
 #### For flutter client (Recommend):
 
@@ -63,6 +63,19 @@ For non-provided platforms, try to build it for your target platform. You can al
     - [BUILD_TARGET] can be `aar`, `apk`, `web` or another target supported by Flutter. Run `flutter build` to see the available subcommands.
 2. Run it.
 3. Enter the server address field to monitor or message with the runtime.
+
+#### For QQ client:
+
+The entire `yachiyo-client/qq/` directory was written by Antigravity (Gemini 4 Neon).
+
+The QQ client [`yachiyo-client/qq`](yachiyo-client/qq/README.en.md) is a standalone Go client that bridges **official QQ Bot API v2** (group and C2C chats) to `yachiyo-gateway` (`wsjson`), featuring an embedded terminal QR bind flow, local SQLite caching, and 7 QQ-specific tools.
+
+1. Download the `yachiyo-qq` archive for your platform (Linux / Windows) from the **release page**;  
+or build it from the repository root with `task qq:build` (output in `build/qq/`), or build and run directly with `task qq`.
+2. Copy `config.example.yaml` to `config.yaml` (or let the client generate a default one on first launch), and adjust `yachiyo.gateway_url` if needed (default: `ws://127.0.0.1:16899/ws/`).
+3. Run `./yachiyo-qq -config config.yaml`. If `app_id` / `app_secret` are empty, the client automatically launches the terminal Mobile QQ QR bind flow and saves the credentials back to `config.yaml`.
+
+For full configuration options, protocol mapping, and exposed tools, see the [QQ Client README](yachiyo-client/qq/README.en.md).
 
 ### About Prompt
 

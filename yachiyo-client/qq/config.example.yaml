@@ -1,0 +1,24 @@
+yachiyo:
+  gateway_url: "ws://127.0.0.1:16899/ws/"
+  client_id: "" # 留空则启动时自动生成 UUID 并回写保存；填写非法 UUID 将直接退出
+  client_name: "qq" # ≤16 字符，仅允许 a-z, A-Z, 0-9, _
+  heartbeat_interval_sec: 15
+
+qq:
+  app_id: "" # 留空则启动时自动拉起终端扫码绑定（内嵌 qqbot-connector）并回写保存
+  app_secret: ""
+  sandbox: false
+  default_markdown: true
+  fallback_to_plain_text: true
+  group_reply_mode: "at_only" # at_only（默认，仅 @ 机器人触发生成，其余群消息只入本地缓存）| all（全量触发）
+  log_content: false # 是否在 INFO 日志中打印脱敏截断后的聊天正文预览
+  qr_source: "" # 可选，扫码绑定页显示的来源标识
+
+cache:
+  db_path: "qq_cache.db" # SQLite 持久化文件路径
+  max_size_mb: 60 # SQLite 缓存上限（MB），超出后自动淘汰最旧历史消息
+  recent_messages_per_group: 100 # qq_get_recent_messages 单次最大查询条数
+  dedup_ttl_sec: 120
+  passive_reply_max_count: 5 # 群聊单条入站消息被动回复上限
+  c2c_passive_reply_max_count: 4 # 单聊（私聊）单条入站消息被动回复上限
+  passive_reply_ttl_sec: 3500

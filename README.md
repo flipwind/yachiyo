@@ -48,7 +48,7 @@ _✨ For the pancake. ✨_
 
 ### 客户端
 
-当前内置的客户端为 Flutter 客户端 `Pancake!`。
+当前内置的客户端包含 Flutter 客户端 `Pancake!` 与 QQ 官方机器人客户端 `yachiyo-qq`。
 
 #### 对于 Flutter 客户端（推荐）：
 
@@ -69,6 +69,19 @@ Flutter 客户端 `Pancake!` 被设计为跨平台应用，所以这也是使用
     - `[BUILD_TARGET]` 可以是 `aar`, `apk`, `web` 或其他 Flutter 支持平台的任何一种。运行 `flutter build` 来查阅其他支持的平台（这当然是对的，因为 task 任务肯定会使用 Flutter 的相关命令）。
 2. 运行它。
 3. 记得在应用内配置服务端地址。
+
+#### 对于 QQ 客户端：
+
+该模块 `yachiyo-client/qq/` 由 Antigravity（Gemini 4 Neon）独立编写完成。
+
+QQ 客户端 [`yachiyo-client/qq`](yachiyo-client/qq/README.md) 是一个独立的 Go 客户端，用于通过 **QQ 官方机器人 API v2** 将 QQ 群聊与私聊接入 `yachiyo-gateway`（`wsjson`），内置终端扫码绑定流程，支持本地 SQLite 缓存与多个 QQ 相关工具。
+
+1. 在 Releases 里下载对应平台（Linux / Windows）的 `yachiyo-qq` 压缩包；  
+也可以在项目根目录运行 `task qq:build` 编译（产物位于 `build/qq/`），或直接运行 `task qq` 一键构建并启动。
+2. 复制 `config.example.yaml` 为 `config.yaml`（首次启动若不存在也会自动生成），按需调整 `yachiyo.gateway_url`（默认 `ws://127.0.0.1:16899/ws/`）。
+3. 运行 `./yachiyo-qq -config config.yaml`；若未配置 `app_id` / `app_secret`，程序会自动在终端拉起手机 QQ 扫码绑定并回写保存。
+
+详细配置项、协议映射与工具列表请参阅 [QQ 客户端 README](yachiyo-client/qq/README.md)。
 
 ### 关于提示词的撰写
 

@@ -8,6 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/openai/openai-go/v3 v3.41.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
+    rsc.io/qr v0.2.0
 )
 
 require (

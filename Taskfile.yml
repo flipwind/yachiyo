@@ -33,3 +33,21 @@ tasks:
     cmds:
       - flutter pub get
       - flutter build {{.CLI_ARGS | default "windows"}} --release
+
+  qq:build:
+    desc: Build Yachiyo QQ client
+    silent: true
+    cmds:
+      - mkdir -p build/qq
+      - go build -trimpath -o build/qq/yachiyo-qq{{exeExt}} ./yachiyo-client/qq
+      - cp yachiyo-client/qq/README.md build/qq
+      - cp yachiyo-client/qq/README.en.md build/qq
+      - cp yachiyo-client/qq/config.example.yaml build/qq
+      - cp LICENSE build/qq
+
+  qq:
+    desc: Build and run Yachiyo QQ client
+    silent: true
+    cmds:
+      - task: qq:build
+      - cd build/qq && ./yachiyo-qq{{exeExt}}
