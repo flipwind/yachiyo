@@ -1,4 +1,3 @@
-
 <div align="center">
 <img src="assets/picture/yachiyo_circle_icon.png" width="256" />
 
@@ -93,11 +92,7 @@ It may helps a lot by reading the code.
 Following is the **must** output json format.
 ```json
 {
-  "reply": bool,
-  "answer": [
-    string,
-    ...
-  ],
+  "thoughts": string,
   "change": {
     "state_delta": {
       "SocialDesire": -1 | 0 | 1,

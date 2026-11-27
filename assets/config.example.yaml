@@ -1,7 +1,7 @@
 nickname: Yachiyo
 
 log:
-  level: debug
+  level: info
 
 core:
   bigfive:
