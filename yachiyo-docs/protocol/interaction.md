@@ -38,7 +38,6 @@ data {
 ```
 type: string = "runtime_message"
 data {
-    reply: bool
     message: List<string>
     is_initiative: bool
     time: int64
@@ -46,7 +45,6 @@ data {
 }
 ```
 
-`reply` 表示 runtime 是否自身决定回复。
 `message` 内为消息的列表，用于表示间隔地发送了数条消息。  
 `is_initiative` 用于标示是否为 runtime 主动发出的消息。
 `time` 为 unix 时间戳。

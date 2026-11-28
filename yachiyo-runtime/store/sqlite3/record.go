@@ -233,7 +233,6 @@ type assistantMessageRecord struct {
 	metaRecord
 	Content    []string      `json:"content"`
 	Initiative bool          `json:"initiative"`
-	Reply      bool          `json:"reply"`
 	Address    addressRecord `json:"address"`
 }
 
@@ -242,7 +241,6 @@ func toAssistantMessageRecord(m event.AssistantMessage) assistantMessageRecord {
 		metaRecord: toMetaRecord(m.Meta),
 		Content:    m.Content,
 		Initiative: m.Initiative,
-		Reply:      m.Reply,
 		Address:    toAddressRecord(m.Address),
 	}
 }
@@ -252,7 +250,6 @@ func (r assistantMessageRecord) event() event.AssistantMessage {
 		Meta:       r.meta(),
 		Content:    r.Content,
 		Initiative: r.Initiative,
-		Reply:      r.Reply,
 		Address:    r.Address.address(),
 	}
 }

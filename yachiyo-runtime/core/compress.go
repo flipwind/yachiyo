@@ -19,7 +19,7 @@ import (
 // Currently the MAXTOKEN is fixed at 500K.
 func (c *Core) checkTokenThreshold(percentage float64, deltaLength int) (estimate bool) {
 	const MAXTOKEN = 500 * 1000
-	token := prompt.EstimateTokens(c.opts.SystemPrompt, c.conv.Window(), deltaLength)
+	token := prompt.EstimateTokens(c.opts.SystemPrompt, c.conv.Window(), c.opts.Nickname, deltaLength)
 
 	return token > int(math.Round(MAXTOKEN*percentage/100))
 }
@@ -97,7 +97,7 @@ func (c *Core) startCompress() {
 		Content:     "NO COMPRESS RESULT",
 	}
 
-	messages := prompt.BuildCompression(window, c.opts.CompressPrompt)
+	messages := prompt.BuildCompression(window, c.opts.CompressPrompt, c.opts.Nickname)
 
 	c.busy = true
 	go func() {

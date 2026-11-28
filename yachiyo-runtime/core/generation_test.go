@@ -21,10 +21,7 @@ func TestParseOutput(t *testing.T) {
 	for _, c := range cases {
 		raw := fmt.Sprintf(
 			`{
-    "reply": true,
-    "answer": [
-        "hi"
-    ],
+    "thoughts": "ok",
     "change": {
         "affect_press": [
             {

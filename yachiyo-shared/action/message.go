@@ -9,7 +9,6 @@ type AssistantMessage struct {
 	Content    []string
 	Timestamp  time.Time
 	Initiative bool
-	Reply      bool
 }
 
 func (*AssistantMessage) action() {}
@@ -31,7 +30,6 @@ type AssistantHistoryMessage struct {
 	Content    []string
 	Timestamp  time.Time
 	Initiative bool
-	Reply      bool
 }
 
 func (*AssistantHistoryMessage) historyMessage() {}

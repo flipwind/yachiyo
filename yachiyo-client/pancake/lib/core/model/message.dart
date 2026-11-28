@@ -10,12 +10,10 @@ class UserMessage extends Message {
 }
 
 class AssistantMessage extends Message {
-  bool reply;
   bool initiative;
   AssistantMessage({
     required super.content,
     required super.time,
-    required this.reply,
     required this.initiative,
   });
 }

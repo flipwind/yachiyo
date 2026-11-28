@@ -35,7 +35,6 @@ type AssistantMessage struct {
 	Meta
 	Content    []string
 	Initiative bool
-	Reply      bool
 	Address    address.Address
 }
 

@@ -71,26 +71,30 @@ func UserMessage(m event.UserMessage) string {
 	return userMessage(m.Author, m.Platform, m.Content, m.Address, m.Timestamp)
 }
 
-func AssistantMessage(m event.AssistantMessage) string {
-	// e.g. <Message initiative: False><Reply: True>(2030.07.21 16:16:09) Iroha! Suki~
-	msg := fmt.Sprintf("<Message initiative: %t><Reply: %t>(%s) ", m.Initiative, m.Reply, m.Timestamp.Format(timeLayout))
-	if m.Reply {
-		for _, message := range m.Content {
-			msg += fmt.Sprintf("`%s` ", message)
-		}
-	} else {
-		msg += fmt.Sprintf("<Reason: %s>", m.Content)
+func AssistantMessage(m event.AssistantMessage, nickname string) string {
+	// e.g. <Yachiyo>(2030.07.21 16:16:09 -> wsjson://testclient/private/1, passive) `Iroha!` `Suki~`
+	mode := "passive"
+	if m.Initiative {
+		mode = "initiative"
+	}
+	target := ""
+	if m.Address.Content != "" {
+		target = " -> " + m.Address.Content
 	}
 
+	msg := fmt.Sprintf("<%s>(%s%s, %s)", nickname, m.Timestamp.Format(timeLayout), target, mode)
+	for _, message := range m.Content {
+		msg += fmt.Sprintf(" `%s`", message)
+	}
 	return msg
 }
 
-func Event(e event.Event) string {
+func Event(e event.Event, nickname string) string {
 	switch m := e.(type) {
 	case event.UserMessage:
 		return UserMessage(m)
 	case event.AssistantMessage:
-		return AssistantMessage(m)
+		return AssistantMessage(m, nickname)
 	default:
 		ylog.Error("Unknown event: %T", m)
 		return ""

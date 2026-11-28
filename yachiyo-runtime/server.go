@@ -79,6 +79,7 @@ func run() error {
 	}
 
 	ycore, err := core.New(core.Options{
+		Nickname:       cfg.Nickname,
 		SystemPrompt:   cfg.Prompt.System,
 		CompressPrompt: cfg.Prompt.Compress,
 		Personality:    personality,

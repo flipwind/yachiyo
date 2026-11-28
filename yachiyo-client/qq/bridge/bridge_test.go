@@ -99,7 +99,7 @@ func TestOutboundMarkdownFallbackPreservesAtTag(t *testing.T) {
 	br := New(api, st, &captureSender{})
 
 	atMsg := `你好 <qqbot-at-user id="USER_1" />`
-	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Reply: true, Message: []string{atMsg}, Path: "group/GRP1"})
+	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Message: []string{atMsg}, Path: "group/GRP1"})
 
 	if len(received) != 2 || received[0].MsgType != qq.MsgTypeMarkdown || received[1].MsgType != qq.MsgTypeText || received[1].Content != atMsg {
 		t.Fatalf("unexpected fallback sequence: %+v", received)
@@ -134,7 +134,7 @@ func TestC2CInboundAndOutboundWithPancakePacing(t *testing.T) {
 	}
 
 	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{
-		Reply: true, Message: []string{"第一条", "hi", strings.Repeat("字", 60)}, Path: "private/USER_OPEN_1",
+		Message: []string{"第一条", "hi", strings.Repeat("字", 60)}, Path: "private/USER_OPEN_1",
 	})
 	if len(received) != 3 {
 		t.Fatalf("expected 3 C2C outbound messages, got %d", len(received))
@@ -175,7 +175,7 @@ func TestC2CPassiveLimit4AndRejectProactiveAndEventTimeTTL(t *testing.T) {
 		Author: qq.C2CAuthor{UserOpenID: "U_LIMIT", Username: "User"},
 	})
 	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{
-		Reply: true, Message: []string{"1", "2", "3", "4", "5"}, Path: "private/U_LIMIT",
+		Message: []string{"1", "2", "3", "4", "5"}, Path: "private/U_LIMIT",
 	})
 	if len(sentReqs) != 4 {
 		t.Fatalf("expected exactly 4 passive C2C replies, got %d", len(sentReqs))
@@ -205,7 +205,7 @@ func TestRateLimitDoesNotBurnPassiveQuota(t *testing.T) {
 	br.sleepFn = func(context.Context, time.Duration) bool { return true }
 
 	st.RecordInboundMessage("G_RL", store.CachedMessage{MessageID: "IN_1", Content: "hi", Timestamp: time.Now().Unix()}, nil)
-	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Reply: true, Message: []string{"a", "b"}, Path: "group/G_RL"})
+	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Message: []string{"a", "b"}, Path: "group/G_RL"})
 	if len(seqs) != 2 || seqs[0] != 1 || seqs[1] != 1 {
 		t.Fatalf("expected 429 not to advance seq (both seq=1), got %v", seqs)
 	}
@@ -223,8 +223,8 @@ func TestPerSessionOutboundOrderingNoInterleave(t *testing.T) {
 	br := New(api, st, &captureSender{})
 	br.sleepFn = func(context.Context, time.Duration) bool { time.Sleep(15 * time.Millisecond); return true }
 
-	br.EnqueueRuntimeMessage(context.Background(), yws.RuntimeMessage{Reply: true, Message: []string{"A1", "A2"}, Path: "group/G_ORD"})
-	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Reply: true, Message: []string{"B1"}, Path: "group/G_ORD"})
+	br.EnqueueRuntimeMessage(context.Background(), yws.RuntimeMessage{Message: []string{"A1", "A2"}, Path: "group/G_ORD"})
+	br.HandleRuntimeMessage(context.Background(), yws.RuntimeMessage{Message: []string{"B1"}, Path: "group/G_ORD"})
 	if len(sentTexts) != 3 || sentTexts[0] != "A1" || sentTexts[1] != "A2" || sentTexts[2] != "B1" {
 		t.Fatalf("expected strict FIFO order [A1 A2 B1], got %v", sentTexts)
 	}
@@ -318,7 +318,7 @@ func TestEnqueueRuntimeMessageNeverBlocksCaller(t *testing.T) {
 
 	start := time.Now()
 	for i := 0; i < 200; i++ {
-		br.EnqueueRuntimeMessage(ctx, yws.RuntimeMessage{Reply: true, Message: []string{"msg"}, Path: "group/G_BACKLOG"})
+		br.EnqueueRuntimeMessage(ctx, yws.RuntimeMessage{Message: []string{"msg"}, Path: "group/G_BACKLOG"})
 	}
 	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
 		t.Fatalf("EnqueueRuntimeMessage blocked caller for %v", elapsed)

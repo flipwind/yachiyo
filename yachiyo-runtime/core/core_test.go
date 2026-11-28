@@ -91,6 +91,7 @@ func fakeNewCore(t *testing.T) (*core.Core, chan action.Action) {
 	hub := newFakeHub(outbox)
 
 	c, err := core.New(core.Options{
+		Nickname:       "Yachiyo",
 		SystemPrompt:   "system",
 		CompressPrompt: "compress",
 		Personality:    state.BigFive{},

@@ -105,6 +105,7 @@ func (c *Core) startGenerate(cause prompt.Cause, addr address.Address) {
 	snap := c.snapshot()
 	prompts := prompt.Build(prompt.Input{
 		Cause:        cause,
+		Nickname:     c.opts.Nickname,
 		SystemPrompt: c.opts.SystemPrompt,
 		Window:       c.conv.Window(),
 		State:        snap.State,
@@ -143,7 +144,6 @@ func (c *Core) finishReply(r reply) {
 			Content:    m.Content,
 			Address:    m.Address,
 			Initiative: r.cause == prompt.Initiative,
-			Reply:      true,
 		}); err != nil {
 			ylog.Error("<%s reply> history appended error: %s", typ, err)
 			c.hub.Deliver(errorAction(yerror.ErrMessageStore, r.addr))

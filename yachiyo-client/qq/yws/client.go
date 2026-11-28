@@ -363,7 +363,7 @@ func summarizeFrame(key string, data json.RawMessage) string {
 			if v.IsInitiative {
 				prefix = "[initiative] "
 			}
-			return fmt.Sprintf("[%s] %sreply=%t bubbles=%d", shortPath(v.Path), prefix, v.Reply, len(v.Message))
+			return fmt.Sprintf("[%s] %sbubbles=%d", shortPath(v.Path), prefix, len(v.Message))
 		}
 	case "interaction/runtime_error":
 		var v RuntimeError

@@ -20,6 +20,7 @@ const (
 
 type Input struct {
 	Cause        Cause
+	Nickname     string
 	SystemPrompt string
 	Window       conversation.Window
 	State        state.Snapshot
@@ -61,7 +62,7 @@ func (c Cause) trigger() string {
 	return "Unknown"
 }
 
-func HistoryPrompt(window conversation.Window) []llm.Message {
+func HistoryPrompt(window conversation.Window, nickname string) []llm.Message {
 	var msgs []llm.Message
 
 	if window.Summary != nil {
@@ -82,7 +83,7 @@ func HistoryPrompt(window conversation.Window) []llm.Message {
 		case event.AssistantMessage:
 			msgs = append(msgs, llm.Message{
 				Role:    llm.RoleAssistant,
-				Content: AssistantMessage(hist),
+				Content: AssistantMessage(hist, nickname),
 			})
 		default:
 			ylog.Error("Unsupport history: %T", hist)
@@ -99,7 +100,7 @@ func Build(in Input) []llm.Message {
 	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: in.SystemPrompt})
 
 	// 2. History Prompt (Including new message)
-	msgs = append(msgs, HistoryPrompt(in.Window)...)
+	msgs = append(msgs, HistoryPrompt(in.Window, in.Nickname)...)
 
 	// 3. Current Statement & Initiative trigger reason
 	statementPrompt := llm.Message{
@@ -116,8 +117,8 @@ func Build(in Input) []llm.Message {
 	return msgs
 }
 
-func BuildCompression(contextWindow conversation.Window, compressPrompt string) []llm.Message {
-	var messages = HistoryPrompt(contextWindow)
+func BuildCompression(contextWindow conversation.Window, compressPrompt string, nickname string) []llm.Message {
+	var messages = HistoryPrompt(contextWindow, nickname)
 	messages = append(messages, llm.Message{
 		Role:    llm.RoleSystem,
 		Content: compressPrompt,
@@ -126,7 +127,7 @@ func BuildCompression(contextWindow conversation.Window, compressPrompt string) 
 	return messages
 }
 
-func EstimateTokens(systemPrompt string, window conversation.Window, extraChars int) int {
+func EstimateTokens(systemPrompt string, window conversation.Window, nickname string, extraChars int) int {
 	charnum := len(systemPrompt) + extraChars
 
 	if window.Summary != nil {
@@ -134,7 +135,7 @@ func EstimateTokens(systemPrompt string, window conversation.Window, extraChars 
 	}
 
 	for _, h := range window.Events {
-		charnum += len(Event(h))
+		charnum += len(Event(h, nickname))
 	}
 
 	token := charnum / 3

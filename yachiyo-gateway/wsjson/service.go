@@ -66,10 +66,6 @@ func (s *Service) Send(a action.Action) error {
 			return err
 		}
 
-		if t.Initiative == true && t.Reply == false {
-			return nil
-		}
-
 		s.mu.RLock()
 		can := c.Capability.Has(endpoint.CapMessageText)
 		s.mu.RUnlock()
@@ -80,7 +76,6 @@ func (s *Service) Send(a action.Action) error {
 		path, _ := t.Address.Path()
 		return c.send("interaction", "runtime_message", &model.RuntimeMessage{
 			Time:         t.Timestamp.Unix(),
-			Reply:        t.Reply,
 			Message:      t.Content,
 			IsInitiative: t.Initiative,
 			Path:         path,
@@ -129,7 +124,6 @@ func (s *Service) Send(a action.Action) error {
 			switch m := msg.(type) {
 			case *action.AssistantHistoryMessage:
 				data, err := json.Marshal(model.RuntimeMessage{
-					Reply:        m.Reply,
 					IsInitiative: m.Initiative,
 					Message:      m.Content,
 					Time:         m.Timestamp.Unix(),

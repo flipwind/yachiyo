@@ -107,7 +107,6 @@ func getBuildinTools(snap Snapshot, cause prompt.Cause, sent *[]sentMessage, hub
 				Content:    args.Messages,
 				Timestamp:  now,
 				Initiative: cause == prompt.Initiative,
-				Reply:      true,
 			})
 
 			if err != nil {

@@ -216,7 +216,6 @@ class PancakeSession {
               AssistantMessage(
                 content: msg,
                 time: DateTime.fromMillisecondsSinceEpoch(data.time * 1000),
-                reply: data.reply,
                 initiative: data.isInitiative,
               ),
             ),
@@ -234,7 +233,6 @@ class PancakeSession {
                     time: DateTime.fromMillisecondsSinceEpoch(
                       messageDataPack.time * 1000,
                     ),
-                    reply: messageDataPack.reply,
                     initiative: messageDataPack.isInitiative,
                   ),
                 );

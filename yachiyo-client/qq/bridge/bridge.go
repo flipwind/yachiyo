@@ -399,7 +399,7 @@ func (b *Bridge) isMentioningBot(ev qq.GroupMessageEvent, isAtEvent bool) bool {
 }
 
 func (b *Bridge) handleRuntimeMessageLocked(ctx context.Context, msg yws.RuntimeMessage) {
-	if !msg.Reply || len(msg.Message) == 0 {
+	if len(msg.Message) == 0 {
 		return
 	}
 	var isGroup bool

@@ -42,15 +42,10 @@ func (c *Core) processMessageHistoryRequest(t trigger.MessageHistoryRequest) act
 				break
 			}
 
-			if m.Initiative == true && m.Reply == false {
-				break
-			}
-
 			msgs = append(msgs, &action.AssistantHistoryMessage{
 				Content:    m.Content,
 				Timestamp:  m.Timestamp,
 				Initiative: m.Initiative,
-				Reply:      m.Reply,
 			})
 		case event.UserMessage:
 			if m.Address != t.Address {

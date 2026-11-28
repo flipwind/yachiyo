@@ -288,7 +288,6 @@ class _MessageContainerWidget extends StatelessWidget {
     final texts = Theme.of(context).textTheme;
 
     late Widget? profile;
-    late bool? reply;
     late String nickname; // TODO: runtime name
     late DateTime time;
     late String content;
@@ -302,7 +301,6 @@ class _MessageContainerWidget extends StatelessWidget {
           width: 32,
           height: 32,
         );
-        reply = aMessage.reply;
         nickname = "Yachiyo";
         time = aMessage.time;
         content = aMessage.content;
@@ -310,38 +308,11 @@ class _MessageContainerWidget extends StatelessWidget {
         isUser = false;
       case final UserMessage uMessage:
         profile = null;
-        reply = null;
         nickname = "You";
         time = uMessage.time;
         content = uMessage.content;
         initiative = false;
         isUser = true;
-    }
-
-    if (isUser == false && reply == false) {
-      return Padding(
-        padding: EdgeInsetsGeometry.only(bottom: 12),
-        child: Align(
-          alignment: AlignmentGeometry.center,
-          child: InkWell(
-            onTap: () {},
-            borderRadius: BorderRadius.circular(12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 8,
-              children: [
-                Icon(Icons.tips_and_updates_outlined, size: 12),
-                Text(
-                  "Chosen to not reply · ${DateFormat('HH:mm').format(time)}",
-                  style: texts.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
     }
 
     return Padding(

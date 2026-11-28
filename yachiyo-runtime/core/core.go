@@ -18,6 +18,7 @@ var ylog = logger.New("Yachiyo.Core")
 
 // Options defines a series of data, usually read only once.
 type Options struct {
+	Nickname       string
 	SystemPrompt   string
 	CompressPrompt string
 	Personality    state.BigFive
