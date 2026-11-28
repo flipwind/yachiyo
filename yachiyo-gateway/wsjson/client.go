@@ -90,7 +90,7 @@ func (c *Client) send(category string, contentType string, d model.DataPack) err
 	dataJson, err := json.Marshal(d)
 	if err != nil {
 		ylog.Error("DataPack marshal to json error: %v", err)
-		return fmt.Errorf("Marshal datapack failed: %w", err)
+		return fmt.Errorf("marshal datapack failed: %w", err)
 	}
 
 	envelope := model.Envelope{

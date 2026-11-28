@@ -68,7 +68,7 @@ func (s *Service) getClient(a action.Action) (*Client, error) {
 	address := a.GetAddress()
 	host, err := address.Host()
 	if err != nil {
-		return nil, fmt.Errorf("Action address error: %w", err)
+		return nil, fmt.Errorf("action address error: %w", err)
 	}
 
 	s.mu.RLock()
@@ -76,7 +76,7 @@ func (s *Service) getClient(a action.Action) (*Client, error) {
 	s.mu.RUnlock()
 
 	if c == nil {
-		return nil, fmt.Errorf("Unknown address: %s", host)
+		return nil, fmt.Errorf("unknown address: %s", host)
 	}
 
 	return c, nil

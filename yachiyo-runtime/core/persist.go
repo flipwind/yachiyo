@@ -50,7 +50,7 @@ func (c *Core) saveCheckpoint() {
 
 func (c *Core) record(e event.Event) error {
 	if err := c.store.Append(e); err != nil {
-		return fmt.Errorf("Storage saving event error: %w", err)
+		return fmt.Errorf("storage saving event error: %w", err)
 	}
 
 	c.conv.Append(e)
@@ -59,7 +59,7 @@ func (c *Core) record(e event.Event) error {
 
 func (c *Core) commitSummary(summary conversation.Summary) error {
 	if err := c.store.SaveSummary(summary); err != nil {
-		return fmt.Errorf("Storage saving summary error: %w", err)
+		return fmt.Errorf("storage saving summary error: %w", err)
 	}
 
 	c.conv.SetSummary(summary)

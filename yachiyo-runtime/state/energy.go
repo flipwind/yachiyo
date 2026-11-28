@@ -18,11 +18,11 @@ type Energy struct {
 func NewEnergy(expression string) (Energy, error) {
 	curve, err := ymath.New(expression, 0)
 	if err != nil {
-		return Energy{}, fmt.Errorf("Curve error: %w", err)
+		return Energy{}, fmt.Errorf("curve error: %w", err)
 	}
 
 	if err := verify(curve); err != nil {
-		return Energy{}, fmt.Errorf("Curve error: %w", err)
+		return Energy{}, fmt.Errorf("curve error: %w", err)
 	}
 
 	return Energy{
@@ -36,7 +36,7 @@ func (e *Energy) Update(t time.Time) error {
 
 	value, err := e.curve.Calculate(hour)
 	if err != nil {
-		return fmt.Errorf("Curve calculating error: %w", err)
+		return fmt.Errorf("curve calculating error: %w", err)
 	}
 
 	e.value = value
@@ -51,10 +51,10 @@ func verify(curve *ymath.ExprCurve) error {
 	for i := 0.0; i <= 24; i += 0.1 {
 		value, err := curve.Calculate(i)
 		if err != nil {
-			return fmt.Errorf("Energy calculated error: %w", err)
+			return fmt.Errorf("energy calculated error: %w", err)
 		}
 		if !(value >= 0 && value <= 1) {
-			return fmt.Errorf("Energy not vaild, should be in [0, 1], but was %v when { x = %v }", value, i)
+			return fmt.Errorf("energy not valid, should be in [0, 1], but was %v when { x = %v }", value, i)
 		}
 	}
 

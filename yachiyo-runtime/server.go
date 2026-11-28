@@ -43,7 +43,7 @@ func run() error {
 		ylog.Warn("Config warning: %v", wa)
 	}
 	if err != nil {
-		return fmt.Errorf("Core loading config failed: %w", err)
+		return fmt.Errorf("core loading config failed: %w", err)
 	}
 
 	if cfg.LogLevel == config.LogDebug {
@@ -65,7 +65,7 @@ func run() error {
 
 	storage, err := sqlite3.Open("yachiyo.db")
 	if err != nil {
-		return fmt.Errorf("Storage created error: %w", err)
+		return fmt.Errorf("storage created error: %w", err)
 	}
 	defer func() {
 		if err := storage.Close(); err != nil {
@@ -75,7 +75,7 @@ func run() error {
 
 	energy, err := state.NewEnergy(cfg.Initiative.EnergyCurve)
 	if err != nil {
-		return fmt.Errorf("Core loading with invalid curves: %w", err)
+		return fmt.Errorf("core loading with invalid curves: %w", err)
 	}
 
 	ycore, err := core.New(core.Options{
@@ -89,7 +89,7 @@ func run() error {
 		Hub:   hub,
 	})
 	if err != nil {
-		return fmt.Errorf("Core loading failed: %w", err)
+		return fmt.Errorf("core loading failed: %w", err)
 	}
 
 	if cfg.Gateways.Wsjson.Enabled {

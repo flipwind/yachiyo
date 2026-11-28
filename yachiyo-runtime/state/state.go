@@ -85,7 +85,7 @@ func (s *State) Advance(d time.Duration, now time.Time) error {
 
 	// Initiative
 	if err := s.energy.Update(now); err != nil {
-		return fmt.Errorf("Energy updated error: %w", err)
+		return fmt.Errorf("energy updated error: %w", err)
 	}
 
 	return nil

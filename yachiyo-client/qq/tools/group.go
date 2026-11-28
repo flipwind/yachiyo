@@ -116,6 +116,7 @@ func (r *Registry) handleGetGroupInfo(ctx context.Context, payload json.RawMessa
 		return "", errors.New("group_openid is required")
 	}
 
+	var apiErr error
 	var apiErrMsg, apiErrType string
 	if r.api != nil {
 		if info, err := r.api.GetGroupInfo(ctx, gid); err == nil {
@@ -142,7 +143,7 @@ func (r *Registry) handleGetGroupInfo(ctx context.Context, payload json.RawMessa
 			}
 			return marshalJSON(res)
 		} else {
-			apiErrMsg, apiErrType = err.Error(), classifyAPIError(err)
+			apiErr, apiErrMsg, apiErrType = err, err.Error(), classifyAPIError(err)
 			toolLog.Warn("qq_get_group_info API failed for %s (%s: %v), falling back to local cache", gid, apiErrType, err)
 		}
 	}
@@ -159,8 +160,8 @@ func (r *Registry) handleGetGroupInfo(ctx context.Context, payload json.RawMessa
 			"reject_proactive":  cached.RejectProactive,
 		})
 	}
-	if apiErrMsg != "" {
-		return "", fmt.Errorf("group %s lookup failed (%s, cache_miss): %s", gid, apiErrType, apiErrMsg)
+	if apiErr != nil {
+		return "", fmt.Errorf("group %s lookup failed (%s, cache_miss): %w", gid, apiErrType, apiErr)
 	}
 	return "", fmt.Errorf("group %s not found via API or local cache (cache_miss)", gid)
 }
@@ -178,6 +179,7 @@ func (r *Registry) handleGetMemberInfo(ctx context.Context, payload json.RawMess
 		return "", errors.New("group_openid and member_openid are required")
 	}
 
+	var apiErr error
 	var apiErrMsg, apiErrType string
 	if r.api != nil {
 		if info, err := r.api.GetGroupMember(ctx, gid, mid); err == nil {
@@ -189,7 +191,7 @@ func (r *Registry) handleGetMemberInfo(ctx context.Context, payload json.RawMess
 				"username": info.Username, "member_role": info.MemberRole, "bot": info.Bot, "joined_at": info.JoinedAt,
 			})
 		} else {
-			apiErrMsg, apiErrType = err.Error(), classifyAPIError(err)
+			apiErr, apiErrMsg, apiErrType = err, err.Error(), classifyAPIError(err)
 			toolLog.Warn("qq_get_member_info API failed for %s/%s (%s: %v), falling back to local cache", gid, mid, apiErrType, err)
 		}
 	}
@@ -201,8 +203,8 @@ func (r *Registry) handleGetMemberInfo(ctx context.Context, payload json.RawMess
 			"username": cached.Username, "member_role": cached.Role, "joined_at": cached.JoinedAt,
 		})
 	}
-	if apiErrMsg != "" {
-		return "", fmt.Errorf("member %s in group %s lookup failed (%s, cache_miss): %s", mid, gid, apiErrType, apiErrMsg)
+	if apiErr != nil {
+		return "", fmt.Errorf("member %s in group %s lookup failed (%s, cache_miss): %w", mid, gid, apiErrType, apiErr)
 	}
 	return "", fmt.Errorf("member %s in group %s not found via API or local cache (cache_miss)", mid, gid)
 }

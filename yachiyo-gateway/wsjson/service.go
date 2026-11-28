@@ -74,7 +74,7 @@ func (s *Service) Send(a action.Action) error {
 		can := c.Capability.Has(endpoint.CapMessageText)
 		s.mu.RUnlock()
 		if !can {
-			return fmt.Errorf("Client <%s> doesn't support %s", c.ID, endpoint.CapMessageText)
+			return fmt.Errorf("client <%s> doesn't support %s", c.ID, endpoint.CapMessageText)
 		}
 
 		path, _ := t.Address.Path()
@@ -176,7 +176,7 @@ func (s *Service) Send(a action.Action) error {
 		})
 	default:
 		ylog.Info("Unsupport value: %T", t)
-		return fmt.Errorf("Unsupported action type: %T", t)
+		return fmt.Errorf("unsupported action type: %T", t)
 	}
 }
 

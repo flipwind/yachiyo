@@ -36,7 +36,7 @@ func (h *Hub) lookup(scheme string) (Service, error) {
 	h.mu.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("Scheme <%v> not found", scheme)
+		return nil, fmt.Errorf("scheme <%v> not found", scheme)
 	}
 
 	return s, nil
@@ -155,7 +155,7 @@ func (h *Hub) UseTool(ctx context.Context, addr address.Address, reqID, toolName
 
 	s, err := h.lookup(scheme)
 	if err != nil {
-		return "", fmt.Errorf("Tool failed: %v", err)
+		return "", fmt.Errorf("tool failed: %w", err)
 	}
 
 	if executor, ok := s.(ToolExecutor); ok {

@@ -72,7 +72,7 @@ func New(opts Options, deps Deps) (*Core, error) {
 
 	restored, err := deps.Store.Load()
 	if err != nil {
-		return nil, fmt.Errorf("Storage restored error: %w", err)
+		return nil, fmt.Errorf("storage restored error: %w", err)
 	}
 
 	snap := state.Initial(opts.Personality, time.Now())
@@ -90,7 +90,7 @@ func New(opts Options, deps Deps) (*Core, error) {
 	ylog.Success("Now history sequence at %v.", conv.Sequence())
 	st := state.Restore(opts.Personality, opts.Energy, snap)
 	if err := st.Advance(elapsed, time.Now()); err != nil {
-		return nil, fmt.Errorf("State advanced error: %w", err)
+		return nil, fmt.Errorf("state advanced error: %w", err)
 	}
 
 	core = &Core{

@@ -45,7 +45,7 @@ func parseOutput(schema string) (output, error) {
 	var llmoutput llmOutput
 
 	if err := json.Unmarshal([]byte(schema), &llmoutput); err != nil {
-		return output{}, fmt.Errorf("Json unmarshal error: %w", err)
+		return output{}, fmt.Errorf("json unmarshal error: %w", err)
 	}
 
 	emotions := make([]state.OCCEmotion, 0)
@@ -157,15 +157,15 @@ func generate(ctx context.Context, client llm.Client, messages []llm.Message, to
 				})
 			}
 		case llm.FinishLength:
-			return output{}, fmt.Errorf("Model output exceeded limit: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("model output exceeded limit: %w", yerror.ErrLLMGenerate)
 		case llm.FinishContentFilter:
-			return output{}, fmt.Errorf("Output content is being filtered: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("output content is being filtered: %w", yerror.ErrLLMGenerate)
 		case llm.FinishUnavailable:
-			return output{}, fmt.Errorf("Provider now unavailable: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("provider now unavailable: %w", yerror.ErrLLMGenerate)
 		case llm.FinishAborted:
-			return output{}, fmt.Errorf("Output was aborted: %w", yerror.ErrLLMGenerate)
+			return output{}, fmt.Errorf("output was aborted: %w", yerror.ErrLLMGenerate)
 		default:
-			lastErr = fmt.Errorf("Unknown finish_reason: %v", response.FinishReason)
+			lastErr = fmt.Errorf("unknown finish_reason: %v", response.FinishReason)
 			ylog.Error("Unexcepted finish_reason, retrying: %v", response.FinishReason)
 			retryNum++
 			continue

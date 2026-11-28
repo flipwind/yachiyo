@@ -134,7 +134,7 @@ const (
 func Load(path string) (Config, []ywarning.Warning, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Config{}, nil, fmt.Errorf("Failed to read config: %w", err)
+		return Config{}, nil, fmt.Errorf("failed to read config: %w", err)
 	}
 
 	config, warns, err := Parse(data)
@@ -144,13 +144,13 @@ func Load(path string) (Config, []ywarning.Warning, error) {
 
 	system, err := os.ReadFile(config.Prompt.System)
 	if err != nil {
-		return Config{}, warns, fmt.Errorf("Failed to read system prompt: %w", err)
+		return Config{}, warns, fmt.Errorf("failed to read system prompt: %w", err)
 	}
 	config.Prompt.System = string(system)
 
 	compress, err := os.ReadFile(config.Prompt.Compress)
 	if err != nil {
-		return Config{}, warns, fmt.Errorf("Failed to read compress prompt: %w", err)
+		return Config{}, warns, fmt.Errorf("failed to read compress prompt: %w", err)
 	}
 	config.Prompt.Compress = string(compress)
 
@@ -161,7 +161,7 @@ func Parse(data []byte) (Config, []ywarning.Warning, error) {
 	var f file
 	var config Config
 	if err := yaml.Unmarshal(data, &f); err != nil {
-		return Config{}, nil, fmt.Errorf("Config unmarshal error: %w", err)
+		return Config{}, nil, fmt.Errorf("config unmarshal error: %w", err)
 	}
 
 	warns := make([]ywarning.Warning, 0)
@@ -330,7 +330,7 @@ func Parse(data []byte) (Config, []ywarning.Warning, error) {
 	}
 
 	if err := errors.Join(errs...); err != nil {
-		return Config{}, warns, fmt.Errorf("Config invalid: %w", err)
+		return Config{}, warns, fmt.Errorf("config invalid: %w", err)
 	}
 
 	return config, warns, nil

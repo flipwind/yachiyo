@@ -51,7 +51,7 @@ func Open(path string) (*Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `histories` error: %w", err)
+		return nil, fmt.Errorf("processing storage of `histories` error: %w", err)
 	}
 
 	if _, err = db.Exec(`
@@ -63,7 +63,7 @@ func Open(path string) (*Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `checkpoint` error: %w", err)
+		return nil, fmt.Errorf("processing storage of `checkpoint` error: %w", err)
 	}
 
 	if _, err = db.Exec(`
@@ -75,7 +75,7 @@ func Open(path string) (*Storage, error) {
 	);
 	`); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("Processing storage of `contextnode` error: %w", err)
+		return nil, fmt.Errorf("processing storage of `contextnode` error: %w", err)
 	}
 
 	return &Storage{
@@ -90,17 +90,17 @@ func (s *Storage) Close() error {
 func (s *Storage) Load() (store.Restored, error) {
 	events, err := s.loadEvents()
 	if err != nil {
-		return store.Restored{}, fmt.Errorf("Error when loading events: %w", err)
+		return store.Restored{}, fmt.Errorf("error when loading events: %w", err)
 	}
 
 	checkpoint, err := s.loadCheckpoint()
 	if err != nil {
-		return store.Restored{}, fmt.Errorf("Error when loading checkpoint: %w", err)
+		return store.Restored{}, fmt.Errorf("error when loading checkpoint: %w", err)
 	}
 
 	summary, err := s.loadSummary()
 	if err != nil {
-		return store.Restored{}, fmt.Errorf("Error when loading summary: %w", err)
+		return store.Restored{}, fmt.Errorf("error when loading summary: %w", err)
 	}
 
 	return store.Restored{
@@ -118,7 +118,7 @@ func (s *Storage) loadEvents() ([]event.Event, error) {
 	`)
 
 	if err != nil {
-		return []event.Event{}, fmt.Errorf("Query histories error: %w", err)
+		return []event.Event{}, fmt.Errorf("query histories error: %w", err)
 	}
 
 	defer rows.Close()
@@ -131,28 +131,28 @@ func (s *Storage) loadEvents() ([]event.Event, error) {
 		var payload string
 
 		if err := rows.Scan(&kind, &version, &payload); err != nil {
-			return []event.Event{}, fmt.Errorf("Scaning histories error: %w", err)
+			return []event.Event{}, fmt.Errorf("scanning histories error: %w", err)
 		}
 
 		if version != historySchemaVersion {
-			return []event.Event{}, fmt.Errorf("Unsupported history version: %d", version)
+			return []event.Event{}, fmt.Errorf("unsupported history version: %d", version)
 		}
 
 		switch kind {
 		case kindUserMessage:
 			var message userMessageRecord
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
-				return []event.Event{}, fmt.Errorf("Decoding user message error: %w", err)
+				return []event.Event{}, fmt.Errorf("decoding user message error: %w", err)
 			}
 			histories = append(histories, message.event())
 		case kindAssistantMessage:
 			var message assistantMessageRecord
 			if err := json.Unmarshal([]byte(payload), &message); err != nil {
-				return []event.Event{}, fmt.Errorf("Decoding assistant message error: %w", err)
+				return []event.Event{}, fmt.Errorf("decoding assistant message error: %w", err)
 			}
 			histories = append(histories, message.event())
 		default:
-			return []event.Event{}, fmt.Errorf("Unknown history kind: %v", kind)
+			return []event.Event{}, fmt.Errorf("unknown history kind: %v", kind)
 		}
 	}
 
@@ -179,15 +179,15 @@ func (s *Storage) loadCheckpoint() (*store.Checkpoint, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Scanning checkpoint error: %w", err)
+		return nil, fmt.Errorf("scanning checkpoint error: %w", err)
 	}
 
 	if version != checkpointSchemaVersion {
-		return nil, fmt.Errorf("Unsupported checkpoint version: %d", version)
+		return nil, fmt.Errorf("unsupported checkpoint version: %d", version)
 	}
 
 	if err := json.Unmarshal([]byte(payload), &checkpoint); err != nil {
-		return nil, fmt.Errorf("Decoding checkpoint error: %w", err)
+		return nil, fmt.Errorf("decoding checkpoint error: %w", err)
 	}
 
 	cp := checkpoint.checkpoint()
@@ -211,15 +211,15 @@ func (s *Storage) loadSummary() (*conversation.Summary, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Scanning contextnode error: %w", err)
+		return nil, fmt.Errorf("scanning contextnode error: %w", err)
 	}
 
 	if version != compressnodeSchemaVersion {
-		return nil, fmt.Errorf("Unsupported contextnode version: %d", version)
+		return nil, fmt.Errorf("unsupported contextnode version: %d", version)
 	}
 
 	if err := json.Unmarshal([]byte(payload), &summary); err != nil {
-		return nil, fmt.Errorf("Decoding contextnode error: %w", err)
+		return nil, fmt.Errorf("decoding contextnode error: %w", err)
 	}
 
 	sum := summary.summary()
@@ -236,7 +236,7 @@ func (s *Storage) Append(e event.Event) error {
 	case event.UserMessage:
 		messageType, record = kindUserMessage, toUserMessageRecord(m)
 	default:
-		return fmt.Errorf("Unknown event type: %T", e)
+		return fmt.Errorf("unknown event type: %T", e)
 	}
 
 	payload, err := json.Marshal(record)

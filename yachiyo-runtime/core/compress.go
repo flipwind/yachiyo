@@ -114,7 +114,7 @@ func (c *Core) finishCompress(r compressed) {
 	}
 
 	if err := c.commitSummary(r.summary); err != nil {
-		saveErr := fmt.Errorf("Compressed but failed to save in storage: %w", err)
+		saveErr := fmt.Errorf("compressed but failed to save in storage: %w", err)
 		ylog.Error("Compressed failed: %v", saveErr)
 		return
 	}
